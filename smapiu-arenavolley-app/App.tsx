@@ -1,18 +1,13 @@
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import RootNavigator from './src/navigation/RootNavigator';
-import { fontAssets } from './src/theme/fonts';
 
 export default function App() {
-  const [fontsLoaded] = useFonts(fontAssets);
-  if (!fontsLoaded) return null;
-
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <RootNavigator />
     </SafeAreaProvider>
   );
