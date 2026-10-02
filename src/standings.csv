@@ -1,0 +1,9 @@
+id,season_id,girone,team_name,is_our_team,position,played,won,lost,points
+6c6e47e0-5237-5268-958e-dfc03eec1e85,1a7216e2-ce88-5262-9f53-679da005349e,Girone B,Smapiù Arena Volley Team,true,1,0,0,0,0
+1a51b21a-f5be-5fe8-86b3-2efe49c3206d,1a7216e2-ce88-5262-9f53-679da005349e,Girone B,Azimut Giorgione,false,2,0,0,0,0
+48925955-0e7e-5bae-9390-2a2993f9ca6f,1a7216e2-ce88-5262-9f53-679da005349e,Girone B,Banca Annia Aduna Padova,false,3,0,0,0,0
+f967121a-fd4d-5cee-9c19-6ae70c2e3b47,1a7216e2-ce88-5262-9f53-679da005349e,Girone B,CO.GE. Vesuvio Oplonti,false,4,0,0,0,0
+5f09c702-6acf-51fe-8b7a-83f6efc22e9f,1a7216e2-ce88-5262-9f53-679da005349e,Girone B,Olimpia di Navigazione Ravenna,false,5,0,0,0,0
+eb975f1d-ac33-5894-964f-bf15b4afa677,1a7216e2-ce88-5262-9f53-679da005349e,Girone B,Tonno Callipo Calabria,false,6,0,0,0,0
+6e15b103-9122-5ee0-8903-c2f36715a6b4,1a7216e2-ce88-5262-9f53-679da005349e,Girone B,V&V Modena,false,7,0,0,0,0
+d135977f-de1b-55c4-8f8a-0daf8e70696b,1a7216e2-ce88-5262-9f53-679da005349e,Girone B,Zero5 Castellana Grotte,false,8,0,0,0,0

@@ -1,0 +1,36 @@
+id,name,logo_url,website_url,tier,is_active,sort_order
+a76d2bf9-d17e-5614-99a0-6823ebffb739,Sitta,sponsor/sitta.png,https://www.sittasrl.it,title,true,1
+671d41df-eef0-5413-b4e2-317321eb2f33,Adami Group,sponsor/adami-group.png,,title,true,2
+a325ebfe-378d-5491-b01f-a1d37720dd4a,Smapiù,sponsor/smapiu.png,,title,true,3
+3c5541ba-8cea-5697-aa27-24f855e831d8,T.M.W. Torneria Meccanica,sponsor/t-m-w-torneria-meccanica.png,https://www.torneriatmw.it,main,true,4
+63a3b526-7757-55ed-8fd2-cce1f7d81e90,Lippa,sponsor/lippa.png,,main,true,5
+9f35ecc2-d1be-50e3-a6eb-04bea20fecb3,WindTre Avantgarde & Co,sponsor/windtre-avantgarde-co.png,,sponsor,true,6
+ad1ff3c4-7407-5acc-9bbe-880183299adb,Angelo Mazzi Costruzioni,sponsor/angelo-mazzi-costruzioni.png,,sponsor,true,7
+9a0f19a4-bcfd-559e-902e-73b093fd5e9a,Baking,sponsor/baking.png,,sponsor,true,8
+b9d2ab91-5787-55a1-9c53-407b4dbfe75d,BCC Valpolicella Benaco,sponsor/bcc-valpolicella-benaco.png,,sponsor,true,9
+21359b07-9c02-521f-bf61-b88d1fed445b,Pizzeria Bel Sito,sponsor/pizzeria-bel-sito.png,,sponsor,true,10
+79a542ea-330d-52bb-96bc-2fbdd9e6b1f2,Belfanti,sponsor/belfanti.png,https://www.belfantisrl.com,sponsor,true,11
+8ca8258d-edfe-5a20-9e6c-f1aaf8fc610d,Bertolani Traslochi,sponsor/bertolani-traslochi.png,,sponsor,true,12
+ff57cbe7-3a1f-5deb-8d65-43123bc34aeb,Bevande Chiozzini,sponsor/bevande-chiozzini.png,,sponsor,true,13
+def47680-87dc-5854-bbfe-a87e676be05d,Cestaro,sponsor/cestaro.png,https://www.autocestaro.it,sponsor,true,14
+4273b5ae-86f9-52d0-88d5-d12a54991843,Delta Immobiliare,sponsor/delta-immobiliare.png,https://www.delta-immobiliare.com,sponsor,true,15
+8840a769-4394-5c77-8e8b-dac4a1497bf5,Effehotels,sponsor/effehotels.png,,sponsor,true,16
+ff5fca28-87c9-56a9-b569-f017fee52ef3,Etikmar,sponsor/etikmar.png,https://www.etikmar.com,sponsor,true,17
+27731b4d-b191-5aaf-92d0-02ce2eef9ef1,Flacon Plast,sponsor/flacon-plast.png,https://www.flaconplast.com,sponsor,true,18
+ca2f31e5-ddaf-5177-a93e-594f473d71bc,Top Geffesport,sponsor/top-geffesport.png,,sponsor,true,19
+54f840e4-8655-595b-8ed3-9243dbb75489,Ideal Zoo,sponsor/ideal-zoo.png,,sponsor,true,20
+fc2ff58c-1c9b-5362-a32b-e67fbe4c6887,Joma,sponsor/joma.png,,sponsor,true,21
+06dc3aa2-593b-5d23-8f2e-5d11ad277ec2,MaSte Print,sponsor/maste-print.png,,sponsor,true,22
+f04302ca-a7eb-555f-b3c5-959bb9217e1f,Negri Termoidraulica,sponsor/negri-termoidraulica.png,,sponsor,true,23
+e8045944-fad9-57e7-9fa7-ac85bff3a3c5,Primo Round,sponsor/primo-round.png,,sponsor,true,24
+cdd1d33d-5ec0-5fa2-ad7c-b433e90440f5,Rigeneral-Pal,sponsor/rigeneral-pal.png,,sponsor,true,25
+4a71517d-c840-5108-a4fe-26777bc1d23c,Carrozzeria Roveggia,sponsor/carrozzeria-roveggia.png,,sponsor,true,26
+6c5cdf99-caae-5ba8-b05c-207944cd9d76,Farmacia Salutis,sponsor/farmacia-salutis.png,,sponsor,true,27
+06d8bc9a-1dbc-5d25-bc6d-a1b9c78173e5,Studio Hita,sponsor/studio-hita.png,,sponsor,true,28
+96633139-3121-5b8f-abb6-b143c031c047,Studio Protecno,sponsor/studio-protecno.png,,sponsor,true,29
+901b4b09-e34e-57d3-bdbb-923c1c02b841,Tecmaut,sponsor/tecmaut.png,,sponsor,true,30
+34f4480c-c389-5970-8c1b-bf727b373322,Tesi,sponsor/tesi.png,,sponsor,true,31
+9c75dfcb-3dd9-5313-86a8-88c61a394db7,Autofficina Venturi,sponsor/autofficina-venturi.png,,sponsor,true,32
+80819d38-0ea7-59a8-9c3d-4d330025fb36,Wolnet,sponsor/wolnet.png,,sponsor,true,33
+d9894ef1-1f78-52d9-90df-59dfa1121162,AGBD Associazione Sindrome di Down,sponsor/agbd-associazione-sindrome-di-down.png,,charity,true,34
+ac501b57-1d48-5549-b180-7745f8de8378,AVIS Castel d'Azzano,sponsor/avis-castel-d-azzano.png,,charity,true,35
