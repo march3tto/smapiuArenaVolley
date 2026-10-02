@@ -165,7 +165,7 @@ function NextMatch({ partita }: { partita: Partita }) {
   return (
     <Card style={styles.nextCard}>
       <View style={styles.nextHead}>
-        <PanelLabel icon="calendar-outline">Prossima Partita</PanelLabel>
+        <PanelLabel icon="calendar-outline">Prossima Partita B1</PanelLabel>
         <Text style={styles.nextDate}>{dataPartita(partita.data_partita)}</Text>
       </View>
       <View style={styles.nextTeams}>

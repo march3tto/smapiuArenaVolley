@@ -1,21 +1,25 @@
 // Tabellone: noi a sinistra, avversario a destra, set vinti al centro
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { TeamBadge } from './ui';
 import { colors } from '../theme/colors';
 import { fonts } from '../theme/fonts';
 import { NOSTRA_SIGLA, NOSTRA_SQUADRA, sigla } from '../lib/format';
 import type { Partita } from '../lib/types';
+import type { Battuta } from '../lib/useLivePartita';
 
 type Props = {
   partita: Partita;
   punteggio: { set: number | null; nostri: number; avversario: number };
   // true nel tab Live: punteggio del set in grande, set vinti sotto
   grande?: boolean;
+  // chi è al servizio, mostrato solo nel tabellone grande
+  battuta?: Battuta | null;
 };
 
-export default function Scoreboard({ partita, punteggio, grande = false }: Props) {
+export default function Scoreboard({ partita, punteggio, grande = false, battuta = null }: Props) {
   const inCasa = partita.casa_trasferta === 'casa';
   const setNostri = partita.nostri_set_vinti ?? 0;
   const setLoro = partita.set_vinti_avversario ?? 0;
@@ -28,6 +32,7 @@ export default function Scoreboard({ partita, punteggio, grande = false }: Props
         logoUrl={partita.logo_smapiuarenavolley_url}
         ours
         sottotitolo={inCasa ? 'Casa' : 'Ospite'}
+        inBattuta={grande && battuta === 'noi'}
       />
 
       {grande ? (
@@ -68,21 +73,35 @@ export default function Scoreboard({ partita, punteggio, grande = false }: Props
         siglaSquadra={sigla(partita.avversario)}
         logoUrl={partita.logo_avversario_url}
         sottotitolo={inCasa ? 'Ospite' : 'Casa'}
+        inBattuta={grande && battuta === 'avversario'}
       />
     </View>
   );
 }
 
-type TeamProps = { nome: string; siglaSquadra: string; sottotitolo: string; ours?: boolean; logoUrl?: string | null };
+type TeamProps = {
+  nome: string;
+  siglaSquadra: string;
+  sottotitolo: string;
+  ours?: boolean;
+  logoUrl?: string | null;
+  inBattuta?: boolean;
+};
 
-function Team({ nome, siglaSquadra, sottotitolo, ours = false, logoUrl }: TeamProps) {
+function Team({ nome, siglaSquadra, sottotitolo, ours = false, logoUrl, inBattuta = false }: TeamProps) {
   return (
     <View style={styles.team}>
       <TeamBadge label={siglaSquadra} ours={ours} logoUrl={logoUrl} />
       <Text style={styles.teamName} numberOfLines={2}>
         {nome}
       </Text>
-      <Text style={styles.teamSub}>{sottotitolo}</Text>
+      {inBattuta ? (
+        <Text style={[styles.serving, { color: ours ? colors.yellow : colors.muted }]}>
+          <MaterialCommunityIcons name="volleyball" size={10} /> In Battuta
+        </Text>
+      ) : (
+        <Text style={styles.teamSub}>{sottotitolo}</Text>
+      )}
     </View>
   );
 }
@@ -92,6 +111,7 @@ const styles = StyleSheet.create({
   team: { flex: 1, alignItems: 'center', gap: 6 },
   teamName: { color: colors.text, fontFamily: fonts.display, fontSize: 12, textAlign: 'center' },
   teamSub: { color: colors.muted, fontFamily: fonts.body, fontSize: 10 },
+  serving: { fontFamily: fonts.display, fontSize: 10 },
   center: { flex: 1, alignItems: 'center', gap: 4 },
   setsScore: { color: colors.text, fontFamily: fonts.display, fontSize: 34 },
   bigScore: { color: colors.text, fontFamily: fonts.display, fontSize: 44, fontVariant: ['tabular-nums'] },

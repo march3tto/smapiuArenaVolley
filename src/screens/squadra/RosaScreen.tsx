@@ -90,12 +90,23 @@ function PlayerCard({ player, onPress }: { player: Giocatrice; onPress: () => vo
         <View style={styles.photo}>
           <PlayerPhoto player={player} numberSize={48} />
           {player.numero_maglia != null ? <Text style={styles.number}>#{player.numero_maglia}</Text> : null}
+          {player.capitana ? <Text style={styles.captain}>CAPITANA</Text> : null}
         </View>
         <View style={styles.cardBody}>
           <Text style={styles.name} numberOfLines={1}>
             {player.nome} {player.cognome}
           </Text>
           {player.ruolo ? <Text style={styles.role}>{ETICHETTE_RUOLO[player.ruolo]}</Text> : null}
+          {player.altezza_cm != null || player.punti != null ? (
+            <View style={styles.cardFoot}>
+              <Text style={styles.footText}>{player.altezza_cm != null ? `${player.altezza_cm} cm` : ''}</Text>
+              {player.punti != null ? (
+                <Text style={styles.footText}>
+                  Punti: <Text style={styles.footValue}>{player.punti}</Text>
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
         </View>
       </Card>
     </Pressable>
@@ -133,16 +144,41 @@ function PlayerModal({ player, onClose }: { player: Giocatrice | null; onClose: 
               </View>
             </View>
 
+            {player.punti != null || player.ace != null || player.muri != null ? (
+              <View style={styles.stats}>
+                <Stat label="Punti Totali" value={player.punti} color={colors.yellow} />
+                <Stat label="Ace Battuta" value={player.ace} color={colors.win} />
+                <Stat label="Muri Punto" value={player.muri} color={colors.amber} />
+              </View>
+            ) : null}
+
             {player.bio ? <Text style={styles.bio}>{player.bio}</Text> : null}
 
-            <View style={styles.infoRow}>
+            <View>
+              {player.altezza_cm != null ? (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Altezza</Text>
+                  <Text style={[styles.infoValue, { color: colors.text }]}>{player.altezza_cm} cm</Text>
+                </View>
+              ) : null}
+              <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Squadra</Text>
-              <Text style={styles.infoValue}>{NOSTRA_SQUADRA} Volley</Text>
+                <Text style={styles.infoValue}>{NOSTRA_SQUADRA} Volley</Text>
+              </View>
             </View>
           </Pressable>
         ) : null}
       </Pressable>
     </Modal>
+  );
+}
+
+function Stat({ label, value, color }: { label: string; value: number | null; color: string }) {
+  return (
+    <View style={styles.stat}>
+      <Text style={styles.statLabel}>{label}</Text>
+      <Text style={[styles.statValue, { color }]}>{value ?? '–'}</Text>
+    </View>
   );
 }
 
@@ -173,7 +209,30 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: 'hidden',
   },
+  captain: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: colors.amber,
+    color: colors.navy,
+    fontFamily: fonts.display,
+    fontSize: 9,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
   cardBody: { padding: 10, gap: 2 },
+  cardFoot: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 6,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: colors.lineSoft,
+  },
+  footText: { color: colors.muted, fontFamily: fonts.body, fontSize: 10 },
+  footValue: { color: colors.text, fontFamily: fonts.display },
   name: { color: colors.text, fontFamily: fonts.display, fontSize: 12 },
   role: { color: colors.amber, fontFamily: fonts.bodySemi, fontSize: 10 },
 
@@ -221,6 +280,25 @@ const styles = StyleSheet.create({
   modalRole: { color: colors.yellow, fontFamily: fonts.display, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase' },
   modalName: { color: colors.text, fontFamily: fonts.display, fontSize: 18 },
   modalSub: { color: colors.muted, fontFamily: fonts.body, fontSize: 12 },
+  stats: { flexDirection: 'row', gap: 8 },
+  stat: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+    padding: 10,
+    borderRadius: 16,
+    backgroundColor: colors.tint,
+    borderWidth: 1,
+    borderColor: colors.lineSoft,
+  },
+  statLabel: {
+    color: colors.muted,
+    fontFamily: fonts.display,
+    fontSize: 9,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+  },
+  statValue: { fontFamily: fonts.display, fontSize: 18, fontVariant: ['tabular-nums'] },
   bio: { color: colors.textSoft, fontFamily: fonts.body, fontSize: 13, lineHeight: 19 },
   infoRow: {
     flexDirection: 'row',

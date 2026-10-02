@@ -45,6 +45,12 @@ export interface Giocatrice {
   attiva: boolean;
   ordine: number | null;
   data_nascita: string | null;
+  // migrazione 20261003: null finché non vengono inserite
+  altezza_cm: number | null;
+  punti: number | null;
+  ace: number | null;
+  muri: number | null;
+  capitana: boolean;
 }
 
 export interface Staff {

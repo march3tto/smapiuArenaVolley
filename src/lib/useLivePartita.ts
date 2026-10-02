@@ -6,6 +6,21 @@ import { supabase } from '../lib/supabase';
 import { getEventiLive, getPartitaLive } from '../lib/api';
 import type { EventoLive, Partita } from '../lib/types';
 
+export type Battuta = 'noi' | 'avversario';
+
+// nella pallavolo batte chi ha vinto l'ultimo punto: cerca nella cronaca del set
+// l'ultimo evento che ha cambiato il punteggio (timeout e cambi non lo cambiano)
+function chiBatte(eventi: EventoLive[], set: number): Battuta | null {
+  const delSet = eventi.filter((e) => e.numero_set === set);
+  for (let i = 0; i < delSet.length; i++) {
+    const cur = delSet[i];
+    const prev = delSet[i + 1] ?? { punteggio_nostro: 0, punteggio_avversario: 0 };
+    if (cur.punteggio_nostro > prev.punteggio_nostro) return 'noi';
+    if (cur.punteggio_avversario > prev.punteggio_avversario) return 'avversario';
+  }
+  return null;
+}
+
 export function useLivePartita() {
   const [partita, setPartita] = useState<Partita | null>(null);
   const [eventi, setEventi] = useState<EventoLive[]>([]);
@@ -67,6 +82,7 @@ export function useLivePartita() {
     partita,
     eventi,
     punteggio: fonte ?? { set: null, nostri: 0, avversario: 0 },
+    battuta: fonte?.set ? chiBatte(eventi, fonte.set) : null,
     loading,
     error,
     ricarica,

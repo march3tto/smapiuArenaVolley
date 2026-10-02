@@ -10,7 +10,7 @@ import { colors } from '../../theme/colors';
 import { fonts } from '../../theme/fonts';
 
 export default function LiveScreen() {
-  const { partita, eventi, punteggio, loading, error, ricarica } = useLivePartita();
+  const { partita, eventi, punteggio, battuta, loading, error, ricarica } = useLivePartita();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = async () => {
@@ -50,7 +50,7 @@ export default function LiveScreen() {
               ) : null}
             </View>
 
-            <Scoreboard partita={partita} punteggio={punteggio} grande />
+            <Scoreboard partita={partita} punteggio={punteggio} battuta={battuta} grande />
 
             {sets.length > 0 ? (
               <View>
@@ -98,6 +98,11 @@ export default function LiveScreen() {
                 <Ionicons name="chatbubbles" size={15} color={colors.yellow} />
                 <Text style={styles.feedTitle}>Cronaca In Diretta</Text>
               </View>
+              {partita.sede ? (
+                <Text style={styles.feedPlace} numberOfLines={1}>
+                  {partita.sede}
+                </Text>
+              ) : null}
             </View>
             {eventi.length === 0 ? (
               <Message empty="Nessun evento registrato finora." />
@@ -161,7 +166,16 @@ const styles = StyleSheet.create({
   currentTheirs: { color: colors.text, fontFamily: fonts.display },
 
   feed: { gap: 8 },
-  feedHead: { paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: colors.line },
+  feedHead: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+  feedPlace: { flexShrink: 1, color: colors.muted, fontFamily: fonts.body, fontSize: 10 },
   feedTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   feedTitle: { color: colors.text, fontFamily: fonts.display, fontSize: 14 },
   event: {
