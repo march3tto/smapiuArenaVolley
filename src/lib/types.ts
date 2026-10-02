@@ -44,6 +44,7 @@ export interface Giocatrice {
   bio: string | null;
   attiva: boolean;
   ordine: number | null;
+  data_nascita: string | null;
 }
 
 export interface Staff {
@@ -81,6 +82,8 @@ export interface Partita {
   nostri_set_vinti: number | null;
   set_vinti_avversario: number | null;
   id_video_youtube_live: string | null;
+  logo_avversario_url: string | null;
+  logo_smapiuarenavolley_url: string | null;
   creato_il: string;
   aggiornato_il: string;
   set_partita?: SetPartita[];

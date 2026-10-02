@@ -1,7 +1,7 @@
 // Diretta: carica partita live + cronaca e si aggiorna in tempo reale.
 // Richiede che eventi_live, set_partita e partite siano nella pubblicazione
 // "supabase_realtime" (Database > Publications).
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { getEventiLive, getPartitaLive } from '../lib/api';
 import type { EventoLive, Partita } from '../lib/types';
@@ -11,6 +11,10 @@ export function useLivePartita() {
   const [eventi, setEventi] = useState<EventoLive[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Home e Live usano entrambe questo hook: supabase.channel() restituisce il canale
+  // esistente se il nome coincide, e aggiungere listener a un canale già sottoscritto
+  // lancia un errore. Un suffisso per istanza tiene separati i canali.
+  const istanza = useRef(Math.random().toString(36).slice(2, 10)).current;
 
   const ricarica = useCallback(async () => {
     try {
@@ -29,7 +33,7 @@ export function useLivePartita() {
 
   useEffect(() => {
     const partitaId = partita?.id;
-    const channel = supabase.channel(`live-${partitaId ?? 'nessuna'}`);
+    const channel = supabase.channel(`live-${partitaId ?? 'nessuna'}-${istanza}`);
 
     // cambio di stato di qualunque partita (es. una diventa 'live' o 'conclusa')
     channel.on('postgres_changes', { event: '*', schema: 'public', table: 'partite' }, () => ricarica());
@@ -46,19 +50,23 @@ export function useLivePartita() {
 
     channel.subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [partita?.id, ricarica]);
+  }, [partita?.id, ricarica, istanza]);
 
   const ultimo = eventi[0];
   const setCorrente = partita?.set_partita?.find((s) => !s.completato);
+  // la cronaca viene inserita punto per punto, set_partita a volte resta indietro:
+  // se l'ultimo evento è del set in corso, il suo punteggio è il più aggiornato
+  const fonte =
+    ultimo && (!setCorrente || ultimo.numero_set === setCorrente.numero_set)
+      ? { set: ultimo.numero_set, nostri: ultimo.punteggio_nostro, avversario: ultimo.punteggio_avversario }
+      : setCorrente
+        ? { set: setCorrente.numero_set, nostri: setCorrente.punti_nostri, avversario: setCorrente.punti_avversario }
+        : null;
 
   return {
     partita,
     eventi,
-    punteggio: {
-      set: setCorrente?.numero_set ?? ultimo?.numero_set ?? null,
-      nostri: setCorrente?.punti_nostri ?? ultimo?.punteggio_nostro ?? 0,
-      avversario: setCorrente?.punti_avversario ?? ultimo?.punteggio_avversario ?? 0,
-    },
+    punteggio: fonte ?? { set: null, nostri: 0, avversario: 0 },
     loading,
     error,
     ricarica,

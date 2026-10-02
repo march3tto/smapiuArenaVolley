@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme, type Theme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
   createNativeStackNavigator,
@@ -10,23 +10,32 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { fonts } from '../theme/fonts';
 import AppHeader from '../components/AppHeader';
-import type {
-  SquadraStackParamList,
-  AltroStackParamList,
-  RootTabParamList,
-} from './types';
+import type { AltroStackParamList, RootTabParamList } from './types';
 
 import HomeScreen from '../screens/squadra/HomeScreen';
 import LiveScreen from '../screens/squadra/LiveScreen';
-import GiovaniliScreen from '../screens/giovanili/GiovaniliScreen';
+import RisultatiScreen from '../screens/risultati/RisultatiScreen';
+import RosaScreen from '../screens/squadra/RosaScreen';
 import NewsScreen from '../screens/news/NewsScreen';
-import MediaScreen from '../screens/media/MediaScreen';
 import MenuScreen from '../screens/altro/MenuScreen';
-import RosaScreen from '../screens/altro/RosaScreen';
+import MediaScreen from '../screens/media/MediaScreen';
+import GiovaniliScreen from '../screens/giovanili/GiovaniliScreen';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
-const SquadraStack = createNativeStackNavigator<SquadraStackParamList>();
 const AltroStack = createNativeStackNavigator<AltroStackParamList>();
+
+// sfondo blu notte anche durante le transizioni, niente lampi bianchi
+const theme: Theme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    primary: colors.yellow,
+    background: colors.navy,
+    card: colors.card,
+    text: colors.text,
+    border: colors.cardBorder,
+  },
+};
 
 // header unico (vedi AppHeader): stessa altezza e contenuto su stack e tab
 const stackHeaderOptions = {
@@ -35,88 +44,53 @@ const stackHeaderOptions = {
   ),
 };
 
-function SquadraStackNavigator() {
-  return (
-    <SquadraStack.Navigator screenOptions={stackHeaderOptions}>
-      <SquadraStack.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{ title: 'SmapiuArenaVolley' }}
-      />
-      <SquadraStack.Screen
-        name="Live"
-        component={LiveScreen}
-        options={{ title: 'Diretta' }}
-      />
-    </SquadraStack.Navigator>
-  );
-}
-
 function AltroStackNavigator() {
   return (
     <AltroStack.Navigator screenOptions={stackHeaderOptions}>
-      <AltroStack.Screen
-        name="Menu"
-        component={MenuScreen}
-        options={{ title: 'Altro' }}
-      />
-      <AltroStack.Screen
-        name="Rosa"
-        component={RosaScreen}
-        options={{ title: 'Rosa 2026/27' }}
-      />
+      <AltroStack.Screen name="Menu" component={MenuScreen} options={{ title: 'Altro' }} />
+      <AltroStack.Screen name="Media" component={MediaScreen} options={{ title: 'Podcast & Video' }} />
+      <AltroStack.Screen name="Giovanili" component={GiovaniliScreen} options={{ title: 'Giovanili' }} />
     </AltroStack.Navigator>
   );
 }
 
+const iconByRoute: Record<keyof RootTabParamList, keyof typeof Ionicons.glyphMap> = {
+  HomeTab: 'home',
+  LiveTab: 'flash',
+  RisultatiTab: 'trophy',
+  SquadraTab: 'people',
+  NewsTab: 'newspaper',
+  AltroTab: 'grid',
+};
+
 export default function RootNavigator() {
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={theme}>
       <Tab.Navigator
         screenOptions={({ route }) => ({
           header: () => <AppHeader />,
-          tabBarActiveTintColor: colors.brand,
+          tabBarActiveTintColor: colors.yellow,
           tabBarInactiveTintColor: colors.muted,
-          tabBarStyle: { borderTopColor: colors.line },
-          tabBarLabelStyle: { fontFamily: fonts.bodyMedium },
-          tabBarIcon: ({ color, size }) => {
-            const iconByRoute: Record<string, keyof typeof Ionicons.glyphMap> = {
-              SquadraTab: 'home-outline',
-              GiovaniliTab: 'people-outline',
-              NewsTab: 'newspaper-outline',
-              MediaTab: 'play-circle-outline',
-              AltroTab: 'grid-outline',
-            };
-            return (
-              <Ionicons
-                name={iconByRoute[route.name] ?? 'ellipse-outline'}
-                size={size}
-                color={color}
-              />
-            );
+          tabBarStyle: {
+            backgroundColor: colors.card,
+            borderTopColor: 'rgba(242,184,0,0.3)',
           },
+          tabBarLabelStyle: { fontFamily: fonts.display, fontSize: 10 },
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons
+              name={iconByRoute[route.name]}
+              size={size - 2}
+              // il fulmine del Live resta sempre giallo, come nella PWA
+              color={route.name === 'LiveTab' ? colors.yellow : color}
+            />
+          ),
         })}
       >
-        <Tab.Screen
-          name="SquadraTab"
-          component={SquadraStackNavigator}
-          options={{ headerShown: false, title: 'Squadra' }}
-        />
-        <Tab.Screen
-          name="GiovaniliTab"
-          component={GiovaniliScreen}
-          options={{ title: 'Giovanili' }}
-        />
-        <Tab.Screen
-          name="NewsTab"
-          component={NewsScreen}
-          options={{ title: 'News' }}
-        />
-        <Tab.Screen
-          name="MediaTab"
-          component={MediaScreen}
-          options={{ title: 'Media' }}
-        />
+        <Tab.Screen name="HomeTab" component={HomeScreen} options={{ title: 'Home' }} />
+        <Tab.Screen name="LiveTab" component={LiveScreen} options={{ title: 'Live' }} />
+        <Tab.Screen name="RisultatiTab" component={RisultatiScreen} options={{ title: 'Risultati' }} />
+        <Tab.Screen name="SquadraTab" component={RosaScreen} options={{ title: 'Squadra' }} />
+        <Tab.Screen name="NewsTab" component={NewsScreen} options={{ title: 'News' }} />
         <Tab.Screen
           name="AltroTab"
           component={AltroStackNavigator}

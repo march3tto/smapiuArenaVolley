@@ -22,7 +22,7 @@ export default function MediaScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.brand} />
+        <ActivityIndicator color={colors.yellow} />
       </View>
     );
   }
@@ -45,7 +45,7 @@ export default function MediaScreen() {
             <Ionicons
               name={item.tipo === 'video' ? 'play-circle-outline' : 'mic-outline'}
               size={22}
-              color={colors.accent}
+              color={colors.yellow}
             />
           </View>
           <View style={{ flex: 1 }}>
@@ -62,29 +62,29 @@ export default function MediaScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
-  title: { fontSize: 19, fontFamily: fonts.display, color: colors.ink, marginBottom: 8 },
+  screen: { flex: 1, backgroundColor: colors.navy },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.navy },
+  title: { fontSize: 19, fontFamily: fonts.display, color: colors.text, marginBottom: 8 },
   muted: { color: colors.muted, fontSize: 13, fontFamily: fonts.body },
   error: { color: colors.loss, fontSize: 13, fontFamily: fonts.body },
   card: {
     flexDirection: 'row',
     gap: 12,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 6,
+    borderColor: colors.cardBorder,
+    borderRadius: 16,
     padding: 10,
     alignItems: 'center',
   },
   thumb: {
     width: 56,
     height: 56,
-    borderRadius: 4,
-    backgroundColor: colors.brand,
+    borderRadius: 12,
+    backgroundColor: colors.darkblue,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badge: { fontSize: 9.5, fontFamily: fonts.display, color: colors.brand, letterSpacing: 0.8, textTransform: 'uppercase' },
-  headline: { fontSize: 13, fontFamily: fonts.bodySemi, color: colors.ink, marginTop: 4 },
+  badge: { fontSize: 9.5, fontFamily: fonts.display, color: colors.amber, letterSpacing: 0.8, textTransform: 'uppercase' },
+  headline: { fontSize: 13, fontFamily: fonts.bodySemi, color: colors.text, marginTop: 4 },
 });

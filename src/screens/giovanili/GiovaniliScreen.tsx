@@ -35,7 +35,7 @@ export default function GiovaniliScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.brand} />
+        <ActivityIndicator color={colors.yellow} />
       </View>
     );
   }
@@ -68,17 +68,17 @@ export default function GiovaniliScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
-  title: { fontSize: 19, fontFamily: fonts.display, color: colors.ink, marginBottom: 8 },
+  screen: { flex: 1, backgroundColor: colors.navy },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.navy },
+  title: { fontSize: 19, fontFamily: fonts.display, color: colors.text, marginBottom: 8 },
   muted: { color: colors.muted, fontSize: 13, marginTop: 2, fontFamily: fonts.body },
   error: { color: colors.loss, fontSize: 13, fontFamily: fonts.body },
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 6,
+    borderColor: colors.cardBorder,
+    borderRadius: 16,
     padding: 14,
   },
-  name: { fontSize: 14, fontFamily: fonts.bodySemi, color: colors.ink },
+  name: { fontSize: 14, fontFamily: fonts.bodySemi, color: colors.text },
 });

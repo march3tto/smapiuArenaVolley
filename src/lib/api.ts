@@ -11,17 +11,19 @@ function check<T>(data: T | null, error: { message: string } | null): T {
 }
 
 // ---------- Stagione ----------
-export async function getStagioneCorrente(): Promise<Stagione | null> {
-  const { data, error } = await supabase
-    .from('stagioni').select('*').eq('corrente', true).limit(1).maybeSingle();
-  return check(data, error);
+// Tutte le stagioni con corrente = true. Di norma è una sola, ma se nel DB ne restano
+// più di una (es. amichevoli pre-campionato) le schermate uniscono i dati invece di
+// sceglierne una a caso.
+export async function getStagioniCorrenti(): Promise<Stagione[]> {
+  const { data, error } = await supabase.from('stagioni').select('*').eq('corrente', true);
+  return check(data, error) ?? [];
 }
 
 // ---------- Rosa ----------
-export async function getGiocatrici(stagioneId: string, livello: LivelloSquadra = 'prima_squadra'): Promise<Giocatrice[]> {
+export async function getGiocatrici(stagioneIds: string[], livello: LivelloSquadra = 'prima_squadra'): Promise<Giocatrice[]> {
   const { data, error } = await supabase
     .from('giocatrici').select('*')
-    .eq('stagione_id', stagioneId)
+    .in('stagione_id', stagioneIds)
     .eq('livello_squadra', livello)
     .eq('attiva', true)
     .order('ordine');
@@ -45,10 +47,10 @@ export async function getCategorieGiovanili(): Promise<CategoriaGiovanile[]> {
 // ---------- Calendario / risultati ----------
 const PARTITA_SELECT = '*, set_partita(*)';
 
-export async function getPartite(stagioneId: string, livello: LivelloSquadra = 'prima_squadra'): Promise<Partita[]> {
+export async function getPartite(stagioneIds: string[], livello: LivelloSquadra = 'prima_squadra'): Promise<Partita[]> {
   const { data, error } = await supabase
     .from('partite').select(PARTITA_SELECT)
-    .eq('stagione_id', stagioneId)
+    .in('stagione_id', stagioneIds)
     .eq('livello_squadra', livello)
     .order('data_partita', { ascending: true })
     .order('numero_set', { referencedTable: 'set_partita', ascending: true });
@@ -96,8 +98,8 @@ export async function getEventiLive(partitaId: string): Promise<EventoLive[]> {
 }
 
 // ---------- Classifica ----------
-export async function getClassifica(stagioneId: string, girone?: string): Promise<RigaClassifica[]> {
-  let q = supabase.from('classifiche').select('*').eq('stagione_id', stagioneId).order('posizione');
+export async function getClassifica(stagioneIds: string[], girone?: string): Promise<RigaClassifica[]> {
+  let q = supabase.from('classifiche').select('*').in('stagione_id', stagioneIds).order('posizione');
   if (girone) q = q.eq('girone', girone);
   const { data, error } = await q;
   return check(data, error) ?? [];

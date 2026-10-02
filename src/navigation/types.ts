@@ -1,17 +1,16 @@
-export type SquadraStackParamList = {
-  Home: undefined;
-  Live: { matchId: string };
-};
+import type { NavigatorScreenParams } from '@react-navigation/native';
 
 export type AltroStackParamList = {
   Menu: undefined;
-  Rosa: undefined;
+  Media: undefined;
+  Giovanili: undefined;
 };
 
 export type RootTabParamList = {
+  HomeTab: undefined;
+  LiveTab: undefined;
+  RisultatiTab: undefined;
   SquadraTab: undefined;
-  GiovaniliTab: undefined;
   NewsTab: undefined;
-  MediaTab: undefined;
-  AltroTab: undefined;
+  AltroTab: NavigatorScreenParams<AltroStackParamList> | undefined;
 };
