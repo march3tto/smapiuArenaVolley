@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { demoData, emptyData, loadAll, subscribeMatches, type AppData } from '@/lib/api';
 import { hasSupabase } from '@/lib/supabase';
+import * as mock from '@/data/mock';
 import { useApp } from './AppProvider';
 import type { Match } from '@/types';
 
@@ -45,7 +46,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
     () => data.matches.map((m) => (m.demoLive ? { ...m, status: demoLive ? ('live' as const) : ('scheduled' as const) } : m)),
     [data.matches, demoLive],
   );
-  const liveMatch = useMemo(() => matches.find((m) => m.status === 'live') ?? null, [matches]);
+  const liveMatch = useMemo(() => {
+    const real = matches.find((m) => m.status === 'live');
+    if (real) return real;
+    // Con Supabase la partita demo non è nel calendario: se l'anteprima è attiva si usa quella dei dati demo
+    if (demoLive && data.source === 'supabase') {
+      const demo = mock.matches.find((m) => m.demoLive);
+      if (demo) return { ...demo, status: 'live' as const };
+    }
+    return null;
+  }, [matches, demoLive, data.source]);
 
   const value = useMemo<DataCtx>(
     () => ({ ...data, matches, liveMatch, loading, error, refresh }),

@@ -13,8 +13,8 @@ export function PlayerCard({ player: p, width, onPress }: { player: Player; widt
   return (
     <Pressy onPress={onPress} scaleTo={0.96} accessibilityRole="button" accessibilityLabel={`${name}, ${ROLE_LABEL[p.role]}`}
       style={{ width, aspectRatio: 3 / 4, borderRadius: 22, overflow: 'hidden', backgroundColor: '#0B1C4D', borderWidth: 1, borderColor: 'rgba(150,178,255,0.18)' }}>
-      <Image source={p.photo} style={{ position: 'absolute', inset: 0 }} contentFit="cover" contentPosition="top" transition={250} />
-      <LinearGradient colors={['transparent', 'rgba(5,13,36,0.35)', 'rgba(5,13,36,0.96)']} locations={[0.3, 0.55, 1]} style={{ position: 'absolute', inset: 0 }} />
+      <Image source={p.photo} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} contentFit="cover" contentPosition="top" transition={250} />
+      <LinearGradient colors={['transparent', 'rgba(5,13,36,0.35)', 'rgba(5,13,36,0.96)']} locations={[0.3, 0.55, 1]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
       <Txt w={900} size={width * 0.36} color="rgba(255,255,255,0.22)" style={{ position: 'absolute', top: 2, right: 10, letterSpacing: -4, lineHeight: width * 0.4 }}>
         {p.number ?? initials(name)}
       </Txt>

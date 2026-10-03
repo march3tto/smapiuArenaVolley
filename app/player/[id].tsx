@@ -45,7 +45,7 @@ export default function PlayerScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 30 }}>
         <View style={{ height: 380, backgroundColor: '#0B1C4D' }}>
           <Image source={p.photo} style={{ flex: 1 }} contentFit="cover" contentPosition="top" transition={250} />
-          <LinearGradient colors={['transparent', 'rgba(5,13,36,0.2)', c.card]} locations={[0.4, 0.65, 1]} style={{ position: 'absolute', inset: 0 }} />
+          <LinearGradient colors={['transparent', 'rgba(5,13,36,0.2)', c.card]} locations={[0.4, 0.65, 1]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
           <Txt w={900} size={120} color="rgba(242,184,0,0.85)" style={{ position: 'absolute', right: 18, bottom: -6, letterSpacing: -8, lineHeight: 120 }}>
             {p.number ?? initials(name)}
           </Txt>

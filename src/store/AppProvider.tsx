@@ -38,7 +38,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [guest, setGuest] = useState(false);
   const [prefs, setPrefs] = useState<NotifPrefs>(DEFAULT_PREFS);
-  const [demoLive, setDemoLiveState] = useState(process.env.EXPO_PUBLIC_DEMO_LIVE !== '0');
+  // Con Supabase l'anteprima live è spenta di default (si accende da Impostazioni o con EXPO_PUBLIC_DEMO_LIVE=1)
+  const [demoLive, setDemoLiveState] = useState(
+    supabase ? process.env.EXPO_PUBLIC_DEMO_LIVE === '1' : process.env.EXPO_PUBLIC_DEMO_LIVE !== '0',
+  );
 
   // Ripristino sessione e preferenze
   useEffect(() => {

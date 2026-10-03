@@ -19,7 +19,7 @@ export default function Settings() {
   const router = useRouter();
   const toast = useToast();
   const { prefs, updatePrefs, toggleYouth, demoLive, setDemoLive, user, signOut } = useApp();
-  const { youth, source } = useData();
+  const { youth } = useData();
 
   const askPermission = async () => {
     if (Platform.OS === 'web') return false;
@@ -102,15 +102,15 @@ export default function Settings() {
 
         <Button label="Invia notifica di prova" icon={<Send size={16} color={c.text} />} onPress={testNotification} style={{ marginTop: 14 }} />
 
-        {source === 'demo' ? <Group title="Anteprima" /> : null}
-        {source === 'demo' ? (<View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12, borderTopWidth: 1, borderTopColor: c.line }}>
+        <Group title="Anteprima" />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12, borderTopWidth: 1, borderTopColor: c.line }}>
           <Volleyball size={18} color={c.accent} />
           <View style={{ flex: 1 }}>
             <Txt w={600} size={15}>Partita in diretta (demo)</Txt>
-            <Txt size={12.5} color="muted">Mostra o nasconde la diretta in home, come se in tabella ci fosse una partita con stato "live".</Txt>
+            <Txt size={12.5} color="muted">Mostra o nasconde la diretta in home, con una partita dimostrativa, se non ce n'è già una con stato "live".</Txt>
           </View>
           <Switch value={demoLive} onValueChange={setDemoLive} trackColor={{ true: palette.gold, false: c.fill2 }} thumbColor="#fff" />
-        </View>) : null}
+        </View>
 
         {user ? (
           <Button label={`Esci (${user.email})`} style={{ marginTop: 18 }} onPress={async () => { await signOut(); router.replace('/login'); }} />

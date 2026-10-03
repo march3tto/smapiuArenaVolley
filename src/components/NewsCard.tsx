@@ -20,7 +20,7 @@ export function NewsCard({ item, width, compact, onPress }: Props) {
     <Pressy onPress={onPress} scaleTo={0.97} style={{ width, borderRadius: compact ? 18 : 22, overflow: 'hidden', backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
       <View style={{ aspectRatio: compact ? 2 : 16 / 9, backgroundColor: c.fill }}>
         <Image source={item.image} style={{ flex: 1 }} contentFit="cover" transition={250} />
-        <LinearGradient colors={['transparent', 'rgba(5,13,36,0.55)']} style={{ position: 'absolute', inset: 0 }} />
+        <LinearGradient colors={['transparent', 'rgba(5,13,36,0.55)']} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
         <View style={{ position: 'absolute', top: 8, left: 8, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 999, backgroundColor: 'rgba(5,13,36,0.6)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }}>
           <Txt w={700} size={11} color="#fff">{item.category}</Txt>
         </View>
