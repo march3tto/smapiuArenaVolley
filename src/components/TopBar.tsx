@@ -3,7 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Moon, Settings, Sun, User } from 'lucide-react-native';
+import { Settings, User } from 'lucide-react-native';
 import { IconButton } from './IconButton';
 import { Txt } from './Txt';
 import { useToast } from './Toast';
@@ -15,7 +15,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 
 export function TopBar() {
   const insets = useSafeAreaInsets();
-  const { c, mode, toggle } = useTheme();
+  const { c } = useTheme();
   const { user, prefs, signOut } = useApp();
   const router = useRouter();
   const toast = useToast();
@@ -59,9 +59,6 @@ export function TopBar() {
             ) : (
               <User size={18} color={c.text} />
             )}
-          </IconButton>
-          <IconButton label="Cambia tema" onPress={toggle}>
-            {mode === 'dark' ? <Sun size={18} color={c.text} /> : <Moon size={18} color={c.text} />}
           </IconButton>
           <IconButton label="Impostazioni notifiche" onPress={() => router.push('/settings')} dot={prefs.enabled}>
             <Settings size={18} color={c.text} />

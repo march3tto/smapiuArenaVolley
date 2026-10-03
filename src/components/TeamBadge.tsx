@@ -2,9 +2,9 @@ import { View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Txt } from './Txt';
-import { LOGO_AVT } from '@/data/assets';
+import { LOGO_AVT, OPPONENT_LOGOS } from '@/data/assets';
 import { TEAM_BADGES, US } from '@/constants';
-import { initials } from '@/lib/format';
+import { initials, slugify } from '@/lib/format';
 import { brandGradient } from '@/theme/colors';
 import type { ImgSrc } from '@/types';
 
@@ -15,7 +15,8 @@ interface Props {
 }
 
 /** Stemma squadra: il nostro logo, il logo dell'avversaria se c'è, altrimenti sigla colorata */
-export function TeamBadge({ name, size = 44, logo }: Props) {
+export function TeamBadge({ name, size = 44, logo: logoProp }: Props) {
+  const logo = logoProp || OPPONENT_LOGOS[slugify(name)];
   const r = Math.round(size * 0.32);
   if (name === US || name.startsWith('Smapiù')) {
     return (

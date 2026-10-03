@@ -7,16 +7,17 @@ import { palette } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { Match } from '@/types';
 
-export function UpcomingList({ matches, onPress }: { matches: Match[]; onPress?: (m: Match) => void }) {
+/** `fill`: la lista occupa tutta l'altezza disponibile, dividendola tra le partite */
+export function UpcomingList({ matches, onPress, fill }: { matches: Match[]; onPress?: (m: Match) => void; fill?: boolean }) {
   const { c } = useTheme();
   if (!matches.length) return <Txt color="muted" size={14}>Nessuna partita in programma.</Txt>;
   return (
-    <View style={{ gap: 8 }}>
+    <View style={{ gap: 8, flex: fill ? 1 : undefined }}>
       {matches.map((m, i) => {
         const first = i === 0;
         const home = m.homeAway === 'casa';
         return (
-          <Pressy key={m.id} onPress={() => onPress?.(m)} scaleTo={0.98} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 9, paddingRight: 12, borderRadius: 18, backgroundColor: c.fill, borderWidth: 1, borderColor: c.line }}>
+          <Pressy key={m.id} onPress={() => onPress?.(m)} scaleTo={0.98} style={{ flex: fill ? 1 : undefined, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 9, paddingRight: 12, borderRadius: 18, backgroundColor: c.fill, borderWidth: 1, borderColor: c.line }}>
             <View style={{ width: 54, paddingVertical: 6, borderRadius: 14, alignItems: 'center', backgroundColor: first ? palette.gold : c.card, borderWidth: first ? 0 : 1, borderColor: c.line }}>
               <Txt w={800} size={26} color={first ? palette.onGold : 'text'} tnum style={{ lineHeight: 28 }}>{dayNum(m.date)}</Txt>
               <Txt w={700} size={11} color={first ? palette.onGold : 'muted'}>{monthShort(m.date)}</Txt>

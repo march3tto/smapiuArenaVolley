@@ -41,10 +41,11 @@ export default function Home() {
 
       <SponsorBanner sponsors={sponsors} onPress={() => router.navigate('/altro')} />
 
-      <View style={{ flexDirection: twoCols ? 'row' : 'column', gap: 16, alignItems: 'flex-start' }}>
+      {/* Su due colonne le card hanno la stessa altezza: le partite si distribuiscono sull'altezza della classifica */}
+      <View style={{ flexDirection: twoCols ? 'row' : 'column', gap: 16, alignItems: twoCols ? 'stretch' : 'flex-start' }}>
         <Card style={{ gap: 14, flex: twoCols ? 1 : undefined, width: twoCols ? undefined : '100%' }}>
           <SectionHeader title="Prossime partite" action={{ label: 'Calendario', onPress: () => router.navigate({ pathname: '/risultati', params: { filter: 'future' } }) }} />
-          <UpcomingList matches={next} onPress={() => router.navigate({ pathname: '/risultati', params: { filter: 'future' } })} />
+          <UpcomingList matches={next} fill={twoCols} onPress={() => router.navigate({ pathname: '/risultati', params: { filter: 'future' } })} />
         </Card>
         <Card style={{ gap: 6, flex: twoCols ? 1 : undefined, width: twoCols ? undefined : '100%' }}>
           <SectionHeader title="Classifica" subtitle="Serie A3, girone B" />

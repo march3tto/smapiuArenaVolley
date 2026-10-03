@@ -56,3 +56,14 @@ export const SPONSOR_LOGOS: Record<string, number> = {
   'windtre-avantgarde-co': require('../../assets/sponsors/windtre-avantgarde-co.png'),
   'wolnet': require('../../assets/sponsors/wolnet.png'),
 };
+
+/** Loghi delle squadre avversarie, per slug del nome (usati se in partite.logo_avversario_url non c'è un URL) */
+export const OPPONENT_LOGOS: Record<string, number> = {
+  'azimut-giorgione': require('../../assets/opponents/azimut-giorgione.jpg'),
+  'banca-annia-aduna-padova': require('../../assets/opponents/banca-annia-aduna-padova.jpg'),
+  'co-ge-vesuvio-oplonti': require('../../assets/opponents/co-ge-vesuvio-oplonti.jpg'),
+  'olimpia-di-navigazione-ravenna': require('../../assets/opponents/olimpia-di-navigazione-ravenna.jpg'),
+  'tonno-callipo-calabria': require('../../assets/opponents/tonno-callipo-calabria.jpg'),
+  'v-v-modena': require('../../assets/opponents/v-v-modena.png'),
+  'zero5-castellana-grotte': require('../../assets/opponents/zero5-castellana-grotte.jpg'),
+};

@@ -2,7 +2,7 @@ import { Platform, Pressable, ScrollView, Switch, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
-import { Bell, Check, Send, Settings as SettingsIcon, Volleyball, X } from 'lucide-react-native';
+import { Bell, Check, Moon, Send, Settings as SettingsIcon, Sun, Volleyball, X } from 'lucide-react-native';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { Txt } from '@/components/Txt';
@@ -14,7 +14,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import type { NotifPrefs } from '@/types';
 
 export default function Settings() {
-  const { c } = useTheme();
+  const { c, mode, toggle } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
@@ -64,6 +64,9 @@ export default function Settings() {
             <Txt w={800} size={22} style={{ letterSpacing: -0.4 }}>Notifiche</Txt>
             <Txt size={13} color="muted">Scegli cosa ricevere sul telefono.</Txt>
           </View>
+          <IconButton label="Cambia tema" onPress={toggle}>
+            {mode === 'dark' ? <Sun size={18} color={c.text} /> : <Moon size={18} color={c.text} />}
+          </IconButton>
           <IconButton label="Chiudi" onPress={() => router.back()}>
             <X size={18} color={c.text} />
           </IconButton>
