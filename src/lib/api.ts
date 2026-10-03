@@ -2,7 +2,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { slugify } from './format';
 import * as mock from '@/data/mock';
-import { PLAYER_PHOTOS, SPONSOR_LOGOS } from '@/data/assets';
+import { NEWS_IMAGES, OPPONENT_LOGOS, PLAYER_PHOTOS, SPONSOR_LOGOS } from '@/data/assets';
 import type {
   ImgSrc, LiveEvent, Match, MatchStatus, MediaItem, NewsItem, Player, PlayerRole, SetScore, Sponsor, SponsorTier, Standing, Venue, YouthTeam,
 } from '@/types';
@@ -38,7 +38,14 @@ export interface AppData {
 type Row = Record<string, unknown>;
 const str = (v: unknown, d = ''): string => (typeof v === 'string' ? v : v == null ? d : String(v));
 const num = (v: unknown): number | null => (typeof v === 'number' ? v : v == null || v === '' ? null : Number(v));
-const isUrl = (v: unknown): v is string => typeof v === 'string' && /^https?:\/\//.test(v);
+
+/** "bucket/file" → URL pubblico dello Storage Supabase (il primo segmento del percorso è il bucket) */
+function storageUrl(path: string): string {
+  if (!supabase || /^https?:\/\//.test(path)) return path;
+  const [bucket, ...rest] = path.split('/');
+  if (!rest.length) return path;
+  return supabase.storage.from(bucket).getPublicUrl(rest.join('/')).data.publicUrl;
+}
 
 export function emptyData(): AppData {
   return { matches: [], standings: [], players: [], news: [], sponsors: [], youth: [], venues: mock.venues, media: [], source: 'supabase' };
@@ -69,12 +76,14 @@ const LIVELLO_SPONSOR: Record<string, SponsorTier> = {
   'charity partner': 'charity',
 };
 
-/** URL completo dal database, altrimenti l'immagine locale corrispondente (per nome file o nome) */
+/**
+ * Immagine da un campo del database: URL completo, oppure percorso "bucket/file" nello Storage (bucket pubblici).
+ * La copia inclusa nell'app (stesso nome file, o nome della giocatrice/sponsor) serve solo se il campo è vuoto.
+ */
 function image(url: unknown, local: Record<string, number>, ...keys: string[]): ImgSrc {
-  if (isUrl(url)) return url;
-  const fromPath = typeof url === 'string' ? url.split('/').pop()?.replace(/\.[a-z]+$/i, '') : undefined;
-  for (const k of [fromPath, ...keys]) if (k && local[k] != null) return local[k];
-  return typeof url === 'string' ? url : '';
+  if (typeof url === 'string' && url) return storageUrl(url);
+  for (const k of keys) if (k && local[k] != null) return local[k];
+  return '';
 }
 
 function mapSets(r: Row): SetScore[] | undefined {
@@ -93,7 +102,7 @@ function mapMatch(r: Row): Match {
     date: str(r.data_partita),
     homeAway: r.casa_trasferta === 'trasferta' ? 'trasferta' : 'casa',
     opponent: str(r.avversario),
-    opponentLogo: (isUrl(r.logo_avversario_url) ? r.logo_avversario_url : isUrl(r.opponent_logo_url) ? r.opponent_logo_url : null),
+    opponentLogo: image(r.logo_avversario_url ?? r.opponent_logo_url, OPPONENT_LOGOS, slugify(str(r.avversario))) || null,
     venue: str(r.sede),
     status: STATO[str(r.stato)] ?? 'scheduled',
     ourSets: num(r.nostri_set_vinti),
@@ -144,7 +153,7 @@ function mapNews(r: Row): NewsItem {
     title: str(r.titolo),
     category: CATEGORIA_NOTIZIA[str(r.categoria)] ?? str(r.categoria),
     date: str(r.pubblicato_il),
-    image: str(r.url_immagine_copertina),
+    image: image(r.url_immagine_copertina, NEWS_IMAGES),
     excerpt: body.length > 160 ? `${body.slice(0, 157)}…` : body,
     body,
   };

@@ -31,13 +31,16 @@ export function MatchRow({ match: m, liveSets, onPress }: Props) {
   const awayScore = homeIsUs ? opp : our;
   const won = hasScore && (our ?? 0) > (opp ?? 0);
   const ritorno = m.phase === 'ritorno';
-  const friendly = m.giornata == null;
+  // Amichevole = partita senza girone; una partita di campionato può non avere ancora il numero di giornata
+  const friendly = m.giornata == null && !m.girone;
 
   return (
     <Pressy onPress={onPress} disabled={!onPress} scaleTo={0.98} style={{ flexDirection: 'row', borderRadius: 22, overflow: 'hidden', backgroundColor: c.card, borderWidth: 1, borderColor: live ? 'rgba(255,77,94,0.45)' : c.line }}>
-      <View style={{ width: 60, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, backgroundColor: c.fill, borderRightWidth: 1, borderRightColor: c.line }} accessibilityLabel={friendly ? 'Amichevole' : `${m.giornata}ª giornata, ${ritorno ? 'ritorno' : 'andata'}`}>
+      <View style={{ width: 60, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, backgroundColor: c.fill, borderRightWidth: 1, borderRightColor: c.line }} accessibilityLabel={friendly ? 'Amichevole' : m.giornata == null ? 'Campionato' : `${m.giornata}ª giornata, ${ritorno ? 'ritorno' : 'andata'}`}>
         {friendly ? (
           <Txt w={800} size={11} color="muted" center>AMI-{'\n'}CHEVOLE</Txt>
+        ) : m.giornata == null ? (
+          <Txt w={800} size={11} color="muted" center>CAMPIO-{'\n'}NATO</Txt>
         ) : (
           <>
             <Txt w={800} size={28} tnum style={{ letterSpacing: -1, lineHeight: 30 }}>{m.giornata}</Txt>
@@ -62,8 +65,8 @@ export function MatchRow({ match: m, liveSets, onPress }: Props) {
               <>
                 <Txt w={800} size={28} tnum style={{ letterSpacing: -0.6 }}>{homeScore}–{awayScore}</Txt>
                 {played ? (
-                  <View style={{ marginTop: 4, width: 22, height: 22, borderRadius: 7, alignItems: 'center', justifyContent: 'center', backgroundColor: won ? 'rgba(61,220,151,0.18)' : 'rgba(255,122,136,0.18)' }}>
-                    <Txt w={800} size={11} color={won ? 'ok' : 'danger'}>{won ? 'V' : 'P'}</Txt>
+                  <View style={{ marginTop: 4, paddingHorizontal: 8, height: 22, borderRadius: 7, alignItems: 'center', justifyContent: 'center', backgroundColor: won ? 'rgba(61,220,151,0.18)' : 'rgba(255,122,136,0.18)' }}>
+                    <Txt w={800} size={11} color={won ? 'ok' : 'danger'}>{won ? 'Vinta' : 'Persa'}</Txt>
                   </View>
                 ) : null}
               </>

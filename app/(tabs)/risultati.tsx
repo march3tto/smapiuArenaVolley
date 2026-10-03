@@ -13,12 +13,14 @@ import { useData } from '@/store/DataProvider';
 import { useLive } from '@/store/LiveProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 
-type Filter = 'all' | 'past' | 'future';
+type Filter = 'all' | 'past' | 'future' | 'standings';
 const OPTIONS: { value: Filter; label: string }[] = [
   { value: 'all', label: 'Tutte' },
   { value: 'past', label: 'Giocate' },
   { value: 'future', label: 'Prossime' },
+  { value: 'standings', label: 'Classifica' },
 ];
+const FILTERS = OPTIONS.map((o) => o.value as string);
 
 export default function Risultati() {
   const { c } = useTheme();
@@ -29,7 +31,7 @@ export default function Risultati() {
   const live = useLive();
 
   useEffect(() => {
-    if (params.filter === 'future' || params.filter === 'past' || params.filter === 'all') setFilter(params.filter);
+    if (params.filter && FILTERS.includes(params.filter)) setFilter(params.filter as Filter);
   }, [params.filter]);
 
   const list = useMemo(() => {
@@ -43,27 +45,30 @@ export default function Risultati() {
     <Screen onRefresh={refresh} refreshing={loading}>
       <SectionHeader big title="Risultati" subtitle="Calendario e classifica Serie A3 femminile, girone B." />
       <SegmentedControl options={OPTIONS} value={filter} onChange={setFilter} />
-      <View style={{ gap: 12 }}>
-        {list.length ? (
-          list.map((m) => (
-            <MatchRow
-              key={m.id}
-              match={m}
-              liveSets={m.status === 'live' ? { our: live.ourSets, opp: live.oppSets } : undefined}
-              onPress={m.status === 'live' ? () => router.push('/live') : undefined}
-            />
-          ))
-        ) : (
-          <Card style={{ alignItems: 'center', gap: 8, paddingVertical: 30 }}>
-            <CalendarDays size={26} color={c.accent} />
-            <Txt color="muted" center>Nessuna partita in questo elenco.</Txt>
-          </Card>
-        )}
-      </View>
-      <Card style={{ gap: 6 }}>
-        <SectionHeader title="Classifica" subtitle="Serie A3, girone B" />
-        <StandingsTable rows={standings} />
-      </Card>
+      {filter === 'standings' ? (
+        <Card style={{ gap: 6 }}>
+          <SectionHeader title="Classifica" subtitle="Serie A3, girone B" />
+          <StandingsTable rows={standings} />
+        </Card>
+      ) : (
+        <View style={{ gap: 12 }}>
+          {list.length ? (
+            list.map((m) => (
+              <MatchRow
+                key={m.id}
+                match={m}
+                liveSets={m.status === 'live' ? { our: live.ourSets, opp: live.oppSets } : undefined}
+                onPress={m.status === 'live' ? () => router.push('/live') : undefined}
+              />
+            ))
+          ) : (
+            <Card style={{ alignItems: 'center', gap: 8, paddingVertical: 30 }}>
+              <CalendarDays size={26} color={c.accent} />
+              <Txt color="muted" center>Nessuna partita in questo elenco.</Txt>
+            </Card>
+          )}
+        </View>
+      )}
     </Screen>
   );
 }

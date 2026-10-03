@@ -38,7 +38,7 @@ export function SponsorGrid({ sponsors }: { sponsors: Sponsor[] }) {
                 <Pressy key={s.id} onPress={s.url ? () => Linking.openURL(s.url!) : undefined} disabled={!s.url} scaleTo={0.97}
                   accessibilityRole={s.url ? 'link' : undefined} accessibilityLabel={s.name}
                   style={{ width: tileW, borderRadius: 18, overflow: 'hidden', backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
-                  <View style={{ height: big ? 120 : 92, backgroundColor: '#fff', padding: big ? 16 : 10 }}>
+                  <View style={{ height: big ? 120 : 92, backgroundColor: '#fff', padding: big ? 10 : 6 }}>
                     <Image source={s.logo} style={{ flex: 1 }} contentFit="contain" />
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 9 }}>

@@ -9,16 +9,24 @@ import { palette } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { MediaItem } from '@/types';
 
+/** Copertina e link di un video (YouTube: riferimento = id) o podcast (riferimento = URL) */
+export function mediaLinks(m: MediaItem) {
+  const isUrl = /^https?:\/\//.test(m.ref);
+  const video = m.type === 'video';
+  return {
+    video,
+    cover: m.cover ?? (video && !isUrl ? youtubeThumb(m.ref) : null),
+    open: () => Linking.openURL(isUrl ? m.ref : youtubeUrl(m.ref)),
+  };
+}
+
 /** Video (YouTube) e podcast della tabella "media": si aprono nell'app esterna */
 export function MediaList({ items }: { items: MediaItem[] }) {
   const { c } = useTheme();
   return (
     <View style={{ gap: 10 }}>
       {items.map((m) => {
-        const isUrl = /^https?:\/\//.test(m.ref);
-        const video = m.type === 'video';
-        const cover = m.cover ?? (video && !isUrl ? youtubeThumb(m.ref) : null);
-        const open = () => Linking.openURL(isUrl ? m.ref : youtubeUrl(m.ref));
+        const { video, cover, open } = mediaLinks(m);
         return (
           <Pressy key={m.id} onPress={open} scaleTo={0.98} accessibilityRole="link" accessibilityLabel={m.title}
             style={{ flexDirection: 'row', gap: 12, padding: 10, borderRadius: 18, backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>

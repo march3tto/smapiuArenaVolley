@@ -67,3 +67,13 @@ export const OPPONENT_LOGOS: Record<string, number> = {
   'v-v-modena': require('../../assets/opponents/v-v-modena.png'),
   'zero5-castellana-grotte': require('../../assets/opponents/zero5-castellana-grotte.jpg'),
 };
+
+/** Copertine delle notizie, per nome file (notizie.url_immagine_copertina = "news/<file>.jpg") */
+export const NEWS_IMAGES: Record<string, number> = {
+  '2026-08-16-nasce-arena-volley-young': require('../../assets/news/2026-08-16-nasce-arena-volley-young.jpg'),
+  '2026-08-27-libro-finalmente-in-serie-a': require('../../assets/news/2026-08-27-libro-finalmente-in-serie-a.jpg'),
+  '2026-09-02-nuova-casa-palazzetto-vigasio': require('../../assets/news/2026-09-02-nuova-casa-palazzetto-vigasio.jpg'),
+  '2026-09-14-capitana-beatrice-giroldi': require('../../assets/news/2026-09-14-capitana-beatrice-giroldi.jpg'),
+  '2026-09-16-calendario-serie-a3-2026-27': require('../../assets/news/2026-09-16-calendario-serie-a3-2026-27.jpg'),
+  '2026-09-26-inside-the-game': require('../../assets/news/2026-09-26-inside-the-game.jpg'),
+};

@@ -7,7 +7,6 @@ import { ChartColumn, X } from 'lucide-react-native';
 import { IconButton } from '@/components/IconButton';
 import { Txt } from '@/components/Txt';
 import { ROLE_LABEL } from '@/constants';
-import { initials } from '@/lib/format';
 import { useData } from '@/store/DataProvider';
 import { palette } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -46,9 +45,11 @@ export default function PlayerScreen() {
         <View style={{ height: 380, backgroundColor: '#0B1C4D' }}>
           <Image source={p.photo} style={{ flex: 1 }} contentFit="cover" contentPosition="top" transition={250} />
           <LinearGradient colors={['transparent', 'rgba(5,13,36,0.2)', c.card]} locations={[0.4, 0.65, 1]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-          <Txt w={900} size={120} color="rgba(242,184,0,0.85)" style={{ position: 'absolute', right: 18, bottom: -6, letterSpacing: -8, lineHeight: 120 }}>
-            {p.number ?? initials(name)}
-          </Txt>
+          {p.number != null ? (
+            <Txt w={900} size={110} color="rgba(242,184,0,0.85)" style={{ position: 'absolute', right: 18, bottom: -6, letterSpacing: -6, lineHeight: 110 }}>
+              #{p.number}
+            </Txt>
+          ) : null}
           <IconButton label="Chiudi" onPress={() => router.back()} style={{ position: 'absolute', top: insets.top > 30 ? 16 : insets.top + 12, right: 14, backgroundColor: 'rgba(5,13,36,0.55)' }}>
             <X size={18} color="#fff" />
           </IconButton>
