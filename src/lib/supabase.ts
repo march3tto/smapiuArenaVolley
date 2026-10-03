@@ -1,19 +1,28 @@
 import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { Platform } from 'react-native';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!url || !anonKey) {
-  throw new Error('Mancano EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY nel file .env');
-}
+const noWindow = () => Platform.OS === 'web' && typeof window === 'undefined';
+const sessionStorage = {
+  getItem: (key: string) => (noWindow() ? Promise.resolve(null) : AsyncStorage.getItem(key)),
+  setItem: (key: string, value: string) => (noWindow() ? Promise.resolve() : AsyncStorage.setItem(key, value)),
+  removeItem: (key: string) => (noWindow() ? Promise.resolve() : AsyncStorage.removeItem(key)),
+};
 
-export const supabase = createClient(url, anonKey, {
-  auth: {
-    storage: AsyncStorage,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-  },
-});
+export const supabase: SupabaseClient | null =
+  url && anonKey
+    ? createClient(url, anonKey, {
+        auth: {
+          storage: sessionStorage,
+          autoRefreshToken: !noWindow(),
+          persistSession: true,
+          detectSessionInUrl: false,
+        },
+      })
+    : null;
+
+export const hasSupabase = supabase !== null;
