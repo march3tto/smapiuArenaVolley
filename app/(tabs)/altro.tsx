@@ -13,6 +13,7 @@ import { CONTACTS } from '@/constants';
 import { useData } from '@/store/DataProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTopBarHeight } from '@/components/TopBar';
 import type { Venue } from '@/types';
 
 const VENUE_ICON: Record<Venue['kind'], LucideIcon> = { arena: Building2, palasport: Volleyball, palestra: Dumbbell };
@@ -20,6 +21,7 @@ const VENUE_ICON: Record<Venue['kind'], LucideIcon> = { arena: Building2, palasp
 export default function Altro() {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
+  const top = useTopBarHeight();
   const { width } = useWindowDimensions();
   const { sponsors, venues, media } = useData();
   const scroll = useRef<ScrollView>(null);
@@ -27,12 +29,12 @@ export default function Altro() {
   const mark = (k: string) => (e: LayoutChangeEvent) => {
     pos.current[k] = e.nativeEvent.layout.y;
   };
-  const jump = (k: string) => scroll.current?.scrollTo({ y: Math.max(0, (pos.current[k] ?? 0) - 8), animated: true });
+  const jump = (k: string) => scroll.current?.scrollTo({ y: Math.max(0, (pos.current[k] ?? 0) - top - 8), animated: true });
   const venueW = width >= 760 ? (Math.min(width, 1120) - 28 - 24) / 3 : undefined;
 
   return (
     <ScrollView ref={scroll} style={{ flex: 1, backgroundColor: c.bg }} showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ padding: 14, paddingTop: 8, paddingBottom: insets.bottom + 110, gap: 16, width: '100%', maxWidth: 1120, alignSelf: 'center' }}>
+      contentContainerStyle={{ padding: 14, paddingTop: top + 8, paddingBottom: insets.bottom + 110, gap: 16, width: '100%', maxWidth: 1120, alignSelf: 'center' }}>
       <SectionHeader big title="Altro" subtitle="Video, sponsor, palestre e contatti della società." />
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         {media.length ? <Button size="sm" label="Video e podcast" onPress={() => jump('media')} /> : null}

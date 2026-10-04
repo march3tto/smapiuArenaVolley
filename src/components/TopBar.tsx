@@ -1,5 +1,6 @@
-import { Alert, Platform, Pressable, View } from 'react-native';
+import { Alert, Platform, Pressable, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -7,18 +8,39 @@ import { Settings, User } from 'lucide-react-native';
 import { IconButton } from './IconButton';
 import { Txt } from './Txt';
 import { useToast } from './Toast';
-import { LOGO_AVT } from '@/data/assets';
+import { LOGO_BRAND, LOGO_BRAND_LIGHT } from '@/data/assets';
 import { initials } from '@/lib/format';
 import { useApp } from '@/store/AppProvider';
-import { brandGradient, palette } from '@/theme/colors';
+import { palette } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
+const LOGO_RATIO = 428 / 166;
+const LOGO_MAX_H = 69;
+/** Spazio a destra riservato ai due pulsanti (2 x 40 + gap + margini) */
+const BUTTONS_W = 14 + 40 + 8 + 40 + 8;
+
+/** Dimensioni del logo: si riduce sugli schermi stretti per non toccare i pulsanti */
+function useLogoSize() {
+  const { width } = useWindowDimensions();
+  // la parte visibile del logo finisce all'85% della larghezza dell'immagine
+  const maxW = (Math.min(width, 1120) / 2 - BUTTONS_W) / (0.85 - 0.5);
+  const w = Math.min(LOGO_MAX_H * LOGO_RATIO, maxW);
+  return { w, h: w / LOGO_RATIO };
+}
+
+/** Altezza occupata dalla barra in alto: il contenuto scorre sotto, quindi va lasciato questo spazio */
+export function useTopBarHeight() {
+  return useSafeAreaInsets().top + 6 + useLogoSize().h + 8;
+}
+
+/** Barra trasparente in stile chat WhatsApp: logo al centro e pulsanti in capsule sfocate separate */
 export function TopBar() {
   const insets = useSafeAreaInsets();
-  const { c } = useTheme();
+  const { c, mode } = useTheme();
   const { user, prefs, signOut } = useApp();
   const router = useRouter();
   const toast = useToast();
+  const logo = useLogoSize();
 
   const onAccount = () => {
     if (!user) return router.push('/login');
@@ -34,35 +56,38 @@ export function TopBar() {
     ]);
   };
 
+  const glass = mode === 'dark' ? 'rgba(34,77,146,0.45)' : 'rgba(255,255,255,0.55)';
+  const blur = Platform.OS === 'android' ? 0 : 40;
+  const tint = mode === 'dark' ? 'dark' : 'light';
+  const capsule = { borderRadius: 999, overflow: 'hidden', backgroundColor: Platform.OS === 'android' ? c.card : glass, borderWidth: 1, borderColor: c.line } as const;
+  const flat = { backgroundColor: 'transparent', borderWidth: 0 };
+
   return (
-    <View style={{ paddingTop: insets.top + 6, paddingHorizontal: 14, paddingBottom: 8, backgroundColor: c.bg }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 1120, alignSelf: 'center', backgroundColor: c.card, borderRadius: 999, borderWidth: 1, borderColor: c.line, padding: 6, paddingRight: 8 }}>
-        <Pressable onPress={() => router.navigate('/')} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }} accessibilityRole="button" accessibilityLabel="Home">
-          <LinearGradient colors={brandGradient} style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(242,184,0,0.6)' }}>
-            <Image source={LOGO_AVT} style={{ width: 28, height: 30 }} contentFit="contain" />
-          </LinearGradient>
-          <View>
-            <Txt w={800} size={14} style={{ letterSpacing: -0.2 }}>
-              Smapiù Arena
-            </Txt>
-            <Txt size={11} color="muted">
-              Volley Team, Serie A3
-            </Txt>
-          </View>
+    <View pointerEvents="box-none" style={{ paddingTop: insets.top + 6, paddingHorizontal: 14, paddingBottom: 8 }}>
+      <LinearGradient pointerEvents="none" colors={[c.bg, mode === 'dark' ? 'rgba(42,90,165,0)' : 'rgba(238,242,250,0)']}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+      <View pointerEvents="box-none" style={{ height: logo.h, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', width: '100%', maxWidth: 1120, alignSelf: 'center' }}>
+        <Pressable onPress={() => router.navigate('/')} accessibilityRole="button" accessibilityLabel="Home"
+          style={{ position: 'absolute', left: '50%', marginLeft: -logo.w / 2 }}>
+          <Image source={mode === 'dark' ? LOGO_BRAND : LOGO_BRAND_LIGHT} style={{ width: logo.w, height: logo.h }} contentFit="contain" />
         </Pressable>
-        <View style={{ flexDirection: 'row', gap: 6 }}>
-          <IconButton label={user ? `Account di ${user.name}` : 'Accedi'} onPress={onAccount} active={!!user}>
-            {user ? (
-              <Txt w={800} size={13} color={palette.onGold}>
-                {initials(user.name)}
-              </Txt>
-            ) : (
-              <User size={18} color={c.text} />
-            )}
-          </IconButton>
-          <IconButton label="Impostazioni notifiche" onPress={() => router.push('/settings')} dot={prefs.enabled}>
-            <Settings size={18} color={c.text} />
-          </IconButton>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <BlurView intensity={blur} tint={tint} style={capsule}>
+            <IconButton label={user ? `Account di ${user.name}` : 'Accedi'} onPress={onAccount} active={!!user} style={user ? undefined : flat}>
+              {user ? (
+                <Txt w={800} size={13} color={palette.onGold}>
+                  {initials(user.name)}
+                </Txt>
+              ) : (
+                <User size={18} color={c.text} />
+              )}
+            </IconButton>
+          </BlurView>
+          <BlurView intensity={blur} tint={tint} style={capsule}>
+            <IconButton label="Impostazioni notifiche" onPress={() => router.push('/settings')} dot={prefs.enabled} style={flat}>
+              <Settings size={18} color={c.text} />
+            </IconButton>
+          </BlurView>
         </View>
       </View>
     </View>

@@ -12,7 +12,7 @@ export function PlayerCard({ player: p, width, onPress }: { player: Player; widt
   const name = `${p.firstName} ${p.lastName}`;
   return (
     <Pressy onPress={onPress} scaleTo={0.96} accessibilityRole="button" accessibilityLabel={`${name}, ${ROLE_LABEL[p.role]}`}
-      style={{ width, height: (width * 4) / 3, borderRadius: 22, overflow: 'hidden', backgroundColor: '#0B1C4D', borderWidth: 1, borderColor: 'rgba(150,178,255,0.18)' }}>
+      style={{ width, height: (width * 4) / 3, borderRadius: 22, overflow: 'hidden', backgroundColor: '#1E4586', borderWidth: 1, borderColor: 'rgba(150,178,255,0.18)' }}>
       <Image source={p.photo} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} contentFit="cover" contentPosition="top" transition={250} />
       <LinearGradient colors={['transparent', 'rgba(5,13,36,0.35)', 'rgba(5,13,36,0.96)']} locations={[0.3, 0.55, 1]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
       {p.number != null ? (

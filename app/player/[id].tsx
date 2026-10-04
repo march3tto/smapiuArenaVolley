@@ -42,7 +42,7 @@ export default function PlayerScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: c.card }}>
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 30 }}>
-        <View style={{ height: 380, backgroundColor: '#0B1C4D' }}>
+        <View style={{ height: 380, backgroundColor: '#1E4586' }}>
           <Image source={p.photo} style={{ flex: 1 }} contentFit="cover" contentPosition="top" transition={250} />
           <LinearGradient colors={['transparent', 'rgba(5,13,36,0.2)', c.card]} locations={[0.4, 0.65, 1]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
           {p.number != null ? (

@@ -10,6 +10,12 @@ export interface SetScore {
   opp: number;
 }
 
+export interface Competition {
+  name: string;
+  federation?: string | null;
+  logo: ImgSrc;
+}
+
 export interface Match {
   id: string;
   /** null per le amichevoli */
@@ -21,6 +27,8 @@ export interface Match {
   homeAway: HomeAway;
   opponent: string;
   opponentLogo?: ImgSrc | null;
+  /** Campionato (tabella campionati); null per le amichevoli */
+  competition?: Competition | null;
   venue: string;
   status: MatchStatus;
   ourSets?: number | null;
