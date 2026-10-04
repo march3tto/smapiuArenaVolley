@@ -29,6 +29,8 @@ export interface Match {
   opponentLogo?: ImgSrc | null;
   /** Campionato (tabella campionati); null per le amichevoli */
   competition?: Competition | null;
+  /** Etichetta della stagione (tabella stagioni), es. "Pre-season" */
+  season?: string | null;
   venue: string;
   status: MatchStatus;
   ourSets?: number | null;
