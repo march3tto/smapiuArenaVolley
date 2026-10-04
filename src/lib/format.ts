@@ -10,6 +10,12 @@ export function longDate(iso: string, refYear = 2026): string {
   return `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}${y}`;
 }
 
+/** "18:00" */
+export function timeOf(iso: string): string {
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 /** "Dom 11 ott, 11:00" */
 export function shortDateTime(iso: string): string {
   const d = new Date(iso);

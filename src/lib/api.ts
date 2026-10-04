@@ -102,7 +102,7 @@ function mapCompetition(r: Row): Competition {
   return { name, federation: (r.federazione as string | null) ?? null, logo: image(r.logo_url, COMPETITION_LOGOS, slugify(name)) };
 }
 
-function mapMatch(r: Row, competitions: Map<string, Competition> = new Map()): Match {
+function mapMatch(r: Row, competitions: Map<string, Competition> = new Map(), seasons: Map<string, string> = new Map()): Match {
   return {
     id: str(r.id),
     giornata: num(r.giornata),
@@ -113,6 +113,7 @@ function mapMatch(r: Row, competitions: Map<string, Competition> = new Map()): M
     opponent: str(r.avversario),
     opponentLogo: image(r.logo_avversario_url ?? r.opponent_logo_url, OPPONENT_LOGOS, slugify(str(r.avversario))) || null,
     venue: str(r.sede),
+    season: seasons.get(str(r.stagione_id)) || null,
     competition: (r.campionato_id ? competitions.get(str(r.campionato_id)) : undefined) ?? (r.girone ? SERIE_A3 : null),
     status: STATO[str(r.stato)] ?? 'scheduled',
     ourSets: num(r.nostri_set_vinti),
@@ -229,8 +230,9 @@ export async function loadAll(): Promise<AppData> {
   if (!supabase) return demoData();
   const db = supabase;
 
-  const stagioni = must(await db.from(T.stagioni).select('id').eq('corrente', true), 'stagioni') as Row[];
+  const stagioni = must(await db.from(T.stagioni).select('id, etichetta').eq('corrente', true), 'stagioni') as Row[];
   const ids = stagioni.map((s) => str(s.id));
+  const seasons = new Map(stagioni.map((s) => [str(s.id), str(s.etichetta)]));
   if (!ids.length) throw new Error('Nessuna stagione con corrente = true in "stagioni".');
 
   const [partite, classifiche, giocatrici, notizie, sponsor, categorie, staff, media, campionati] = await Promise.all([
@@ -249,7 +251,7 @@ export async function loadAll(): Promise<AppData> {
   // tabella facoltativa (migrazione 20261006_campionati): se manca si usa SERIE_A3 per le partite con girone
   const competitions = new Map(((campionati.data ?? []) as Row[]).map((r) => [str(r.id), mapCompetition(r)]));
   return {
-    matches: p.filter((r) => r.livello_squadra === 'prima_squadra').map((r) => mapMatch(r, competitions)),
+    matches: p.filter((r) => r.livello_squadra === 'prima_squadra').map((r) => mapMatch(r, competitions, seasons)),
     standings: (must(classifiche, 'classifiche') as Row[]).map(mapStanding),
     players: (must(giocatrici, 'giocatrici') as Row[]).map(mapPlayer),
     news: (must(notizie, 'notizie') as Row[]).map(mapNews),
