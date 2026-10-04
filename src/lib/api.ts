@@ -1,157 +1,329 @@
-// Query per ogni sezione dell'app. Ogni funzione lancia un errore se Supabase risponde con errore.
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from './supabase';
+import { slugify } from './format';
+import * as mock from '@/data/mock';
+import { NEWS_IMAGES, OPPONENT_LOGOS, PLAYER_PHOTOS, SPONSOR_LOGOS } from '@/data/assets';
 import type {
-  AlbumFoto, CategoriaGiovanile, EventoLive, Giocatrice, LivelloSquadra, Media,
-  Notizia, Partita, PromoSponsor, RigaClassifica, Sponsor, Staff, Stagione, TipoMedia,
-} from './types';
+  ImgSrc, LiveEvent, Match, MatchStatus, MediaItem, NewsItem, Player, PlayerRole, SetScore, Sponsor, SponsorTier, Standing, Venue, YouthTeam,
+} from '@/types';
 
-function check<T>(data: T | null, error: { message: string } | null): T {
-  if (error) throw new Error(error.message);
-  return data as T;
+/** Tabelle dello schema Supabase (in italiano) */
+export const T = {
+  stagioni: 'stagioni',
+  partite: 'partite',
+  setPartita: 'set_partita',
+  eventiLive: 'eventi_live',
+  classifiche: 'classifiche',
+  giocatrici: 'giocatrici',
+  staff: 'staff',
+  categorie: 'categorie_giovanili',
+  notizie: 'notizie',
+  sponsor: 'sponsor',
+  media: 'media',
+} as const;
+
+export interface AppData {
+  matches: Match[];
+  standings: Standing[];
+  players: Player[];
+  news: NewsItem[];
+  sponsors: Sponsor[];
+  youth: YouthTeam[];
+  venues: Venue[];
+  media: MediaItem[];
+  source: 'supabase' | 'demo';
 }
 
-// ---------- Stagione ----------
-export async function getStagioneCorrente(): Promise<Stagione | null> {
-  const { data, error } = await supabase
-    .from('stagioni').select('*').eq('corrente', true).limit(1).maybeSingle();
-  return check(data, error);
+// Le righe arrivano senza tipi generati: vengono lette in modo difensivo nei mapper.
+type Row = Record<string, unknown>;
+const str = (v: unknown, d = ''): string => (typeof v === 'string' ? v : v == null ? d : String(v));
+const num = (v: unknown): number | null => (typeof v === 'number' ? v : v == null || v === '' ? null : Number(v));
+
+/** "bucket/file" → URL pubblico dello Storage Supabase (il primo segmento del percorso è il bucket) */
+function storageUrl(path: string): string {
+  if (!supabase || /^https?:\/\//.test(path)) return path;
+  const [bucket, ...rest] = path.split('/');
+  if (!rest.length) return path;
+  return supabase.storage.from(bucket).getPublicUrl(rest.join('/')).data.publicUrl;
 }
 
-// ---------- Rosa ----------
-export async function getGiocatrici(stagioneId: string, livello: LivelloSquadra = 'prima_squadra'): Promise<Giocatrice[]> {
-  const { data, error } = await supabase
-    .from('giocatrici').select('*')
-    .eq('stagione_id', stagioneId)
-    .eq('livello_squadra', livello)
-    .eq('attiva', true)
-    .order('ordine');
-  return check(data, error) ?? [];
+export function emptyData(): AppData {
+  return { matches: [], standings: [], players: [], news: [], sponsors: [], youth: [], venues: mock.venues, media: [], source: 'supabase' };
 }
 
-export async function getStaff(categoriaGiovanileId?: string | null): Promise<Staff[]> {
-  let q = supabase.from('staff').select('*').eq('attivo', true).order('ordine');
-  if (categoriaGiovanileId === null) q = q.is('categoria_giovanile_id', null);        // prima squadra + dirigenti
-  else if (categoriaGiovanileId) q = q.eq('categoria_giovanile_id', categoriaGiovanileId);
-  const { data, error } = await q;
-  return check(data, error) ?? [];
+export function demoData(): AppData {
+  return {
+    matches: mock.matches,
+    standings: mock.standings,
+    players: mock.players,
+    news: mock.news,
+    sponsors: mock.sponsors,
+    youth: mock.youth,
+    venues: mock.venues,
+    media: [],
+    source: 'demo',
+  };
 }
 
-// ---------- Giovanili ----------
-export async function getCategorieGiovanili(): Promise<CategoriaGiovanile[]> {
-  const { data, error } = await supabase.from('categorie_giovanili').select('*').order('ordine');
-  return check(data, error) ?? [];
+// ---------- mapper ----------
+
+const STATO: Record<string, MatchStatus> = { programmata: 'scheduled', live: 'live', conclusa: 'finished', rinviata: 'postponed' };
+const CATEGORIA_NOTIZIA: Record<string, string> = { societa: 'Società', prima_squadra: 'Serie A3', giovanili: 'Giovanili', sponsor: 'Sponsor' };
+const LIVELLO_SPONSOR: Record<string, SponsorTier> = {
+  'title sponsor': 'title', gold: 'title',
+  'main sponsor': 'main', silver: 'main',
+  sponsor: 'sponsor', bronze: 'sponsor',
+  'charity partner': 'charity',
+};
+
+/**
+ * Immagine da un campo del database: URL completo, oppure percorso "bucket/file" nello Storage (bucket pubblici).
+ * La copia inclusa nell'app (stesso nome file, o nome della giocatrice/sponsor) serve solo se il campo è vuoto.
+ */
+function image(url: unknown, local: Record<string, number>, ...keys: string[]): ImgSrc {
+  if (typeof url === 'string' && url) return storageUrl(url);
+  for (const k of keys) if (k && local[k] != null) return local[k];
+  return '';
 }
 
-// ---------- Calendario / risultati ----------
-const PARTITA_SELECT = '*, set_partita(*)';
-
-export async function getPartite(stagioneId: string, livello: LivelloSquadra = 'prima_squadra'): Promise<Partita[]> {
-  const { data, error } = await supabase
-    .from('partite').select(PARTITA_SELECT)
-    .eq('stagione_id', stagioneId)
-    .eq('livello_squadra', livello)
-    .order('data_partita', { ascending: true })
-    .order('numero_set', { referencedTable: 'set_partita', ascending: true });
-  return check(data, error) ?? [];
+function mapSets(r: Row): SetScore[] | undefined {
+  if (!Array.isArray(r.set_partita)) return undefined;
+  return (r.set_partita as Row[])
+    .sort((a, b) => (num(a.numero_set) ?? 0) - (num(b.numero_set) ?? 0))
+    .map((s) => ({ our: num(s.punti_nostri) ?? 0, opp: num(s.punti_avversario) ?? 0 }));
 }
 
-export async function getProssimePartite(limit = 3, livello: LivelloSquadra = 'prima_squadra'): Promise<Partita[]> {
-  const { data, error } = await supabase
-    .from('partite').select('*')
-    .eq('livello_squadra', livello)
-    .in('stato', ['programmata', 'rinviata'])
-    .gte('data_partita', new Date().toISOString())
-    .order('data_partita', { ascending: true })
-    .limit(limit);
-  return check(data, error) ?? [];
+function mapMatch(r: Row): Match {
+  return {
+    id: str(r.id),
+    giornata: num(r.giornata),
+    girone: (r.girone as string | null) ?? null,
+    phase: str(r.fase).toLowerCase() === 'ritorno' ? 'ritorno' : 'andata',
+    date: str(r.data_partita),
+    homeAway: r.casa_trasferta === 'trasferta' ? 'trasferta' : 'casa',
+    opponent: str(r.avversario),
+    opponentLogo: image(r.logo_avversario_url ?? r.opponent_logo_url, OPPONENT_LOGOS, slugify(str(r.avversario))) || null,
+    venue: str(r.sede),
+    status: STATO[str(r.stato)] ?? 'scheduled',
+    ourSets: num(r.nostri_set_vinti),
+    oppSets: num(r.set_vinti_avversario),
+    sets: mapSets(r),
+    youtubeLiveId: (r.id_video_youtube_live as string | null) || null,
+  };
 }
 
-export async function getUltimeConcluse(limit = 3, livello: LivelloSquadra = 'prima_squadra'): Promise<Partita[]> {
-  const { data, error } = await supabase
-    .from('partite').select(PARTITA_SELECT)
-    .eq('livello_squadra', livello)
-    .eq('stato', 'conclusa')
-    .order('data_partita', { ascending: false })
-    .order('numero_set', { referencedTable: 'set_partita', ascending: true })
-    .limit(limit);
-  return check(data, error) ?? [];
+function mapStanding(r: Row): Standing {
+  return {
+    team: str(r.nome_squadra),
+    position: num(r.posizione) ?? 0,
+    played: num(r.giocate) ?? 0,
+    won: num(r.vinte) ?? 0,
+    lost: num(r.perse) ?? 0,
+    points: num(r.punti) ?? 0,
+    isUs: r.nostra_squadra === true,
+  };
 }
 
-export async function getPartitaLive(): Promise<Partita | null> {
-  const { data, error } = await supabase
-    .from('partite').select(PARTITA_SELECT)
-    .eq('stato', 'live')
-    .order('data_partita', { ascending: false })
-    .order('numero_set', { referencedTable: 'set_partita', ascending: true })
-    .limit(1).maybeSingle();
-  return check(data, error);
+function mapPlayer(r: Row): Player {
+  const first = str(r.nome);
+  const last = str(r.cognome);
+  const born = typeof r.data_nascita === 'string' ? Number(r.data_nascita.slice(0, 4)) : null;
+  return {
+    id: str(r.id),
+    firstName: first,
+    lastName: last,
+    role: (str(r.ruolo, 'schiacciatrice') as PlayerRole),
+    number: num(r.numero_maglia),
+    photo: image(r.foto_url, PLAYER_PHOTOS, slugify(`${first} ${last}`)),
+    bio: (r.bio as string | null) ?? null,
+    status: null,
+    born,
+    isCaptain: r.capitana === true,
+    heightCm: num(r.altezza_cm),
+    points: num(r.punti),
+    aces: num(r.ace),
+    blocks: num(r.muri),
+  };
 }
 
-export async function getEventiLive(partitaId: string): Promise<EventoLive[]> {
-  const { data, error } = await supabase
-    .from('eventi_live').select('*')
-    .eq('partita_id', partitaId)
-    .order('creato_il', { ascending: false });
-  return check(data, error) ?? [];
+function mapNews(r: Row): NewsItem {
+  const body = str(r.corpo);
+  return {
+    id: str(r.id),
+    title: str(r.titolo),
+    category: CATEGORIA_NOTIZIA[str(r.categoria)] ?? str(r.categoria),
+    date: str(r.pubblicato_il),
+    image: image(r.url_immagine_copertina, NEWS_IMAGES),
+    excerpt: body.length > 160 ? `${body.slice(0, 157)}…` : body,
+    body,
+  };
 }
 
-// ---------- Classifica ----------
-export async function getClassifica(stagioneId: string, girone?: string): Promise<RigaClassifica[]> {
-  let q = supabase.from('classifiche').select('*').eq('stagione_id', stagioneId).order('posizione');
-  if (girone) q = q.eq('girone', girone);
-  const { data, error } = await q;
-  return check(data, error) ?? [];
+function mapSponsor(r: Row): Sponsor {
+  const name = str(r.nome);
+  return {
+    id: str(r.id),
+    name,
+    tier: LIVELLO_SPONSOR[str(r.livello).toLowerCase()] ?? 'sponsor',
+    logo: image(r.url_logo, SPONSOR_LOGOS, slugify(name)),
+    url: (r.url_sito as string | null) || null,
+  };
 }
 
-// ---------- News ----------
-export async function getNotizie(limit = 20): Promise<Notizia[]> {
-  const { data, error } = await supabase
-    .from('notizie').select('*')
-    .order('pubblicato_il', { ascending: false })
-    .limit(limit);
-  return check(data, error) ?? [];   // le bozze le vede solo lo staff (RLS)
+function mapMedia(r: Row): MediaItem {
+  return {
+    id: str(r.id),
+    type: r.tipo === 'podcast' ? 'podcast' : 'video',
+    title: str(r.titolo),
+    ref: str(r.riferimento_esterno),
+    cover: (r.url_immagine_copertina as string | null) ?? null,
+    duration: (r.etichetta_durata as string | null) ?? null,
+    date: str(r.pubblicato_il),
+  };
 }
 
-// ---------- Media ----------
-export async function getMedia(tipo?: TipoMedia): Promise<Media[]> {
-  let q = supabase.from('media').select('*').order('pubblicato_il', { ascending: false });
-  if (tipo) q = q.eq('tipo', tipo);
-  const { data, error } = await q;
-  return check(data, error) ?? [];
+/** Categorie giovanili + allenatori (staff) + prossima/ultima partita della categoria */
+function buildYouth(categorie: Row[], staff: Row[], partite: Row[]): YouthTeam[] {
+  const now = Date.now();
+  return categorie.map((c) => {
+    const id = str(c.id);
+    const name = str(c.nome);
+    const coaches = staff.filter((s) => s.categoria_giovanile_id === id).map((s) => `${str(s.nome)} ${str(s.cognome)}`.trim());
+    const games = partite.filter((p) => p.categoria_giovanile_id === id).sort((a, b) => str(a.data_partita).localeCompare(str(b.data_partita)));
+    const next = games.find((p) => str(p.stato) !== 'conclusa' && new Date(str(p.data_partita)).getTime() >= now);
+    const last = [...games].reverse().find((p) => str(p.stato) === 'conclusa');
+    return {
+      id,
+      name,
+      short: name.replace(/Under\s*/i, 'U'),
+      coach: coaches.join(', ') || 'Da definire',
+      description: str(c.descrizione),
+      next: next ? { opponent: str(next.avversario), date: str(next.data_partita), home: next.casa_trasferta === 'casa' } : null,
+      last: last ? { opponent: str(last.avversario), our: num(last.nostri_set_vinti) ?? 0, opp: num(last.set_vinti_avversario) ?? 0 } : null,
+    };
+  });
+}
+
+// ---------- caricamento ----------
+
+function must<D>(res: { data: D | null; error: { message: string } | null }, what: string): D {
+  if (res.error) throw new Error(`${what}: ${res.error.message}`);
+  return (res.data ?? ([] as unknown)) as D;
+}
+
+/**
+ * Carica tutti i dati della stagione corrente.
+ * Se nel DB ci sono più stagioni con corrente = true, i dati vengono uniti.
+ */
+export async function loadAll(): Promise<AppData> {
+  if (!supabase) return demoData();
+  const db = supabase;
+
+  const stagioni = must(await db.from(T.stagioni).select('id').eq('corrente', true), 'stagioni') as Row[];
+  const ids = stagioni.map((s) => str(s.id));
+  if (!ids.length) throw new Error('Nessuna stagione con corrente = true in "stagioni".');
+
+  const [partite, classifiche, giocatrici, notizie, sponsor, categorie, staff, media] = await Promise.all([
+    db.from(T.partite).select(`*, ${T.setPartita}(*)`).in('stagione_id', ids).order('data_partita'),
+    db.from(T.classifiche).select('*').in('stagione_id', ids).order('posizione'),
+    db.from(T.giocatrici).select('*').in('stagione_id', ids).eq('livello_squadra', 'prima_squadra').eq('attiva', true).order('ordine'),
+    db.from(T.notizie).select('*').eq('pubblicata', true).order('pubblicato_il', { ascending: false }).limit(30),
+    db.from(T.sponsor).select('*').eq('attivo', true).order('ordine'),
+    db.from(T.categorie).select('*').order('ordine'),
+    db.from(T.staff).select('*').eq('attivo', true).order('ordine'),
+    db.from(T.media).select('*').eq('pubblicato', true).order('pubblicato_il', { ascending: false }),
+  ]);
+
+  const p = must(partite, 'partite') as Row[];
+  return {
+    matches: p.filter((r) => r.livello_squadra === 'prima_squadra').map(mapMatch),
+    standings: (must(classifiche, 'classifiche') as Row[]).map(mapStanding),
+    players: (must(giocatrici, 'giocatrici') as Row[]).map(mapPlayer),
+    news: (must(notizie, 'notizie') as Row[]).map(mapNews),
+    sponsors: (must(sponsor, 'sponsor') as Row[]).map(mapSponsor),
+    youth: buildYouth(must(categorie, 'categorie_giovanili') as Row[], must(staff, 'staff') as Row[], p),
+    venues: mock.venues,
+    media: (must(media, 'media') as Row[]).map(mapMedia),
+    source: 'supabase',
+  };
+}
+
+/** Aggiorna quando cambia una partita (es. stato -> 'live' o 'conclusa') */
+export function subscribeMatches(onChange: () => void): () => void {
+  if (!supabase) return () => {};
+  const client = supabase;
+  const ch = client
+    .channel(`partite-${Math.random().toString(36).slice(2, 8)}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: T.partite }, onChange)
+    .subscribe();
+  return () => {
+    client.removeChannel(ch);
+  };
+}
+
+// ---------- diretta ----------
+
+function mapEvent(r: Row, side: 'us' | 'opp' = 'us'): LiveEvent {
+  return {
+    id: str(r.id),
+    set: num(r.numero_set) ?? 1,
+    our: num(r.punteggio_nostro) ?? 0,
+    opp: num(r.punteggio_avversario) ?? 0,
+    text: str(r.descrizione),
+    side,
+  };
+}
+
+/**
+ * La tabella eventi_live non ha una colonna "chi ha fatto punto":
+ * si deduce confrontando ogni evento con il precedente dello stesso set.
+ * (Timeout e cambi non cambiano il punteggio e restano grigi.)
+ */
+function withSides(desc: Row[]): LiveEvent[] {
+  return desc.map((r, i) => {
+    const prev = desc.slice(i + 1).find((x) => num(x.numero_set) === num(r.numero_set));
+    const our = num(r.punteggio_nostro) ?? 0;
+    const opp = num(r.punteggio_avversario) ?? 0;
+    const side: 'us' | 'opp' = opp > (num(prev?.punteggio_avversario) ?? 0) && our === (num(prev?.punteggio_nostro) ?? 0) ? 'opp' : 'us';
+    return mapEvent(r, side);
+  });
+}
+
+export interface LiveSnapshot {
+  events: LiveEvent[];
+  sets: SetScore[];
+  completed: boolean[];
+}
+
+export async function fetchLive(matchId: string): Promise<LiveSnapshot | null> {
+  if (!supabase) return null;
+  const [ev, st] = await Promise.all([
+    supabase.from(T.eventiLive).select('*').eq('partita_id', matchId).order('creato_il', { ascending: false }).limit(80),
+    supabase.from(T.setPartita).select('*').eq('partita_id', matchId).order('numero_set'),
+  ]);
+  const sets = (st.data as Row[] | null) ?? [];
+  return {
+    events: withSides((ev.data as Row[] | null) ?? []),
+    sets: sets.map((s) => ({ our: num(s.punti_nostri) ?? 0, opp: num(s.punti_avversario) ?? 0 })),
+    completed: sets.map((s) => s.completato === true),
+  };
+}
+
+/** Realtime: nuovi eventi di cronaca e aggiornamenti dei set (tabelle nella pubblicazione supabase_realtime) */
+export function subscribeLive(matchId: string, onEvent: (e: LiveEvent) => void, onSets: () => void): () => void {
+  if (!supabase) return () => {};
+  const client = supabase;
+  const ch: RealtimeChannel = client
+    .channel(`live-${matchId}-${Math.random().toString(36).slice(2, 8)}`)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: T.eventiLive, filter: `partita_id=eq.${matchId}` }, (p) =>
+      onEvent(mapEvent(p.new as Row)),
+    )
+    .on('postgres_changes', { event: '*', schema: 'public', table: T.setPartita, filter: `partita_id=eq.${matchId}` }, () => onSets())
+    .subscribe();
+  return () => {
+    client.removeChannel(ch);
+  };
 }
 
 export const youtubeThumb = (id: string) => `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
 export const youtubeUrl = (id: string) => `https://www.youtube.com/watch?v=${id}`;
-
-// ---------- Galleria ----------
-export async function getAlbum(): Promise<AlbumFoto[]> {
-  const { data, error } = await supabase
-    .from('album_foto').select('*').order('data_scatto', { ascending: false });
-  return check(data, error) ?? [];
-}
-
-export async function getAlbumConFoto(albumId: string): Promise<AlbumFoto | null> {
-  const { data, error } = await supabase
-    .from('album_foto').select('*, foto(*)')
-    .eq('id', albumId)
-    .order('ordine', { referencedTable: 'foto', ascending: true })
-    .maybeSingle();
-  return check(data, error);
-}
-
-// ---------- Sponsor ----------
-export async function getSponsor(): Promise<Sponsor[]> {
-  const { data, error } = await supabase
-    .from('sponsor').select('*').eq('attivo', true).order('ordine');
-  return check(data, error) ?? [];
-}
-
-export async function getPromoAttive(): Promise<PromoSponsor[]> {
-  const oggi = new Date().toISOString().slice(0, 10);
-  const { data, error } = await supabase
-    .from('promo_sponsor').select('*, sponsor(*)')
-    .eq('attiva', true)
-    .or(`attiva_dal.is.null,attiva_dal.lte.${oggi}`)
-    .or(`attiva_al.is.null,attiva_al.gte.${oggi}`);
-  return check(data, error) ?? [];
-}
