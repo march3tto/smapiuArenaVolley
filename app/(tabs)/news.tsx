@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
+import { useRouter } from 'expo-router';
 import { NewsCard } from '@/components/NewsCard';
 import { Screen } from '@/components/Screen';
 import { SectionHeader } from '@/components/SectionHeader';
@@ -7,6 +8,7 @@ import { SegmentedControl } from '@/components/SegmentedControl';
 import { useData } from '@/store/DataProvider';
 
 export default function News() {
+  const router = useRouter();
   const { news, loading, refresh } = useData();
   const { width } = useWindowDimensions();
   const [cat, setCat] = useState('all');
@@ -22,7 +24,7 @@ export default function News() {
       <SegmentedControl options={options} value={cat} onChange={setCat} />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14 }}>
         {list.map((n) => (
-          <NewsCard key={n.id} item={n} width={cardW} />
+          <NewsCard key={n.id} item={n} width={cardW} onPress={() => router.push({ pathname: '/notizia/[id]', params: { id: n.id } })} />
         ))}
       </View>
     </Screen>
