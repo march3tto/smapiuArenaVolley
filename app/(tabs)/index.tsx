@@ -37,7 +37,7 @@ export default function Home() {
 
       <View style={{ gap: 12 }}>
         <SectionHeader title="Ultime notizie" action={{ label: 'Tutte', onPress: () => router.navigate('/news') }} />
-        <NewsSlider items={news} onPressItem={() => router.navigate('/news')} />
+        <NewsSlider items={news} onPressItem={(n) => router.push({ pathname: '/notizia/[id]', params: { id: n.id } })} />
       </View>
 
       <SponsorBanner sponsors={sponsors} onPress={() => router.navigate('/altro')} />
