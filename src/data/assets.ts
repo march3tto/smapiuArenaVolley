@@ -2,6 +2,13 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 
 export const LOGO_AVT: number = require('../../assets/brand/avt-logo-white.png');
+export const LOGO_BRAND: number = require('../../assets/brand/avt-smapiu-logo.png');
+export const LOGO_BRAND_LIGHT: number = require('../../assets/brand/avt-smapiu-logo-light.png');
+/** Loghi dei campionati, per slug del nome (tabella campionati) */
+export const COMPETITION_LOGOS: Record<string, number> = {
+  'serie-a3-femminile': require('../../assets/competitions/serie-a3-femminile.png'),
+};
+
 export const LOGO_SMAPIU: number = require('../../assets/brand/smapiu-white.png');
 
 export const PLAYER_PHOTOS: Record<string, number> = {

@@ -2,14 +2,15 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { slugify } from './format';
 import * as mock from '@/data/mock';
-import { NEWS_IMAGES, OPPONENT_LOGOS, PLAYER_PHOTOS, SPONSOR_LOGOS } from '@/data/assets';
+import { COMPETITION_LOGOS, NEWS_IMAGES, OPPONENT_LOGOS, PLAYER_PHOTOS, SPONSOR_LOGOS } from '@/data/assets';
 import type {
-  ImgSrc, LiveEvent, Match, MatchStatus, MediaItem, NewsItem, Player, PlayerRole, SetScore, Sponsor, SponsorTier, Standing, Venue, YouthTeam,
+  Competition, ImgSrc, LiveEvent, Match, MatchStatus, MediaItem, NewsItem, Player, PlayerRole, SetScore, Sponsor, SponsorTier, Standing, Venue, YouthTeam,
 } from '@/types';
 
 /** Tabelle dello schema Supabase (in italiano) */
 export const T = {
   stagioni: 'stagioni',
+  campionati: 'campionati',
   partite: 'partite',
   setPartita: 'set_partita',
   eventiLive: 'eventi_live',
@@ -53,7 +54,7 @@ export function emptyData(): AppData {
 
 export function demoData(): AppData {
   return {
-    matches: mock.matches,
+    matches: mock.matches.map((m) => ({ ...m, competition: m.girone ? SERIE_A3 : null })),
     standings: mock.standings,
     players: mock.players,
     news: mock.news,
@@ -93,7 +94,15 @@ function mapSets(r: Row): SetScore[] | undefined {
     .map((s) => ({ our: num(s.punti_nostri) ?? 0, opp: num(s.punti_avversario) ?? 0 }));
 }
 
-function mapMatch(r: Row): Match {
+/** Campionato usato per le partite con girone quando la tabella campionati non c'è o la partita non è collegata */
+const SERIE_A3: Competition = { name: 'Serie A3 Femminile', federation: 'FIPAV', logo: COMPETITION_LOGOS['serie-a3-femminile'] };
+
+function mapCompetition(r: Row): Competition {
+  const name = str(r.nome);
+  return { name, federation: (r.federazione as string | null) ?? null, logo: image(r.logo_url, COMPETITION_LOGOS, slugify(name)) };
+}
+
+function mapMatch(r: Row, competitions: Map<string, Competition> = new Map()): Match {
   return {
     id: str(r.id),
     giornata: num(r.giornata),
@@ -104,6 +113,7 @@ function mapMatch(r: Row): Match {
     opponent: str(r.avversario),
     opponentLogo: image(r.logo_avversario_url ?? r.opponent_logo_url, OPPONENT_LOGOS, slugify(str(r.avversario))) || null,
     venue: str(r.sede),
+    competition: (r.campionato_id ? competitions.get(str(r.campionato_id)) : undefined) ?? (r.girone ? SERIE_A3 : null),
     status: STATO[str(r.stato)] ?? 'scheduled',
     ourSets: num(r.nostri_set_vinti),
     oppSets: num(r.set_vinti_avversario),
@@ -223,7 +233,7 @@ export async function loadAll(): Promise<AppData> {
   const ids = stagioni.map((s) => str(s.id));
   if (!ids.length) throw new Error('Nessuna stagione con corrente = true in "stagioni".');
 
-  const [partite, classifiche, giocatrici, notizie, sponsor, categorie, staff, media] = await Promise.all([
+  const [partite, classifiche, giocatrici, notizie, sponsor, categorie, staff, media, campionati] = await Promise.all([
     db.from(T.partite).select(`*, ${T.setPartita}(*)`).in('stagione_id', ids).order('data_partita'),
     db.from(T.classifiche).select('*').in('stagione_id', ids).order('posizione'),
     db.from(T.giocatrici).select('*').in('stagione_id', ids).eq('livello_squadra', 'prima_squadra').eq('attiva', true).order('ordine'),
@@ -232,11 +242,14 @@ export async function loadAll(): Promise<AppData> {
     db.from(T.categorie).select('*').order('ordine'),
     db.from(T.staff).select('*').eq('attivo', true).order('ordine'),
     db.from(T.media).select('*').eq('pubblicato', true).order('pubblicato_il', { ascending: false }),
+    db.from(T.campionati).select('*'),
   ]);
 
   const p = must(partite, 'partite') as Row[];
+  // tabella facoltativa (migrazione 20261006_campionati): se manca si usa SERIE_A3 per le partite con girone
+  const competitions = new Map(((campionati.data ?? []) as Row[]).map((r) => [str(r.id), mapCompetition(r)]));
   return {
-    matches: p.filter((r) => r.livello_squadra === 'prima_squadra').map(mapMatch),
+    matches: p.filter((r) => r.livello_squadra === 'prima_squadra').map((r) => mapMatch(r, competitions)),
     standings: (must(classifiche, 'classifiche') as Row[]).map(mapStanding),
     players: (must(giocatrici, 'giocatrici') as Row[]).map(mapPlayer),
     news: (must(notizie, 'notizie') as Row[]).map(mapNews),

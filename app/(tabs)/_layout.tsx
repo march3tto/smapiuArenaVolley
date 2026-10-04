@@ -12,7 +12,7 @@ export default function TabsLayout() {
   if (!user && !guest) return <Redirect href="/login" />;
 
   return (
-    <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ header: () => <TopBar />, sceneStyle: { backgroundColor: c.bg } }}>
+    <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ header: () => <TopBar />, headerTransparent: true, sceneStyle: { backgroundColor: c.bg } }}>
       <Tabs.Screen name="index" options={{ title: 'Home' }} />
       <Tabs.Screen name="risultati" options={{ title: 'Risultati' }} />
       <Tabs.Screen name="squadra" options={{ title: 'Squadra' }} />

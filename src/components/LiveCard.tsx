@@ -25,7 +25,7 @@ export function LiveCard() {
 
   return (
     <LinearGradient
-      colors={mode === 'dark' ? ['#10266A', '#081640'] : ['#FFFFFF', '#F1F5FD']}
+      colors={mode === 'dark' ? ['#2F62B0', '#1E4586'] : ['#FFFFFF', '#F1F5FD']}
       style={{ borderRadius: 26, padding: 18, gap: 18, borderWidth: 1.5, borderColor: 'rgba(242,184,0,0.55)' }}
     >
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
