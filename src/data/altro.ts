@@ -1,7 +1,7 @@
 import { ALBO_PHOTO, PALESTRE_PHOTO, SAFEGUARDING_PHOTO, STORIA_PHOTO } from './assets';
-import { Book, Image, MapPin, Network, ShieldCheck, Star, Trophy, type LucideIcon } from 'lucide-react-native';
+import { Book, Image, MapPin, Network, Phone, ShieldCheck, Star, Trophy, type LucideIcon } from 'lucide-react-native';
 
-export type InfoKey = 'storia' | 'organigramma' | 'albo' | 'palestre' | 'safeguarding' | 'sponsor' | 'galleria';
+export type InfoKey = 'storia' | 'organigramma' | 'albo' | 'palestre' | 'safeguarding' | 'contatti' | 'sponsor' | 'galleria';
 
 export interface InfoSection {
   key: InfoKey;
@@ -50,11 +50,12 @@ export const INFO: Record<InfoKey, InfoSection> = {
     headline: 'Tutela e sicurezza',
     body: 'In ottemperanza alle linee guida emanate dalla FIPAV, le società del gruppo comunicano di aver adottato il Modello Organizzativo e di controllo dell’attività sportiva (MOG), il relativo Codice di Condotta e di aver nominato quale Responsabile delle Politiche di Safeguarding:',
   },
+  contatti: { key: 'contatti', title: 'Contatti', subtitle: 'Segreteria, uffici e recapiti', Icon: Phone },
   sponsor: { key: 'sponsor', title: 'Sponsor', subtitle: 'Chi ci sostiene', Icon: Star },
   galleria: { key: 'galleria', title: 'Galleria foto', subtitle: 'Album delle partite', Icon: Image },
 };
 
-export const SOCIETA: InfoKey[] = ['storia', 'organigramma', 'albo', 'palestre', 'safeguarding'];
+export const SOCIETA: InfoKey[] = ['storia', 'organigramma', 'albo', 'palestre', 'safeguarding', 'contatti'];
 export const MEDIA: InfoKey[] = ['sponsor', 'galleria'];
 
 /** Ruoli del progetto sportivo comune (fonte: sito ufficiale, pagina Società) */

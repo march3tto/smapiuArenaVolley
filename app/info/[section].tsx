@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Linking, Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Building2, Dumbbell, Mail, Minus, Navigation, Plus, Trophy, User, Volleyball, X, type LucideIcon } from 'lucide-react-native';
+import { Building2, ChevronRight, Dumbbell, Mail, MapPin, MessageCircle, Minus, Phone, Navigation, Plus, Trophy, User, Volleyball, X, type LucideIcon } from 'lucide-react-native';
 import { Pressy } from '@/components/Pressy';
 import { Card } from '@/components/Card';
 import { CoverImage } from '@/components/CoverImage';
@@ -11,6 +11,7 @@ import { InstagramStrip } from '@/components/InstagramStrip';
 import { MediaList } from '@/components/MediaList';
 import { SponsorGrid } from '@/components/SponsorGrid';
 import { Txt } from '@/components/Txt';
+import { CONTACTS } from '@/constants';
 import { ALBO_ORO, INFO, ORGANIGRAMMA, SAFEGUARDING, type InfoKey } from '@/data/altro';
 import { ORGANIGRAMMA_PHOTO } from '@/data/assets';
 import { useData } from '@/store/DataProvider';
@@ -111,6 +112,8 @@ export default function InfoScreen() {
               ))}
             </Card>
           </>
+        ) : info.key === 'contatti' ? (
+          <Contatti />
         ) : info.key === 'palestre' ? (
           <>
             {info.image ? <CoverImage source={info.image} style={{ aspectRatio: 4 / 3, borderRadius: 24, backgroundColor: c.fill }} /> : null}
@@ -209,5 +212,87 @@ function AlboOro() {
         );
       })}
     </Card>
+  );
+}
+
+const GOLD_TINT = 'rgba(242,184,0,0.18)';
+const tel = (phone: string) => Linking.openURL(`tel:${phone.replace(/\s/g, '')}`);
+const mail = (email: string) => Linking.openURL(`mailto:${email}`);
+
+/** Sede, segreterie per zona e indirizzi email per argomento */
+function Contatti() {
+  const { c } = useTheme();
+  const actions: { Icon: LucideIcon; label: string; onPress: () => void }[] = [
+    { Icon: Phone, label: 'Chiama', onPress: () => tel(CONTACTS.phone) },
+    { Icon: Mail, label: 'Email', onPress: () => mail(CONTACTS.email) },
+    { Icon: MessageCircle, label: 'WhatsApp', onPress: () => Linking.openURL(`https://wa.me/${CONTACTS.whatsapp}`) },
+  ];
+  const label = (t: string) => (
+    <Txt w={800} size={13} color="muted" style={{ letterSpacing: 1.4, textTransform: 'uppercase', paddingHorizontal: 4, marginTop: 4 }}>{t}</Txt>
+  );
+  const chip = (Icon: LucideIcon, text: string, onPress: () => void) => (
+    <Pressy key={text} onPress={onPress} scaleTo={0.95} accessibilityRole="link" accessibilityLabel={text}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, backgroundColor: c.fill2 }}>
+      <Icon size={15} color={c.accent} />
+      <Txt w={600} size={13}>{text}</Txt>
+    </Pressy>
+  );
+
+  return (
+    <>
+      <Card style={{ gap: 14 }}>
+        <Pressy scaleTo={0.98} accessibilityRole="link" accessibilityLabel="Sede, apri in Mappe"
+          onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(CONTACTS.address)}`)}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+          <View style={{ width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: GOLD_TINT }}>
+            <MapPin size={20} color={c.accent} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Txt w={700} size={16}>Segreteria</Txt>
+            <Txt size={13} color="muted">{CONTACTS.address}</Txt>
+          </View>
+          <ChevronRight size={18} color={c.muted} />
+        </Pressy>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {actions.map(({ Icon, label: l, onPress }) => (
+            <Pressy key={l} onPress={onPress} scaleTo={0.94} accessibilityRole="button" accessibilityLabel={l}
+              style={{ flex: 1, alignItems: 'center', gap: 6, paddingVertical: 12, borderRadius: 14, backgroundColor: c.fill2 }}>
+              <Icon size={20} color={c.cobalt} />
+              <Txt w={600} size={12.5}>{l}</Txt>
+            </Pressy>
+          ))}
+        </View>
+      </Card>
+
+      {label('Segreterie per zona')}
+      <Card padded={false} style={{ overflow: 'hidden' }}>
+        {CONTACTS.desks.map((d, i) => (
+          <View key={d.area} style={{ paddingHorizontal: 16, paddingVertical: 14, gap: 10, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
+            <Txt w={700} size={15}>{d.area}</Txt>
+            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+              {chip(Phone, d.phone, () => tel(d.phone))}
+              {chip(Mail, d.email, () => mail(d.email))}
+            </View>
+          </View>
+        ))}
+      </Card>
+
+      {label('Scrivici')}
+      <Card padded={false} style={{ overflow: 'hidden' }}>
+        {CONTACTS.offices.map((o, i) => (
+          <View key={o.email} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
+            {/* solo la busta avvia l'email */}
+            <Pressy onPress={() => mail(o.email)} scaleTo={0.9} hitSlop={6} accessibilityRole="link" accessibilityLabel={`Scrivi a ${o.label}`}
+              style={{ width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: c.fill2 }}>
+              <Mail size={20} color={c.cobalt} />
+            </Pressy>
+            <View style={{ flex: 1 }}>
+              <Txt w={700} size={16}>{o.label}</Txt>
+              <Txt size={13} color="muted" selectable>{o.email}</Txt>
+            </View>
+          </View>
+        ))}
+      </Card>
+    </>
   );
 }

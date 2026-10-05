@@ -6,6 +6,8 @@ export const LEAGUE = 'Serie A3 femminile';
 export const GIRONE = 'Girone B';
 export const INSTAGRAM_HANDLE = '@arenavolleyteam';
 export const INSTAGRAM_URL = 'https://www.instagram.com/arenavolleyteam/';
+export const INSTAGRAM_YOUNG_HANDLE = '@arenavolleyteamyoung';
+export const INSTAGRAM_YOUNG_URL = 'https://www.instagram.com/arenavolleyteamyoung/';
 
 export const FACEBOOK_URL = 'https://www.facebook.com/Arenavolleyteam/';
 

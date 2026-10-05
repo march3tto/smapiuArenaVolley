@@ -1,4 +1,5 @@
-import { Alert, Platform, Pressable, View, useWindowDimensions } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Animated, Platform, Pressable, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
@@ -6,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Settings, User } from 'lucide-react-native';
 import { IconButton } from './IconButton';
+import { SocialMenu } from './SocialMenu';
 import { Txt } from './Txt';
 import { useToast } from './Toast';
 import { LOGO_BRAND, LOGO_BRAND_LIGHT } from '@/data/assets';
@@ -41,6 +43,12 @@ export function TopBar() {
   const router = useRouter();
   const toast = useToast();
   const logo = useLogoSize();
+  const [social, setSocial] = useState(false);
+  const progress = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.spring(progress, { toValue: social ? 1 : 0, useNativeDriver: false, speed: 18, bounciness: social ? 6 : 0 }).start();
+  }, [social, progress]);
 
   const onAccount = () => {
     if (!user) return router.push('/login');
@@ -66,11 +74,17 @@ export function TopBar() {
     <View pointerEvents="box-none" style={{ paddingTop: insets.top + 6, paddingHorizontal: 14, paddingBottom: 8 }}>
       <LinearGradient pointerEvents="none" colors={[c.bg, mode === 'dark' ? 'rgba(42,90,165,0)' : 'rgba(238,242,250,0)']}
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-      <View pointerEvents="box-none" style={{ height: logo.h, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', width: '100%', maxWidth: 1120, alignSelf: 'center' }}>
-        <Pressable onPress={() => router.navigate('/')} accessibilityRole="button" accessibilityLabel="Home"
-          style={{ position: 'absolute', left: '50%', marginLeft: -logo.w / 2 }}>
-          <Image source={mode === 'dark' ? LOGO_BRAND : LOGO_BRAND_LIGHT} style={{ width: logo.w, height: logo.h }} contentFit="contain" />
-        </Pressable>
+      <View pointerEvents="box-none" style={{ height: logo.h, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 1120, alignSelf: 'center' }}>
+        {/* il logo sfuma quando il menu social si apre e gli passa sopra */}
+        <Animated.View pointerEvents={social ? 'none' : 'auto'}
+          style={{ position: 'absolute', left: '50%', marginLeft: -logo.w / 2, opacity: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }}>
+          <Pressable onPress={() => router.navigate('/')} accessibilityRole="button" accessibilityLabel="Home">
+            <Image source={mode === 'dark' ? LOGO_BRAND : LOGO_BRAND_LIGHT} style={{ width: logo.w, height: logo.h }} contentFit="contain" />
+          </Pressable>
+        </Animated.View>
+        <BlurView intensity={blur} tint={tint} style={capsule}>
+          <SocialMenu progress={progress} open={social} onOpenChange={setSocial} />
+        </BlurView>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <BlurView intensity={blur} tint={tint} style={capsule}>
             <IconButton label={user ? `Account di ${user.name}` : 'Accedi'} onPress={onAccount} active={!!user} style={user ? undefined : flat}>
