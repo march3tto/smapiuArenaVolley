@@ -10,6 +10,8 @@ export const COMPETITION_LOGOS: Record<string, number> = {
 };
 
 export const LOGO_SMAPIU: number = require('../../assets/brand/smapiu-white.png');
+/** Foto di squadra della pagina Organigramma */
+export const ORGANIGRAMMA_PHOTO: number = require('../../assets/brand/organigramma.jpg');
 
 export const PLAYER_PHOTOS: Record<string, number> = {
   'alice-trampus': require('../../assets/players/alice-trampus.jpg'),

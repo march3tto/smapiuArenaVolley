@@ -1,15 +1,17 @@
 import { Linking, Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Building2, Dumbbell, Navigation, Volleyball, X, type LucideIcon } from 'lucide-react-native';
+import { Building2, Dumbbell, Navigation, User, Volleyball, X, type LucideIcon } from 'lucide-react-native';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { CoverImage } from '@/components/CoverImage';
 import { IconButton } from '@/components/IconButton';
 import { InstagramStrip } from '@/components/InstagramStrip';
 import { MediaList } from '@/components/MediaList';
 import { SponsorGrid } from '@/components/SponsorGrid';
 import { Txt } from '@/components/Txt';
-import { INFO, type InfoKey } from '@/data/altro';
+import { INFO, ORGANIGRAMMA, type InfoKey } from '@/data/altro';
+import { ORGANIGRAMMA_PHOTO } from '@/data/assets';
 import { useData } from '@/store/DataProvider';
 import { palette } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -51,7 +53,25 @@ export default function InfoScreen() {
           </IconButton>
         </View>
 
-        {info.key === 'palestre' ? (
+        {info.key === 'organigramma' ? (
+          <>
+            <CoverImage source={ORGANIGRAMMA_PHOTO} style={{ aspectRatio: 1024 / 683, borderRadius: 24, backgroundColor: c.fill }} />
+            <Txt size={15} color="muted" style={{ lineHeight: 22, paddingHorizontal: 4 }}>{info.body}</Txt>
+            <Card padded={false} style={{ overflow: 'hidden' }}>
+              {ORGANIGRAMMA.map((p, i) => (
+                <View key={p.name} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
+                  <View style={{ width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: c.fill2 }}>
+                    <User size={20} color={c.cobalt} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Txt w={700} size={16}>{p.name}</Txt>
+                    <Txt w={700} size={11.5} color="cobalt" style={{ letterSpacing: 0.6, textTransform: 'uppercase', marginTop: 2 }}>{p.role}</Txt>
+                  </View>
+                </View>
+              ))}
+            </Card>
+          </>
+        ) : info.key === 'palestre' ? (
           venues.map((v) => {
             const VIcon = VENUE_ICON[v.kind];
             return (
