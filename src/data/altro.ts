@@ -1,0 +1,129 @@
+import { ALBO_PHOTO, PALESTRE_PHOTO, SAFEGUARDING_PHOTO, STORIA_PHOTO } from './assets';
+import { Book, Image, MapPin, Network, Phone, ShieldCheck, Star, Trophy, type LucideIcon } from 'lucide-react-native';
+
+export type InfoKey = 'storia' | 'organigramma' | 'albo' | 'palestre' | 'safeguarding' | 'contatti' | 'sponsor' | 'galleria';
+
+export interface InfoSection {
+  key: InfoKey;
+  title: string;
+  subtitle: string;
+  Icon: LucideIcon;
+  /** Testo della pagina di dettaglio (paragrafi separati da una riga vuota) */
+  body?: string;
+  /** Titolo in evidenza sopra il testo */
+  headline?: string;
+  image?: number;
+  /** Numeri chiave mostrati in riquadri */
+  facts?: { value: string; label: string }[];
+}
+
+// Testi di esempio: sostituire con quelli forniti dalla società
+export const INFO: Record<InfoKey, InfoSection> = {
+  storia: {
+    key: 'storia', title: 'Storia', subtitle: 'Dalla fondazione a oggi', Icon: Book,
+    headline: 'Radici profonde, visione vincente',
+    image: STORIA_PHOTO,
+    facts: [
+      { value: '2018', label: 'Anno di nascita' },
+      { value: '5', label: 'Società unite' },
+      { value: '500', label: 'Atlete circa' },
+    ],
+    body: [
+      'Arena Volley Team Verona è un progetto sportivo nato il 25 luglio 2018 con l’obiettivo di unire e valorizzare la pallavolo femminile nella città e nella provincia di Verona.',
+      'Il progetto ha riunito realtà come Gaiga Pallavolo Verona, Vigasio Volley, Volley Victory, Castel d’Azzano Volley e San Giovanni Lupatoto Volley, offrendo alle giovani atlete percorsi di crescita tecnica e sportiva di alto livello, dal settore giovanile alla prima squadra.',
+      'Arena Volley è oggi un movimento di riferimento per la pallavolo femminile regionale ed è infatti la prima società nel territorio veronese e tra le prime riconosciute in Veneto.',
+      'Un progetto in continua crescita che coinvolge circa 500 atlete, dai 5 anni, e si fonda sul lavoro di tecnici qualificati.',
+      'Il settore giovanile rappresenta il cuore del progetto, costruito con metodo e competenza, come dimostrano i risultati sportivi e il riconoscimento della Certificazione di Qualità Argento FIPAV.',
+    ].join('\n\n'),
+  },
+  organigramma: {
+    key: 'organigramma', title: 'Organigramma', subtitle: 'Dirigenza e staff tecnico', Icon: Network,
+    body: 'All’interno del progetto sportivo ogni società mantiene la propria autonomia organizzativa e giuridica. All’interno del progetto sportivo comune sono stati assegnati questi ruoli:',
+  },
+  albo: {
+    key: 'albo', title: "Albo d'oro", subtitle: 'Titoli e piazzamenti per stagione', Icon: Trophy, image: ALBO_PHOTO,
+    body: 'La nostra storia scritta sul campo: dai successi giovanili alle promozioni nazionali, ecco i trofei che brillano nella bacheca di Arena Volley Verona.',
+  },
+  palestre: { key: 'palestre', title: 'Palestre', subtitle: 'Indirizzi e indicazioni', Icon: MapPin, image: PALESTRE_PHOTO },
+  safeguarding: {
+    key: 'safeguarding', title: 'Safeguarding', subtitle: 'Tutela dei minori e referente', Icon: ShieldCheck, image: SAFEGUARDING_PHOTO,
+    headline: 'Tutela e sicurezza',
+    body: 'In ottemperanza alle linee guida emanate dalla FIPAV, le società del gruppo comunicano di aver adottato il Modello Organizzativo e di controllo dell’attività sportiva (MOG), il relativo Codice di Condotta e di aver nominato quale Responsabile delle Politiche di Safeguarding:',
+  },
+  contatti: { key: 'contatti', title: 'Contatti', subtitle: 'Segreteria, uffici e recapiti', Icon: Phone },
+  sponsor: { key: 'sponsor', title: 'Sponsor', subtitle: 'Chi ci sostiene', Icon: Star },
+  galleria: { key: 'galleria', title: 'Galleria foto', subtitle: 'Album delle partite', Icon: Image },
+};
+
+export const SOCIETA: InfoKey[] = ['storia', 'organigramma', 'albo', 'palestre', 'safeguarding', 'contatti'];
+export const MEDIA: InfoKey[] = ['sponsor', 'galleria'];
+
+/** Ruoli del progetto sportivo comune (fonte: sito ufficiale, pagina Società) */
+export const ORGANIGRAMMA: { name: string; role: string }[] = [
+  { name: 'Fabio Tosi', role: 'Coordinatore generale' },
+  { name: 'Marco Piva', role: 'Direttore sportivo Serie A3' },
+  { name: 'Fabio Grandi', role: 'Dir. resp. settore giovanile progetto' },
+  { name: 'Fausto Calzolari', role: 'Dir. resp. settore giovanile progetto' },
+  { name: 'Matteo Schiavo', role: 'Dir. resp. settore giovanile progetto' },
+  { name: 'Silvia Polato', role: 'Dir. resp. settore giovanile progetto' },
+  { name: 'Greca Pillitu', role: 'Dir. resp. sportivo settore giovanile' },
+  { name: 'Nicole Cantarelli', role: 'Preparatore atletico' },
+  { name: 'Andrea Bertelli', role: 'Preparatore atletico' },
+  { name: 'Dr. Vito Zanella', role: 'Medico Serie A3' },
+  { name: 'Lara Visonae e Centro Atlante', role: 'Fisioterapista' },
+  { name: 'Claudio Pasquetto', role: 'Resp. marketing e comunicazione' },
+  { name: 'Laura Peretti', role: 'Resp. social e rapporti sponsor' },
+  { name: 'Roberta Zorzella', role: 'Segreteria e amministrazione' },
+];
+
+/** Albo d'oro per stagione, dalla più recente: squadra e risultato */
+export const ALBO_ORO: { season: string; items: { team: string; result: string }[] }[] = [
+  {
+    season: '2024/2025',
+    items: [
+      { team: 'Under 12 femminile', result: 'Campione provinciale' },
+      { team: 'Under 13 femminile', result: 'Campione provinciale' },
+      { team: 'Under 14 femminile', result: 'Campione provinciale' },
+      { team: 'Under 16 femminile', result: 'Campione provinciale e 4ª classificata in Veneto' },
+      { team: 'Under 18 femminile', result: 'Campione provinciale, vice campione Veneto e 12° posto in Italia' },
+      { team: 'Serie D', result: 'Composta completamente da Under 16' },
+      { team: 'Sitta Arena – Serie C', result: 'Composta completamente da Under 18' },
+      { team: 'Smapiù Arena – Serie B1', result: '' },
+    ],
+  },
+  {
+    season: '2023/2024',
+    items: [
+      { team: 'Under 13 femminile', result: 'Campione provinciale' },
+      { team: 'Under 14 femminile', result: 'Campione provinciale, vice campione Veneto, 7ª classificata in Italia' },
+      { team: 'Under 16 femminile', result: '3ª classificata provinciale, 4ª classificata in Veneto' },
+      { team: 'Under 18 femminile', result: 'Campione provinciale' },
+      { team: 'Serie D', result: 'Composta completamente da Under 16' },
+      { team: 'Sitta Arena – Serie C', result: 'Composta completamente da Under 18' },
+      { team: 'Smapiù Arena – Serie B1', result: '' },
+    ],
+  },
+  {
+    season: '2022/2023',
+    items: [
+      { team: 'Under 13 femminile', result: 'Campione provinciale' },
+      { team: 'Under 14 femminile', result: 'Campione provinciale' },
+      { team: 'Under 16 femminile', result: 'Campione provinciale, 2ª classificata in Veneto, 7ª classificata in Italia' },
+      { team: 'Under 18 femminile', result: 'Campione provinciale' },
+      { team: 'Serie D', result: 'Composta completamente da Under 16' },
+      { team: 'Serie C', result: 'Composta completamente da Under 18' },
+      { team: 'Serie B1', result: '' },
+    ],
+  },
+];
+
+/** Responsabile delle politiche di safeguarding e contatti per società */
+export const SAFEGUARDING = {
+  responsible: 'Sig.ra Giorgia Pagani',
+  contacts: [
+    { club: 'Arena Volley ASD', email: 'safeguarding.arena@gmail.com' },
+    { club: 'Volley Victory ASD', email: 'safeguarding.victory@gmail.com' },
+    { club: 'Sangio Volley ASD', email: 'safeguarding.sangio@gmail.com' },
+    { club: 'Gaiga ASD', email: 'safeguarding.gaiga@gmail.com' },
+  ],
+};

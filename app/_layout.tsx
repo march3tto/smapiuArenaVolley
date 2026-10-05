@@ -71,6 +71,7 @@ function RootStack() {
         <Stack.Screen name="player/[id]" options={{ presentation: 'modal' }} />
         <Stack.Screen name="notizia/[id]" options={{ presentation: 'modal' }} />
         <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="info/[section]" options={{ presentation: 'modal' }} />
       </Stack>
     </>
   );
