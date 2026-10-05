@@ -104,9 +104,18 @@ export const youth: YouthTeam[] = [
 ];
 
 export const venues: Venue[] = [
-  { name: 'PalaArena', city: 'Verona', use: 'Partite in casa della prima squadra e allenamenti Under 18.', kind: 'arena' },
-  { name: "Palasport Castel d'Azzano", city: "Castel d'Azzano (VR)", use: 'Partite in casa e allenamenti Under 16.', kind: 'palasport' },
-  { name: 'Palestra comunale', city: "Castel d'Azzano (VR)", use: 'Allenamenti Under 12 e Under 14.', kind: 'palestra' },
+  { name: 'Palazzetto dello sport “PalaRobbi”', address: 'Via Dante Alighieri, 37060 Castel d’Azzano VR', city: 'Castel d’Azzano', kind: 'palasport' },
+  { name: 'Palestra Parrocchiale', address: 'Via Mascagni, 37060 Castel d’Azzano VR', city: 'Castel d’Azzano', kind: 'palestra' },
+  { name: 'Palasport Vigasio', address: 'Via Alzeri, 37068 Vigasio VR', city: 'Vigasio', kind: 'palasport' },
+  { name: 'Scuola Media Statale', address: 'Viale Edoardo Bassini 6, 37068 Vigasio VR', city: 'Vigasio', kind: 'palestra' },
+  { name: 'Scuole Lenotti', address: 'Via Bacchiglione, Verona VR', city: 'Verona', kind: 'palestra' },
+  { name: 'Scuola Media Pacinotti', address: 'Viale Andrea Palladio, 37138 Verona VR', city: 'Verona', kind: 'palestra' },
+  { name: 'Scuole 6 Maggio Santa Lucia', address: 'Via Monsignor Bellomi 1, Verona VR', city: 'Verona', kind: 'palestra' },
+  { name: 'Scuola Media Statale A. De Gasperi', address: 'Via S. Giovanni Bosco 10, 37057 Raldon VR', city: 'San Giovanni Lupatoto', kind: 'palestra' },
+  { name: 'Scuola Primaria Giulio Ceroni', address: 'Via S. Giovanni Bosco 10, 37057 Raldon VR', city: 'San Giovanni Lupatoto', kind: 'palestra' },
+  { name: 'Palestra Scuola Primaria Marconi', address: 'Via Leoncavallo, Pozzo VR', city: 'San Giovanni Lupatoto', kind: 'palestra' },
+  { name: 'Scuola Media Leonardo da Vinci, I.C. 1', address: 'Via Cà dei Sordi 16, 37057 San Giovanni Lupatoto VR', city: 'San Giovanni Lupatoto', kind: 'palestra' },
+  { name: 'Palalupatotina Gas e Luce', address: 'Via Monte Ortigara, 37057 San Giovanni Lupatoto VR', city: 'San Giovanni Lupatoto', kind: 'palasport' },
 ];
 
 /** Stato iniziale della diretta demo (4° set) */

@@ -15,6 +15,10 @@ export const LOGO_SMAPIU: number = require('../../assets/brand/smapiu-white.png'
 export const STORIA_PHOTO: number = require('../../assets/brand/storia.jpg');
 /** Foto della pagina Albo d'oro */
 export const ALBO_PHOTO: number = require('../../assets/brand/albo-oro.jpg');
+/** Foto della pagina Palestre */
+export const PALESTRE_PHOTO: number = require('../../assets/brand/palestre.jpg');
+/** Foto della pagina Safeguarding */
+export const SAFEGUARDING_PHOTO: number = require('../../assets/brand/safeguarding.jpg');
 export const ORGANIGRAMMA_PHOTO: number = require('../../assets/brand/organigramma.jpg');
 
 export const PLAYER_PHOTOS: Record<string, number> = {

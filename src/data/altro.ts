@@ -1,4 +1,4 @@
-import { ALBO_PHOTO, STORIA_PHOTO } from './assets';
+import { ALBO_PHOTO, PALESTRE_PHOTO, SAFEGUARDING_PHOTO, STORIA_PHOTO } from './assets';
 import { Book, Image, MapPin, Network, ShieldCheck, Star, Trophy, type LucideIcon } from 'lucide-react-native';
 
 export type InfoKey = 'storia' | 'organigramma' | 'albo' | 'palestre' | 'safeguarding' | 'sponsor' | 'galleria';
@@ -44,8 +44,12 @@ export const INFO: Record<InfoKey, InfoSection> = {
     key: 'albo', title: "Albo d'oro", subtitle: 'Titoli e piazzamenti per stagione', Icon: Trophy, image: ALBO_PHOTO,
     body: 'La nostra storia scritta sul campo: dai successi giovanili alle promozioni nazionali, ecco i trofei che brillano nella bacheca di Arena Volley Verona.',
   },
-  palestre: { key: 'palestre', title: 'Palestre', subtitle: 'Indirizzi e indicazioni', Icon: MapPin },
-  safeguarding: { key: 'safeguarding', title: 'Safeguarding', subtitle: 'Tutela dei minori e referente', Icon: ShieldCheck, body: '[Policy di tutela dei minori e contatti del referente safeguarding.]' },
+  palestre: { key: 'palestre', title: 'Palestre', subtitle: 'Indirizzi e indicazioni', Icon: MapPin, image: PALESTRE_PHOTO },
+  safeguarding: {
+    key: 'safeguarding', title: 'Safeguarding', subtitle: 'Tutela dei minori e referente', Icon: ShieldCheck, image: SAFEGUARDING_PHOTO,
+    headline: 'Tutela e sicurezza',
+    body: 'In ottemperanza alle linee guida emanate dalla FIPAV, le società del gruppo comunicano di aver adottato il Modello Organizzativo e di controllo dell’attività sportiva (MOG), il relativo Codice di Condotta e di aver nominato quale Responsabile delle Politiche di Safeguarding:',
+  },
   sponsor: { key: 'sponsor', title: 'Sponsor', subtitle: 'Chi ci sostiene', Icon: Star },
   galleria: { key: 'galleria', title: 'Galleria foto', subtitle: 'Album delle partite', Icon: Image },
 };
@@ -111,3 +115,14 @@ export const ALBO_ORO: { season: string; items: { team: string; result: string }
     ],
   },
 ];
+
+/** Responsabile delle politiche di safeguarding e contatti per società */
+export const SAFEGUARDING = {
+  responsible: 'Sig.ra Giorgia Pagani',
+  contacts: [
+    { club: 'Arena Volley ASD', email: 'safeguarding.arena@gmail.com' },
+    { club: 'Volley Victory ASD', email: 'safeguarding.victory@gmail.com' },
+    { club: 'Sangio Volley ASD', email: 'safeguarding.sangio@gmail.com' },
+    { club: 'Gaiga ASD', email: 'safeguarding.gaiga@gmail.com' },
+  ],
+};

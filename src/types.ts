@@ -107,8 +107,10 @@ export interface YouthTeam {
 
 export interface Venue {
   name: string;
+  /** Via e località, come da indirizzo postale */
+  address: string;
+  /** Comune, usato per raggruppare */
   city: string;
-  use: string;
   kind: 'arena' | 'palasport' | 'palestra';
 }
 

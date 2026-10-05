@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { Linking, Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Building2, Dumbbell, Minus, Navigation, Plus, Trophy, User, Volleyball, X, type LucideIcon } from 'lucide-react-native';
-import { Button } from '@/components/Button';
+import { Building2, Dumbbell, Mail, Minus, Navigation, Plus, Trophy, User, Volleyball, X, type LucideIcon } from 'lucide-react-native';
 import { Pressy } from '@/components/Pressy';
 import { Card } from '@/components/Card';
 import { CoverImage } from '@/components/CoverImage';
@@ -12,7 +11,7 @@ import { InstagramStrip } from '@/components/InstagramStrip';
 import { MediaList } from '@/components/MediaList';
 import { SponsorGrid } from '@/components/SponsorGrid';
 import { Txt } from '@/components/Txt';
-import { ALBO_ORO, INFO, ORGANIGRAMMA, type InfoKey } from '@/data/altro';
+import { ALBO_ORO, INFO, ORGANIGRAMMA, SAFEGUARDING, type InfoKey } from '@/data/altro';
 import { ORGANIGRAMMA_PHOTO } from '@/data/assets';
 import { useData } from '@/store/DataProvider';
 import { palette } from '@/theme/colors';
@@ -79,22 +78,67 @@ export default function InfoScreen() {
             <Txt size={15} color="muted" style={{ lineHeight: 22, paddingHorizontal: 4 }}>{info.body}</Txt>
             <AlboOro />
           </>
-        ) : info.key === 'palestre' ? (
-          venues.map((v) => {
-            const VIcon = VENUE_ICON[v.kind];
-            return (
-              <Card key={v.name} style={{ gap: 4 }}>
-                <View style={{ width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: c.fill2, marginBottom: 8 }}>
-                  <VIcon size={20} color={c.cobalt} />
+        ) : info.key === 'safeguarding' ? (
+          <>
+            {info.image ? <CoverImage source={info.image} style={{ aspectRatio: 3 / 2, borderRadius: 24, backgroundColor: c.fill }} /> : null}
+            <Card style={{ gap: 14 }}>
+              <Txt w={800} size={12} color="accent" style={{ letterSpacing: 1.2, textTransform: 'uppercase' }}>Nomina responsabile e adozione MOG</Txt>
+              <Txt w={900} size={24} style={{ letterSpacing: -0.6 }}>{info.headline}</Txt>
+              <Txt size={16} style={{ lineHeight: 25 }}>{info.body}</Txt>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderRadius: 18, backgroundColor: c.fill2 }}>
+                <View style={{ width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.navy }}>
+                  <User size={20} color={palette.gold} />
                 </View>
-                <Txt w={700} size={16}>{v.name}</Txt>
-                <Txt size={13} color="muted">{v.city}</Txt>
-                <Txt size={14} style={{ marginVertical: 8 }}>{v.use}</Txt>
-                <Button size="sm" label="Indicazioni" style={{ alignSelf: 'flex-start' }} icon={<Navigation size={14} color={c.text} />}
-                  onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${v.name} ${v.city}`)}`)} />
-              </Card>
-            );
-          })
+                <View style={{ flex: 1 }}>
+                  <Txt w={700} size={16}>{SAFEGUARDING.responsible}</Txt>
+                  <Txt w={700} size={11.5} color="cobalt" style={{ letterSpacing: 0.6, textTransform: 'uppercase', marginTop: 2 }}>Responsabile safeguarding</Txt>
+                </View>
+              </View>
+            </Card>
+            <Card padded={false} style={{ overflow: 'hidden' }}>
+              {SAFEGUARDING.contacts.map((ct, i) => (
+                <Pressy key={ct.email} scaleTo={0.98} accessibilityRole="link" accessibilityLabel={`Scrivi a ${ct.club}`}
+                  onPress={() => Linking.openURL(`mailto:${ct.email}`)}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
+                  <View style={{ width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: c.fill2 }}>
+                    <Mail size={20} color={c.cobalt} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Txt w={700} size={16}>{ct.club}</Txt>
+                    <Txt size={13} color="muted">{ct.email}</Txt>
+                  </View>
+                </Pressy>
+              ))}
+            </Card>
+          </>
+        ) : info.key === 'palestre' ? (
+          <>
+            {info.image ? <CoverImage source={info.image} style={{ aspectRatio: 4 / 3, borderRadius: 24, backgroundColor: c.fill }} /> : null}
+            {[...new Set(venues.map((v) => v.city))].map((city) => (
+              <View key={city} style={{ gap: 10 }}>
+                <Txt w={800} size={13} color="muted" style={{ letterSpacing: 1.4, textTransform: 'uppercase', paddingHorizontal: 4 }}>{city}</Txt>
+                <Card padded={false} style={{ overflow: 'hidden' }}>
+                  {venues.filter((v) => v.city === city).map((v, i) => {
+                    const VIcon = VENUE_ICON[v.kind];
+                    return (
+                      <Pressy key={v.name} scaleTo={0.98} accessibilityRole="link" accessibilityLabel={`Indicazioni per ${v.name}`}
+                        onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${v.name}, ${v.address}`)}`)}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
+                        <View style={{ width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: c.fill2 }}>
+                          <VIcon size={20} color={c.cobalt} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Txt w={700} size={16}>{v.name}</Txt>
+                          <Txt size={13} color="muted">{v.address}</Txt>
+                        </View>
+                        <Navigation size={18} color={c.accent} />
+                      </Pressy>
+                    );
+                  })}
+                </Card>
+              </View>
+            ))}
+          </>
         ) : info.key === 'sponsor' ? (
           <SponsorGrid sponsors={sponsors} />
         ) : info.key === 'galleria' ? (
