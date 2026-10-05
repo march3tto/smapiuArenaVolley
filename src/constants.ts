@@ -7,14 +7,27 @@ export const GIRONE = 'Girone B';
 export const INSTAGRAM_HANDLE = '@arenavolleyteam';
 export const INSTAGRAM_URL = 'https://www.instagram.com/arenavolleyteam/';
 
-// Dati di esempio: sostituire con quelli reali della segreteria
+export const FACEBOOK_URL = 'https://www.facebook.com/Arenavolleyteam/';
+
+/** Contatti della società (fonte: sito ufficiale, footer e pagina Contatti) */
 export const CONTACTS = {
-  email: 'segreteria@arenavolley.it',
-  phone: '+39 045 000 0000',
-  hours: 'Lunedì–venerdì, 17:00–19:30',
-  address: '[Indirizzo sede]',
+  address: 'Via Mascagni 21, 37060 Castel d’Azzano (VR)',
+  email: 'segreteria@arenavolleyteam.it',
+  phone: '+39 392 09 24 310',
   /** Numero WhatsApp in formato internazionale, solo cifre */
-  whatsapp: '390450000000',
+  whatsapp: '393920924310',
+  /** Indirizzi per argomento */
+  offices: [
+    { label: 'Informazioni generali', email: 'info@arenavolleyteam.it' },
+    { label: 'Sponsor e marketing', email: 'marketing@arenavolleyteam.it' },
+    { label: 'Ufficio stampa', email: 'ufficiostampa@arenavolleyteam.it' },
+  ],
+  /** Segreterie per zona di attività */
+  desks: [
+    { area: 'Castel d’Azzano, Vigasio e Verona – Sacra Famiglia', email: 'segreteria@arenavolleyteam.it', phone: '+39 392 09 24 310' },
+    { area: 'Verona (Santa Lucia, centro) – Pallavolo Gaiga Verona', email: 'gaiga@arenavolleyteam.it', phone: '+39 346 09 35 830' },
+    { area: 'San Giovanni Lupatoto', email: 'sangio@arenavolleyteam.it', phone: '+39 334 76 29 854' },
+  ],
 };
 
 /** Sigla e colore del badge per le avversarie senza logo */
