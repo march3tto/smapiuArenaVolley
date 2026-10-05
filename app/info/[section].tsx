@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { Linking, Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Building2, Dumbbell, Navigation, User, Volleyball, X, type LucideIcon } from 'lucide-react-native';
+import { Building2, Dumbbell, Minus, Navigation, Plus, Trophy, User, Volleyball, X, type LucideIcon } from 'lucide-react-native';
 import { Button } from '@/components/Button';
+import { Pressy } from '@/components/Pressy';
 import { Card } from '@/components/Card';
 import { CoverImage } from '@/components/CoverImage';
 import { IconButton } from '@/components/IconButton';
@@ -10,7 +12,7 @@ import { InstagramStrip } from '@/components/InstagramStrip';
 import { MediaList } from '@/components/MediaList';
 import { SponsorGrid } from '@/components/SponsorGrid';
 import { Txt } from '@/components/Txt';
-import { INFO, ORGANIGRAMMA, type InfoKey } from '@/data/altro';
+import { ALBO_ORO, INFO, ORGANIGRAMMA, type InfoKey } from '@/data/altro';
 import { ORGANIGRAMMA_PHOTO } from '@/data/assets';
 import { useData } from '@/store/DataProvider';
 import { palette } from '@/theme/colors';
@@ -71,6 +73,12 @@ export default function InfoScreen() {
               ))}
             </Card>
           </>
+        ) : info.key === 'albo' ? (
+          <>
+            {info.image ? <CoverImage source={info.image} style={{ aspectRatio: 4 / 5, borderRadius: 24, backgroundColor: c.fill }} /> : null}
+            <Txt size={15} color="muted" style={{ lineHeight: 22, paddingHorizontal: 4 }}>{info.body}</Txt>
+            <AlboOro />
+          </>
         ) : info.key === 'palestre' ? (
           venues.map((v) => {
             const VIcon = VENUE_ICON[v.kind];
@@ -122,5 +130,40 @@ export default function InfoScreen() {
         )}
       </ScrollView>
     </View>
+  );
+}
+
+/** Stagioni a fisarmonica: una aperta alla volta, la più recente all'inizio */
+function AlboOro() {
+  const { c } = useTheme();
+  const [open, setOpen] = useState<string | undefined>(ALBO_ORO[0]?.season);
+  return (
+    <Card padded={false} style={{ overflow: 'hidden' }}>
+      {ALBO_ORO.map((s, i) => {
+        const on = open === s.season;
+        return (
+          <View key={s.season} style={{ borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
+            <Pressy onPress={() => setOpen(on ? undefined : s.season)} scaleTo={0.99} accessibilityRole="button" accessibilityState={{ expanded: on }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14, backgroundColor: on ? palette.gold : 'transparent' }}>
+              <Txt w={800} size={17} color={on ? palette.onGold : c.text} style={{ flex: 1, letterSpacing: -0.3 }}>Stagione {s.season}</Txt>
+              {on ? <Minus size={18} color={palette.onGold} /> : <Plus size={18} color={c.muted} />}
+            </Pressy>
+            {on ? (
+              <View style={{ padding: 16, gap: 12 }}>
+                {s.items.map((it) => (
+                  <View key={it.team} style={{ flexDirection: 'row', gap: 12 }}>
+                    <Trophy size={16} color={c.accent} style={{ marginTop: 2 }} />
+                    <View style={{ flex: 1 }}>
+                      <Txt w={700} size={15}>{it.team}</Txt>
+                      {it.result ? <Txt size={13.5} color="muted">{it.result}</Txt> : null}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+          </View>
+        );
+      })}
+    </Card>
   );
 }

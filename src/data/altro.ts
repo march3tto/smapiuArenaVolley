@@ -1,4 +1,4 @@
-import { STORIA_PHOTO } from './assets';
+import { ALBO_PHOTO, STORIA_PHOTO } from './assets';
 import { Book, Image, MapPin, Network, ShieldCheck, Star, Trophy, type LucideIcon } from 'lucide-react-native';
 
 export type InfoKey = 'storia' | 'organigramma' | 'albo' | 'palestre' | 'safeguarding' | 'sponsor' | 'galleria';
@@ -40,7 +40,10 @@ export const INFO: Record<InfoKey, InfoSection> = {
     key: 'organigramma', title: 'Organigramma', subtitle: 'Dirigenza e staff tecnico', Icon: Network,
     body: 'All’interno del progetto sportivo ogni società mantiene la propria autonomia organizzativa e giuridica. All’interno del progetto sportivo comune sono stati assegnati questi ruoli:',
   },
-  albo: { key: 'albo', title: "Albo d'oro", subtitle: 'Titoli e piazzamenti per stagione', Icon: Trophy, body: '[Titoli vinti e piazzamenti, stagione per stagione.]' },
+  albo: {
+    key: 'albo', title: "Albo d'oro", subtitle: 'Titoli e piazzamenti per stagione', Icon: Trophy, image: ALBO_PHOTO,
+    body: 'La nostra storia scritta sul campo: dai successi giovanili alle promozioni nazionali, ecco i trofei che brillano nella bacheca di Arena Volley Verona.',
+  },
   palestre: { key: 'palestre', title: 'Palestre', subtitle: 'Indirizzi e indicazioni', Icon: MapPin },
   safeguarding: { key: 'safeguarding', title: 'Safeguarding', subtitle: 'Tutela dei minori e referente', Icon: ShieldCheck, body: '[Policy di tutela dei minori e contatti del referente safeguarding.]' },
   sponsor: { key: 'sponsor', title: 'Sponsor', subtitle: 'Chi ci sostiene', Icon: Star },
@@ -66,4 +69,45 @@ export const ORGANIGRAMMA: { name: string; role: string }[] = [
   { name: 'Claudio Pasquetto', role: 'Resp. marketing e comunicazione' },
   { name: 'Laura Peretti', role: 'Resp. social e rapporti sponsor' },
   { name: 'Roberta Zorzella', role: 'Segreteria e amministrazione' },
+];
+
+/** Albo d'oro per stagione, dalla più recente: squadra e risultato */
+export const ALBO_ORO: { season: string; items: { team: string; result: string }[] }[] = [
+  {
+    season: '2024/2025',
+    items: [
+      { team: 'Under 12 femminile', result: 'Campione provinciale' },
+      { team: 'Under 13 femminile', result: 'Campione provinciale' },
+      { team: 'Under 14 femminile', result: 'Campione provinciale' },
+      { team: 'Under 16 femminile', result: 'Campione provinciale e 4ª classificata in Veneto' },
+      { team: 'Under 18 femminile', result: 'Campione provinciale, vice campione Veneto e 12° posto in Italia' },
+      { team: 'Serie D', result: 'Composta completamente da Under 16' },
+      { team: 'Sitta Arena – Serie C', result: 'Composta completamente da Under 18' },
+      { team: 'Smapiù Arena – Serie B1', result: '' },
+    ],
+  },
+  {
+    season: '2023/2024',
+    items: [
+      { team: 'Under 13 femminile', result: 'Campione provinciale' },
+      { team: 'Under 14 femminile', result: 'Campione provinciale, vice campione Veneto, 7ª classificata in Italia' },
+      { team: 'Under 16 femminile', result: '3ª classificata provinciale, 4ª classificata in Veneto' },
+      { team: 'Under 18 femminile', result: 'Campione provinciale' },
+      { team: 'Serie D', result: 'Composta completamente da Under 16' },
+      { team: 'Sitta Arena – Serie C', result: 'Composta completamente da Under 18' },
+      { team: 'Smapiù Arena – Serie B1', result: '' },
+    ],
+  },
+  {
+    season: '2022/2023',
+    items: [
+      { team: 'Under 13 femminile', result: 'Campione provinciale' },
+      { team: 'Under 14 femminile', result: 'Campione provinciale' },
+      { team: 'Under 16 femminile', result: 'Campione provinciale, 2ª classificata in Veneto, 7ª classificata in Italia' },
+      { team: 'Under 18 femminile', result: 'Campione provinciale' },
+      { team: 'Serie D', result: 'Composta completamente da Under 16' },
+      { team: 'Serie C', result: 'Composta completamente da Under 18' },
+      { team: 'Serie B1', result: '' },
+    ],
+  },
 ];
