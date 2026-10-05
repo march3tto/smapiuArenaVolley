@@ -100,11 +100,25 @@ export default function InfoScreen() {
             ) : null}
           </>
         ) : (
-          <Card style={{ gap: 14 }}>
-            {(info.body ?? '').split(/\n\s*\n/).map((p, i) => (
-              <Txt key={i} size={16} style={{ lineHeight: 25 }}>{p.trim()}</Txt>
-            ))}
-          </Card>
+          <>
+            {info.image ? <CoverImage source={info.image} style={{ aspectRatio: 4 / 3, borderRadius: 24, backgroundColor: c.fill }} /> : null}
+            {info.facts ? (
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                {info.facts.map((f) => (
+                  <Card key={f.label} style={{ flex: 1, padding: 14, alignItems: 'center', gap: 2 }}>
+                    <Txt w={900} size={24} color="accent" style={{ letterSpacing: -0.6 }} tnum>{f.value}</Txt>
+                    <Txt size={12} color="muted" center>{f.label}</Txt>
+                  </Card>
+                ))}
+              </View>
+            ) : null}
+            <Card style={{ gap: 14 }}>
+              {info.headline ? <Txt w={900} size={24} style={{ letterSpacing: -0.6 }}>{info.headline}</Txt> : null}
+              {(info.body ?? '').split(/\n\s*\n/).map((p, i) => (
+                <Txt key={i} size={16} style={{ lineHeight: 25 }}>{p.trim()}</Txt>
+              ))}
+            </Card>
+          </>
         )}
       </ScrollView>
     </View>
