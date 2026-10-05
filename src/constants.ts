@@ -12,6 +12,9 @@ export const CONTACTS = {
   email: 'segreteria@arenavolley.it',
   phone: '+39 045 000 0000',
   hours: 'Lunedì–venerdì, 17:00–19:30',
+  address: '[Indirizzo sede]',
+  /** Numero WhatsApp in formato internazionale, solo cifre */
+  whatsapp: '390450000000',
 };
 
 /** Sigla e colore del badge per le avversarie senza logo */
