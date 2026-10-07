@@ -10,6 +10,8 @@ export const INSTAGRAM_YOUNG_HANDLE = '@arenavolleyteamyoung';
 export const INSTAGRAM_YOUNG_URL = 'https://www.instagram.com/arenavolleyteamyoung/';
 
 export const FACEBOOK_URL = 'https://www.facebook.com/Arenavolleyteam/';
+export const YOUTUBE_URL = 'https://www.youtube.com/@cdav1969';
+export const WEBSITE_URL = 'https://arenavolleyteam.it';
 
 /** Contatti della società (fonte: sito ufficiale, footer e pagina Contatti) */
 export const CONTACTS = {

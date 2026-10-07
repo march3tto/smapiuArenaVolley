@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import { Settings, User } from 'lucide-react-native';
 import { IconButton } from './IconButton';
 import { SocialMenu } from './SocialMenu';
@@ -41,6 +41,8 @@ export function TopBar() {
   const { c, mode } = useTheme();
   const { user, prefs, signOut } = useApp();
   const router = useRouter();
+  // In home l'accesso all'account non si mostra (resta in Impostazioni)
+  const home = usePathname() === '/';
   const toast = useToast();
   const logo = useLogoSize();
   const [social, setSocial] = useState(false);
@@ -86,7 +88,7 @@ export function TopBar() {
           <SocialMenu progress={progress} open={social} onOpenChange={setSocial} />
         </BlurView>
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <BlurView intensity={blur} tint={tint} style={capsule}>
+          {home ? null : <BlurView intensity={blur} tint={tint} style={capsule}>
             <IconButton label={user ? `Account di ${user.name}` : 'Accedi'} onPress={onAccount} active={!!user} style={user ? undefined : flat}>
               {user ? (
                 <Txt w={800} size={13} color={palette.onGold}>
@@ -96,7 +98,7 @@ export function TopBar() {
                 <User size={18} color={c.text} />
               )}
             </IconButton>
-          </BlurView>
+          </BlurView>}
           <BlurView intensity={blur} tint={tint} style={capsule}>
             <IconButton label="Impostazioni notifiche" onPress={() => router.push('/settings')} dot={prefs.enabled} style={flat}>
               <Settings size={18} color={c.text} />
