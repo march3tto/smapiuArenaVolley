@@ -9,7 +9,7 @@ import { PLAYER_PHOTOS, SPONSOR_LOGOS } from './assets';
 
 export const matches: Match[] = [
   { id: '7af4cf40-77dc-519d-8897-487b9a5c405c', giornata: 1, phase: 'andata', date: '2026-10-18T17:00:00+02:00', homeAway: 'trasferta', opponent: "Azimut Giorgione", venue: "Castelfranco Veneto (TV)", status: 'finished', ourSets: 3, oppSets: 1, sets: [{ our: 25, opp: 22 }, { our: 21, opp: 25 }, { our: 25, opp: 19 }, { our: 25, opp: 23 }] },
-  { id: '5616abe1-c59b-59e1-bdec-3ddfc9efaad0', giornata: 2, phase: 'andata', date: '2026-10-25T17:00:00+01:00', homeAway: 'casa', opponent: "Tonno Callipo Calabria", venue: "Verona", status: 'scheduled', demoLive: true },
+  { id: '5616abe1-c59b-59e1-bdec-3ddfc9efaad0', giornata: 2, phase: 'andata', date: '2026-10-25T17:00:00+01:00', homeAway: 'casa', opponent: "Tonno Callipo Calabria", venue: "Verona", status: 'scheduled', demoLive: true, youtubeLiveId: 'hdAwCmQj-98' },
   { id: '722f1300-eff3-55ca-9547-9e17c2eea7fc', giornata: 3, phase: 'andata', date: '2026-10-31T17:00:00+01:00', homeAway: 'trasferta', opponent: "CO.GE. Vesuvio Oplonti", venue: "Torre Annunziata (NA)", status: 'scheduled' },
   { id: '28f20e9f-83d8-5c02-bc17-8251b56d0fc0', giornata: 4, phase: 'andata', date: '2026-11-08T17:00:00+01:00', homeAway: 'casa', opponent: "Banca Annia Aduna Padova", venue: "Verona", status: 'scheduled' },
   { id: 'f643f1d5-1e1d-5dac-8a49-5a13a334f8d7', giornata: 5, phase: 'andata', date: '2026-11-14T17:00:00+01:00', homeAway: 'trasferta', opponent: "V&V Modena", venue: "Modena", status: 'scheduled' },

@@ -41,19 +41,16 @@ export default function Home() {
         <NewsSlider items={news} onPressItem={(n) => router.push({ pathname: '/notizia/[id]', params: { id: n.id } })} />
       </View>
 
-      {/* L'altezza la decide "Prossime partite": la classifica si adegua e scorre al suo interno */}
       <View style={{ flexDirection: twoCols ? 'row' : 'column', gap: 16, alignItems: twoCols ? 'stretch' : 'flex-start' }}>
         <Card style={{ gap: 14, flex: twoCols ? 1 : undefined, width: twoCols ? undefined : '100%' }}>
           <SectionHeader title="Prossime partite" action={{ label: 'Calendario', onPress: () => router.navigate({ pathname: '/risultati', params: { filter: 'future' } }) }} />
           <UpcomingList matches={next} onPress={() => router.navigate({ pathname: '/risultati', params: { filter: 'future' } })} />
         </Card>
         {twoCols ? null : <View style={{ width: '100%' }}>{sponsorBanner}</View>}
-        <View style={twoCols ? { flex: 1, minHeight: 260 } : { width: '100%', height: 340 }}>
-          <Card style={{ gap: 6, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
-            <SectionHeader title="Classifica" subtitle="Serie A3, girone B" />
-            <StandingsTable rows={standings} scroll />
-          </Card>
-        </View>
+        <Card style={{ gap: 6, flex: twoCols ? 1 : undefined, width: twoCols ? undefined : '100%' }}>
+          <SectionHeader title="Classifica" subtitle="Serie A3, girone B" />
+          <StandingsTable rows={standings} />
+        </Card>
       </View>
       {twoCols ? sponsorBanner : null}
 
