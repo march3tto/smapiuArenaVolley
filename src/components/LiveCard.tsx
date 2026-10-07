@@ -1,15 +1,13 @@
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MapPin, Volleyball } from 'lucide-react-native';
 import { AnimatedNumber } from './AnimatedNumber';
-import { Button } from './Button';
-import { LiveDot } from './LiveDot';
+import { LiveSignal } from './LiveDot';
+import { Pressy } from './Pressy';
 import { TeamBadge } from './TeamBadge';
 import { Txt } from './Txt';
 import { US } from '@/constants';
 import { useLive } from '@/store/LiveProvider';
-import { palette } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
 /** Card "In diretta" della home: compare solo se esiste una partita live */
@@ -23,53 +21,61 @@ export function LiveCard() {
   const left = { name: home ? US : m.opponent, logo: home ? null : m.opponentLogo, sets: home ? live.ourSets : live.oppSets, pts: home ? live.our : live.opp };
   const right = { name: home ? m.opponent : US, logo: home ? m.opponentLogo : null, sets: home ? live.oppSets : live.ourSets, pts: home ? live.opp : live.our };
 
+  const season = m.season || m.competition?.name || 'Campionato';
+
   return (
-    <LinearGradient
-      colors={mode === 'dark' ? ['#2F62B0', '#1E4586'] : ['#FFFFFF', '#F1F5FD']}
-      style={{ borderRadius: 26, padding: 18, gap: 18, borderWidth: 1.5, borderColor: 'rgba(242,184,0,0.55)' }}
-    >
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: 'rgba(255,77,94,0.14)', borderWidth: 1, borderColor: 'rgba(255,77,94,0.3)' }}>
-          <LiveDot />
-          <Txt w={700} size={12} color="live">
-            In diretta, {live.set}° set
-          </Txt>
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 }}>
-          <MapPin size={13} color={c.accent} />
-          <Txt size={12.5} color="muted" numberOfLines={1}>
-            {m.venue}
-          </Txt>
-        </View>
-      </View>
-
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <TeamCol name={left.name} logo={left.logo} />
-        <View style={{ alignItems: 'center', gap: 8 }}>
+    <Pressy onPress={() => router.push('/live')} scaleTo={0.98} accessibilityRole="button" accessibilityLabel="Segui la diretta">
+      <LinearGradient
+        colors={mode === 'dark' ? ['#2F62B0', '#1E4586'] : ['#FFFFFF', '#F1F5FD']}
+        style={{ borderRadius: 22, padding: 14, gap: 12, borderWidth: 1.5, borderColor: 'rgba(242,184,0,0.55)' }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8, backgroundColor: c.live }}>
+            <LiveSignal size={13} color="#FFFFFF" />
+            <Txt w={800} size={12} color="#FFFFFF" style={{ letterSpacing: 0.6 }}>LIVE</Txt>
+          </View>
+          <Txt w={600} size={12.5} color="muted" numberOfLines={1} style={{ flex: 1 }}>{season}</Txt>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <AnimatedNumber value={left.sets} size={56} />
-            <Txt w={400} size={40} color="accent">:</Txt>
-            <AnimatedNumber value={right.sets} size={56} />
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999, backgroundColor: c.fill, borderWidth: 1, borderColor: c.line }}>
-            <Txt w={600} size={12.5} color="muted">{live.set}° set</Txt>
-            <Txt w={800} size={15} tnum>{left.pts}–{right.pts}</Txt>
+            <Txt w={700} size={12.5}>Set {live.set}</Txt>
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: c.ok }} />
           </View>
         </View>
-        <TeamCol name={right.name} logo={right.logo} />
-      </View>
 
-      <Button label="Segui la diretta" variant="gold" size="lg" icon={<Volleyball size={18} color={palette.onGold} />} onPress={() => router.push('/live')} />
-    </LinearGradient>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TeamCol name={left.name} logo={left.logo} />
+          <View style={{ alignItems: 'center', gap: 2 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <AnimatedNumber value={left.pts} size={44} />
+              <Txt w={800} size={36}>-</Txt>
+              <AnimatedNumber value={right.pts} size={44} />
+            </View>
+            <Txt w={800} size={12.5} color="muted" style={{ letterSpacing: 0.6 }}>SET {live.set}</Txt>
+          </View>
+          <TeamCol name={right.name} logo={right.logo} />
+        </View>
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }} accessibilityLabel={`Set vinti ${left.sets} a ${right.sets}`}>
+          <View style={{ flex: 1, alignItems: 'center' }}>
+            <AnimatedNumber value={left.sets} size={24} />
+          </View>
+          <View style={{ flex: 1, height: 1, backgroundColor: c.line }} />
+          <Txt w={700} size={11} color="muted" style={{ letterSpacing: 0.6 }}>SET VINTI</Txt>
+          <View style={{ flex: 1, height: 1, backgroundColor: c.line }} />
+          <View style={{ flex: 1, alignItems: 'center' }}>
+            <AnimatedNumber value={right.sets} size={24} />
+          </View>
+        </View>
+      </LinearGradient>
+    </Pressy>
   );
 }
 
 function TeamCol({ name, logo }: { name: string; logo?: string | number | null }) {
   return (
-    <View style={{ flex: 1, alignItems: 'center', gap: 8 }}>
-      <TeamBadge name={name} logo={logo} size={60} />
-      <Txt w={700} size={14} center numberOfLines={2}>
-        {name}
+    <View style={{ flex: 1, alignItems: 'center', gap: 6 }}>
+      <TeamBadge name={name} logo={logo} size={48} />
+      <Txt w={800} size={11} center numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75} style={{ letterSpacing: 0.2 }}>
+        {name.toUpperCase()}
       </Txt>
     </View>
   );
