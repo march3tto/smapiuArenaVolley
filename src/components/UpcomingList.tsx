@@ -1,6 +1,7 @@
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Image } from 'expo-image';
-import { CalendarDays, House, Plane } from 'lucide-react-native';
+import { House, Plane, Timer } from 'lucide-react-native';
 import { Pressy } from './Pressy';
 import { TeamBadge } from './TeamBadge';
 import { Txt } from './Txt';
@@ -19,12 +20,7 @@ export function UpcomingList({ matches, onPress }: { matches: Match[]; onPress?:
         const home = m.homeAway === 'casa';
         return (
           <Pressy key={m.id} onPress={() => onPress?.(m)} scaleTo={0.98} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 9, paddingRight: 12, borderRadius: 18, backgroundColor: c.fill, borderWidth: 1, borderColor: c.line }}>
-            <View style={{ width: 54, paddingVertical: 5, borderRadius: 14, alignItems: 'center', backgroundColor: first ? palette.gold : c.card, borderWidth: first ? 0 : 1, borderColor: c.line }}>
-              <CalendarDays size={11} color={first ? palette.onGold : c.muted} style={{ marginBottom: 1 }} />
-              <Txt w={800} size={26} color={first ? palette.onGold : 'text'} tnum style={{ lineHeight: 28 }}>{dayNum(m.date)}</Txt>
-              <Txt w={700} size={11} color={first ? palette.onGold : 'muted'}>{monthShort(m.date)}</Txt>
-              <Txt w={600} size={10} color={first ? palette.onGold : 'muted'} tnum>{new Date(m.date).getFullYear()}</Txt>
-            </View>
+            <CalendarPage date={m.date} highlight={first} />
             <View style={{ flex: 1, gap: 6 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <TeamBadge name={m.opponent} logo={m.opponentLogo} size={28} />
@@ -38,6 +34,7 @@ export function UpcomingList({ matches, onPress }: { matches: Match[]; onPress?:
                   {m.venue || (home ? 'In casa' : 'Trasferta')}
                 </Txt>
               </View>
+              {first ? <Countdown date={m.date} /> : null}
             </View>
             {m.competition?.logo ? (
               <Image source={m.competition.logo} style={{ width: 32, height: 40 }} contentFit="contain" accessibilityLabel={m.competition.name} />
@@ -45,6 +42,58 @@ export function UpcomingList({ matches, onPress }: { matches: Match[]; onPress?:
           </Pressy>
         );
       })}
+    </View>
+  );
+}
+
+/** Conto alla rovescia all'inizio della partita, aggiornato ogni secondo; sparisce a partita iniziata */
+function Countdown({ date }: { date: string }) {
+  const { c } = useTheme();
+  const target = new Date(date).getTime();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const left = Math.floor((target - now) / 1000);
+  if (left <= 0) return null;
+  const d = Math.floor(left / 86400);
+  const h = Math.floor((left % 86400) / 3600);
+  const min = Math.floor((left % 3600) / 60);
+  const sec = left % 60;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }} accessibilityLabel={`Mancano ${d} giorni, ${h} ore, ${min} minuti`}>
+      <View style={{ width: 28, alignItems: 'center' }}>
+        <Timer size={16} color={c.accent} />
+      </View>
+      <Txt w={700} size={12.5} color="accent" tnum numberOfLines={1} style={{ flex: 1 }}>
+        {d > 0 ? `${d}g ` : ''}{pad(h)}h {pad(min)}m {pad(sec)}s
+      </Txt>
+    </View>
+  );
+}
+
+/** Data a foglio di calendario: anelli in alto, mese nella fascia, giorno grande sotto */
+function CalendarPage({ date, highlight }: { date: string; highlight?: boolean }) {
+  const { c } = useTheme();
+  const frame = highlight ? palette.gold : c.line;
+  return (
+    <View style={{ width: 56, paddingTop: 4 }} accessibilityLabel={`${dayNum(date)} ${monthShort(date)} ${new Date(date).getFullYear()}`}>
+      <View style={{ borderRadius: 11, borderWidth: 2, borderColor: frame, backgroundColor: c.card, overflow: 'hidden' }}>
+        <View style={{ paddingTop: 4, paddingBottom: 2, alignItems: 'center', backgroundColor: frame }}>
+          <Txt w={800} size={10.5} color={highlight ? palette.onGold : 'muted'} style={{ letterSpacing: 0.8, lineHeight: 13 }}>
+            {monthShort(date).toUpperCase()}
+          </Txt>
+        </View>
+        <View style={{ alignItems: 'center', paddingVertical: 3 }}>
+          <Txt w={800} size={24} tnum style={{ lineHeight: 28 }}>{dayNum(date)}</Txt>
+        </View>
+      </View>
+      {/* anelli del calendario */}
+      {[14, 34].map((left) => (
+        <View key={left} style={{ position: 'absolute', top: 0, left, width: 4, height: 9, borderRadius: 2, backgroundColor: highlight ? palette.onGold : c.muted }} />
+      ))}
     </View>
   );
 }

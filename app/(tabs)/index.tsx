@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Card } from '@/components/Card';
-import { InstagramStrip } from '@/components/InstagramStrip';
 import { LiveCard } from '@/components/LiveCard';
 import { MediaStrip } from '@/components/MediaStrip';
 import { NewsSlider } from '@/components/NewsSlider';
@@ -14,7 +13,7 @@ import { Txt } from '@/components/Txt';
 import { UpcomingList } from '@/components/UpcomingList';
 import { useData } from '@/store/DataProvider';
 
-/** Ordine: diretta (solo se esiste) → news → banner sponsor → prossime partite e classifica → video e podcast → Instagram */
+/** Ordine: diretta (solo se esiste) → news → prossime partite → banner sponsor → classifica → video e podcast */
 export default function Home() {
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -24,6 +23,8 @@ export default function Home() {
     [matches],
   );
   const twoCols = width >= 900;
+  // Sotto "Prossime partite": in colonna sta tra partite e classifica, su due colonne sotto entrambe
+  const sponsorBanner = <SponsorBanner sponsors={sponsors} onPress={() => router.navigate('/altro')} />;
 
   return (
     <Screen onRefresh={refresh} refreshing={loading}>
@@ -40,14 +41,13 @@ export default function Home() {
         <NewsSlider items={news} onPressItem={(n) => router.push({ pathname: '/notizia/[id]', params: { id: n.id } })} />
       </View>
 
-      <SponsorBanner sponsors={sponsors} onPress={() => router.navigate('/altro')} />
-
       {/* L'altezza la decide "Prossime partite": la classifica si adegua e scorre al suo interno */}
       <View style={{ flexDirection: twoCols ? 'row' : 'column', gap: 16, alignItems: twoCols ? 'stretch' : 'flex-start' }}>
         <Card style={{ gap: 14, flex: twoCols ? 1 : undefined, width: twoCols ? undefined : '100%' }}>
           <SectionHeader title="Prossime partite" action={{ label: 'Calendario', onPress: () => router.navigate({ pathname: '/risultati', params: { filter: 'future' } }) }} />
           <UpcomingList matches={next} onPress={() => router.navigate({ pathname: '/risultati', params: { filter: 'future' } })} />
         </Card>
+        {twoCols ? null : <View style={{ width: '100%' }}>{sponsorBanner}</View>}
         <View style={twoCols ? { flex: 1, minHeight: 260 } : { width: '100%', height: 340 }}>
           <Card style={{ gap: 6, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
             <SectionHeader title="Classifica" subtitle="Serie A3, girone B" />
@@ -55,6 +55,7 @@ export default function Home() {
           </Card>
         </View>
       </View>
+      {twoCols ? sponsorBanner : null}
 
       {media.length ? (
         <View style={{ gap: 12 }}>
@@ -62,8 +63,6 @@ export default function Home() {
           <MediaStrip items={media} />
         </View>
       ) : null}
-
-      <InstagramStrip />
     </Screen>
   );
 }
