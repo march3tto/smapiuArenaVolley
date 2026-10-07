@@ -2,26 +2,21 @@ import { useState } from 'react';
 import { Modal, Pressable, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
-import { Bell, BellOff, ChevronLeft, ChevronRight, User, X } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, User, X } from 'lucide-react-native';
 import { Card } from '@/components/Card';
 import { CoverImage } from '@/components/CoverImage';
 import { Pressy } from '@/components/Pressy';
 import { Screen } from '@/components/Screen';
 import { SectionHeader } from '@/components/SectionHeader';
-import { useToast } from '@/components/Toast';
 import { Txt } from '@/components/Txt';
-import { YouthCard } from '@/components/YouthCard';
 import { GALLERIA, MOVIMENTO, SQUADRE, type SquadraRegionale } from '@/data/giovanili';
-import { useApp } from '@/store/AppProvider';
 import { useData } from '@/store/DataProvider';
 import { palette } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
 export default function Giovanili() {
   const { c } = useTheme();
-  const { youth, loading, refresh } = useData();
-  const { prefs, toggleYouth } = useApp();
-  const toast = useToast();
+  const { loading, refresh } = useData();
   const { width } = useWindowDimensions();
   const [photo, setPhoto] = useState<number | null>(null);
   const cols = width >= 900 ? 4 : 2;
@@ -45,23 +40,6 @@ export default function Giovanili() {
       </Card>
 
       {SQUADRE.map((s) => <Squadra key={s.key} team={s} />)}
-
-      {youth.length ? (
-        <View style={{ gap: 14 }}>
-          <SectionHeader title="Categorie" subtitle="Tocca la campanella per seguire una squadra." />
-          {youth.map((y) => (
-            <YouthCard
-              key={y.id}
-              team={y}
-              following={prefs.youth.includes(y.id)}
-              onToggle={() => {
-                const on = toggleYouth(y.id);
-                toast.show(on ? `Riceverai le notifiche dell'${y.name}.` : `Non riceverai più le notifiche dell'${y.name}.`, on ? Bell : BellOff);
-              }}
-            />
-          ))}
-        </View>
-      ) : null}
 
       <SectionHeader title="Galleria" subtitle="Le nostre squadre giovanili, stagione dopo stagione." />
       <View style={{ gap: 10 }}>
