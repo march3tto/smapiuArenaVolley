@@ -206,7 +206,8 @@ function buildYouth(categorie: Row[], staff: Row[], partite: Row[]): YouthTeam[]
     return {
       id,
       name,
-      short: name.replace(/Under\s*/i, 'U'),
+      // "Under 14" → "U14"; altri nomi (es. "Prima Squadra") → iniziali, per stare nel badge
+      short: /under/i.test(name) ? name.replace(/Under\s*/i, 'U') : name.split(/\s+/).map((w) => w[0]).join('').toUpperCase().slice(0, 3),
       coach: coaches.join(', ') || 'Da definire',
       description: str(c.descrizione),
       next: next ? { opponent: str(next.avversario), date: str(next.data_partita), home: next.casa_trasferta === 'casa' } : null,
