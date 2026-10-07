@@ -3,8 +3,14 @@
  * arenavolley.mginteraction.com/giovanili/ e /serie-c-d/
  */
 
-const SERIE_C_PHOTO: number = require('../../assets/giovanili/serie-c.jpg');
-const SERIE_D_PHOTO: number = require('../../assets/giovanili/serie-d.jpg');
+import { storageUrl } from '@/lib/supabase';
+import type { ImgSrc } from '@/types';
+
+/** Foto nel bucket pubblico "giovanili" dello Storage Supabase (nomi file come sul sito) */
+const foto = (file: string): ImgSrc => storageUrl(`giovanili/${file}`);
+
+const SERIE_C_PHOTO = foto('6d831334e3efd610407b8be462fcb5b2_2400x1600_fit.webp');
+const SERIE_D_PHOTO = foto('99ad0c3b23ca2666a73b8523144df218_2400x1600_fit.webp');
 
 export const MOVIMENTO = {
   intro: 'La struttura di Arena Volley Team è forte e professionale, sono presenti:',
@@ -21,7 +27,7 @@ export const MOVIMENTO = {
 export interface SquadraRegionale {
   key: 'seriec' | 'seried';
   name: string;
-  photo: number;
+  photo: ImgSrc;
   description: string;
   players: { name: string; number: number }[];
   staff: { name: string; role: string }[];
@@ -55,23 +61,23 @@ export const SQUADRE: SquadraRegionale[] = [
 ];
 
 /** Galleria del movimento giovanile, nell'ordine del sito (didascalia solo dove presente) */
-export const GALLERIA: { photo: number; ratio: number; title?: string }[] = [
-  { photo: require('../../assets/giovanili/galleria-01.jpg'), ratio: 580 / 386, title: 'Squadra A · Stagione 2024/25' },
-  { photo: require('../../assets/giovanili/galleria-02.jpg'), ratio: 580 / 435, title: 'Squadra B · Stagione 2024/25' },
-  { photo: require('../../assets/giovanili/galleria-03.jpg'), ratio: 580 / 386, title: 'Squadra C · Stagione 2024/25' },
-  { photo: require('../../assets/giovanili/galleria-04.jpg'), ratio: 580 / 386, title: 'Squadra A · Stagione 2023/24' },
-  { photo: require('../../assets/giovanili/galleria-05.jpg'), ratio: 580 / 386 },
-  { photo: require('../../assets/giovanili/galleria-06.jpg'), ratio: 580 / 386 },
-  { photo: require('../../assets/giovanili/galleria-07.jpg'), ratio: 580 / 435 },
-  { photo: require('../../assets/giovanili/galleria-08.jpg'), ratio: 580 / 386 },
-  { photo: require('../../assets/giovanili/galleria-09.jpg'), ratio: 580 / 386 },
-  { photo: SERIE_D_PHOTO, ratio: 1600 / 1066 },
-  { photo: require('../../assets/giovanili/galleria-11.jpg'), ratio: 580 / 386 },
-  { photo: require('../../assets/giovanili/galleria-12.jpg'), ratio: 580 / 386 },
-  { photo: require('../../assets/giovanili/galleria-13.jpg'), ratio: 580 / 435 },
-  { photo: require('../../assets/giovanili/galleria-14.jpg'), ratio: 580 / 435 },
-  { photo: SERIE_C_PHOTO, ratio: 1600 / 1066 },
-  { photo: require('../../assets/giovanili/galleria-16.jpg'), ratio: 580 / 435 },
-  { photo: require('../../assets/giovanili/galleria-17.jpg'), ratio: 580 / 435 },
-  { photo: require('../../assets/giovanili/galleria-18.jpg'), ratio: 580 / 386 },
+export const GALLERIA: { photo: ImgSrc; ratio: number; title?: string }[] = [
+  { photo: foto('ba2b909df7c69b91cfb84c400baca3a9_580x386_fill.webp'), ratio: 580 / 386, title: 'Squadra A · Stagione 2024/25' },
+  { photo: foto('81701f1b4a9298cd42566832f24fdf59_580x436_fill.webp'), ratio: 580 / 435, title: 'Squadra B · Stagione 2024/25' },
+  { photo: foto('43959aeb2e788673568ae033b811ef8c_580x386_fill.webp'), ratio: 580 / 386, title: 'Squadra C · Stagione 2024/25' },
+  { photo: foto('9825b18f73e3e6b0f5220a5f48b245da_580x386_fill.webp'), ratio: 580 / 386, title: 'Squadra A · Stagione 2023/24' },
+  { photo: foto('7453b7861f6cfb9d344e4130e0b968c7_580x386_fill.webp'), ratio: 580 / 386 },
+  { photo: foto('6481c59d70fdfaeee13f869dff3b1f48_580x386_fill.webp'), ratio: 580 / 386 },
+  { photo: foto('496ac5f8eff2380c4503a673fb3a99f2_580x436_fill.webp'), ratio: 580 / 435 },
+  { photo: foto('413b54d7865ab2b64e24394269e68fac_580x386_fill.webp'), ratio: 580 / 386 },
+  { photo: foto('360ed77be4bb36ef3a1e8c4c39bacd07_580x386_fill.webp'), ratio: 580 / 386 },
+  { photo: SERIE_D_PHOTO, ratio: 3 / 2 },
+  { photo: foto('78b07add9481b22d2811cf01c522fadd_580x386_fill.webp'), ratio: 580 / 386 },
+  { photo: foto('24e0397c8f4ffa69ee527b40a4adab16_580x386_fill.webp'), ratio: 580 / 386 },
+  { photo: foto('9ec4098a9e61fa0ffa65bc0f78fa4160_580x436_fill.webp'), ratio: 580 / 435 },
+  { photo: foto('8f288ae707eb664def81886feaa486d1_580x436_fill.webp'), ratio: 580 / 435 },
+  { photo: SERIE_C_PHOTO, ratio: 3 / 2 },
+  { photo: foto('3f5ff0a3089eae01a02da4caab629101_580x436_fill.webp'), ratio: 580 / 435 },
+  { photo: foto('3d0ba996e8401d2fc08e7fce3021a76d_580x436_fill.webp'), ratio: 580 / 435 },
+  { photo: foto('1ee22c9c1aff32054c68f4d2f8733912_580x386_fill.webp'), ratio: 580 / 386 },
 ];

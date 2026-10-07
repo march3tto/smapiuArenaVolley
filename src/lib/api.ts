@@ -1,5 +1,5 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
-import { supabase } from './supabase';
+import { storageUrl, supabase } from './supabase';
 import { slugify } from './format';
 import * as mock from '@/data/mock';
 import { COMPETITION_LOGOS, NEWS_IMAGES, OPPONENT_LOGOS, PLAYER_PHOTOS, SPONSOR_LOGOS } from '@/data/assets';
@@ -39,14 +39,6 @@ export interface AppData {
 type Row = Record<string, unknown>;
 const str = (v: unknown, d = ''): string => (typeof v === 'string' ? v : v == null ? d : String(v));
 const num = (v: unknown): number | null => (typeof v === 'number' ? v : v == null || v === '' ? null : Number(v));
-
-/** "bucket/file" → URL pubblico dello Storage Supabase (il primo segmento del percorso è il bucket) */
-function storageUrl(path: string): string {
-  if (!supabase || /^https?:\/\//.test(path)) return path;
-  const [bucket, ...rest] = path.split('/');
-  if (!rest.length) return path;
-  return supabase.storage.from(bucket).getPublicUrl(rest.join('/')).data.publicUrl;
-}
 
 export function emptyData(): AppData {
   return { matches: [], standings: [], players: [], news: [], sponsors: [], youth: [], venues: mock.venues, media: [], source: 'supabase' };
