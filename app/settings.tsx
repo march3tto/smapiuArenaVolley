@@ -101,9 +101,10 @@ export default function Settings() {
         </View>
 
         {user ? (
-          <Button label={`Esci (${user.email})`} style={{ marginTop: 18 }} onPress={async () => { await signOut(); router.replace('/login'); }} />
+          <Button label={`Esci (${user.email})`} style={{ marginTop: 18 }} onPress={async () => { await signOut(); toast.show("Sei uscito dall'account."); }} />
         ) : (
-          <Button label="Accedi o registrati" variant="gold" style={{ marginTop: 18 }} onPress={() => router.replace('/login')} />
+          // accesso e registrazione disattivati per ora
+          <Button label="Accedi o registrati" variant="gold" style={{ marginTop: 18 }} disabled onPress={() => router.replace('/login')} />
         )}
       </ScrollView>
     </View>

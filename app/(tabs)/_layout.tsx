@@ -1,15 +1,20 @@
-import { Redirect } from 'expo-router';
+import { useState } from 'react';
 import { Tabs } from 'expo-router/tabs';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { TabBar } from '@/components/TabBar';
 import { TopBar } from '@/components/TopBar';
 import { useApp } from '@/store/AppProvider';
+import { useData } from '@/store/DataProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 
 export default function TabsLayout() {
-  const { ready, user, guest } = useApp();
+  const { ready } = useApp();
+  const { loading } = useData();
   const { c } = useTheme();
-  if (!ready) return null;
-  if (!user && !guest) return <Redirect href="/login" />;
+  // l'immagine di caricamento si mostra solo al primo avvio, non a ogni aggiornamento dei dati
+  const [started, setStarted] = useState(false);
+  if (!started && ready && !loading) setStarted(true);
+  if (!started) return <LoadingScreen />;
 
   return (
     <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ header: () => <TopBar />, headerTransparent: true, sceneStyle: { backgroundColor: c.bg } }}>

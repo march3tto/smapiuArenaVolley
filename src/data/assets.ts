@@ -20,6 +20,8 @@ export const PALESTRE_PHOTO: number = require('../../assets/brand/palestre.jpg')
 /** Foto della pagina Safeguarding */
 export const SAFEGUARDING_PHOTO: number = require('../../assets/brand/safeguarding.jpg');
 export const ORGANIGRAMMA_PHOTO: number = require('../../assets/brand/organigramma.jpg');
+/** Immagine della schermata di caricamento all'avvio */
+export const LOADING_IMAGE: number = require('../../assets/brand/caricamento.jpg');
 
 export const PLAYER_PHOTOS: Record<string, number> = {
   'alice-trampus': require('../../assets/players/alice-trampus.jpg'),
