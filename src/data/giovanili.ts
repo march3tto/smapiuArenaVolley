@@ -29,17 +29,10 @@ export interface SquadraRegionale {
   name: string;
   photo: ImgSrc;
   description: string;
+  /** Elenchi vuoti = sezione non mostrata */
   players: { name: string; number: number }[];
   staff: { name: string; role: string }[];
 }
-
-// Rosa e staff come pubblicati sul sito (al momento nomi segnaposto): da aggiornare quando la società li comunica
-const ROSA_SITO = [2, 2, 2, 92, 62, 52, 82, 23, 42, 22, 82, 12, 28].map((number) => ({ name: 'Serena Rossi', number }));
-const STAFF_SITO = [
-  { name: 'Serena Rossi', role: '1° Coach' },
-  { name: 'Serena Rossi', role: '2° Coach' },
-  { name: 'Serena Rossi', role: 'Fisioterapista' },
-];
 
 export const SQUADRE: SquadraRegionale[] = [
   {
@@ -47,16 +40,18 @@ export const SQUADRE: SquadraRegionale[] = [
     name: 'Serie C',
     photo: SERIE_C_PHOTO,
     description: 'Il team di Serie C unisce talento e determinazione per competere ai massimi livelli regionali. Un vero e proprio trampolino di lancio dove le nostre giovani atlete scendono in campo con la grinta e l’orgoglio dei colori di Arena Volley.',
-    players: ROSA_SITO,
-    staff: STAFF_SITO,
+    // giocatrici e tecnici: da inserire quando la società comunicherà i dati corretti
+    players: [],
+    staff: [],
   },
   {
     key: 'seried',
     name: 'Serie D',
     photo: SERIE_D_PHOTO,
     description: 'Il team di Serie D unisce crescita e passione, rappresentando il primo vero banco di prova nel volley che conta. Una squadra determinata, dove le nostre giovani atlete coltivano il talento e costruiscono il futuro di Arena Volley.',
-    players: ROSA_SITO,
-    staff: STAFF_SITO,
+    // giocatrici e tecnici: da inserire quando la società comunicherà i dati corretti
+    players: [],
+    staff: [],
   },
 ];
 

@@ -77,32 +77,40 @@ function Squadra({ team: s }: { team: SquadraRegionale }) {
         <Txt w={900} size={28} style={{ letterSpacing: -0.8 }}>{s.name}</Txt>
         <Txt size={15} color="muted" style={{ lineHeight: 22 }}>{s.description}</Txt>
 
-        <Txt w={800} size={13} color="muted" style={{ letterSpacing: 1.4, textTransform: 'uppercase', marginTop: 4 }}>Giocatrici</Txt>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          {s.players.map((p, i) => (
-            <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 4, paddingRight: 12, paddingVertical: 4, borderRadius: 999, backgroundColor: c.fill2 }}>
-              <View style={{ minWidth: 28, height: 28, paddingHorizontal: 4, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.navy }}>
-                <Txt w={800} size={12.5} color={palette.gold} tnum>{p.number}</Txt>
-              </View>
-              <Txt w={600} size={13.5}>{p.name}</Txt>
+        {s.players.length ? (
+          <>
+            <Txt w={800} size={13} color="muted" style={{ letterSpacing: 1.4, textTransform: 'uppercase', marginTop: 4 }}>Giocatrici</Txt>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {s.players.map((p, i) => (
+                <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 4, paddingRight: 12, paddingVertical: 4, borderRadius: 999, backgroundColor: c.fill2 }}>
+                  <View style={{ minWidth: 28, height: 28, paddingHorizontal: 4, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.navy }}>
+                    <Txt w={800} size={12.5} color={palette.gold} tnum>{p.number}</Txt>
+                  </View>
+                  <Txt w={600} size={13.5}>{p.name}</Txt>
+                </View>
+              ))}
             </View>
-          ))}
-        </View>
+          </>
+        ) : null}
 
-        <Txt w={800} size={13} color="muted" style={{ letterSpacing: 1.4, textTransform: 'uppercase', marginTop: 4 }}>Tecnici</Txt>
-        <View>
-          {s.staff.map((t, i) => (
-            <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
-              <View style={{ width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: c.fill2 }}>
-                <User size={18} color={c.cobalt} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Txt w={700} size={15}>{t.name}</Txt>
-                <Txt w={700} size={11.5} color="cobalt" style={{ letterSpacing: 0.6, textTransform: 'uppercase', marginTop: 2 }}>{t.role}</Txt>
-              </View>
+        {s.staff.length ? (
+          <>
+            <Txt w={800} size={13} color="muted" style={{ letterSpacing: 1.4, textTransform: 'uppercase', marginTop: 4 }}>Tecnici</Txt>
+            <View>
+              {s.staff.map((t, i) => (
+                <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
+                  <View style={{ width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: c.fill2 }}>
+                    <User size={18} color={c.cobalt} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Txt w={700} size={15}>{t.name}</Txt>
+                    <Txt w={700} size={11.5} color="cobalt" style={{ letterSpacing: 0.6, textTransform: 'uppercase', marginTop: 2 }}>{t.role}</Txt>
+                  </View>
+                </View>
+              ))}
             </View>
-          ))}
-        </View>
+          </>
+        ) : null}
       </View>
     </Card>
   );
