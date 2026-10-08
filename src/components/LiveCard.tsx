@@ -30,7 +30,7 @@ export function LiveCard() {
   const season = m.season || m.competition?.name || 'Campionato';
 
   return (
-    <Pressy onPress={() => router.push('/live')} scaleTo={0.98} accessibilityRole="button" accessibilityLabel="Segui la diretta">
+    <Pressy onPress={() => router.push('/live')} scaleTo={0.98} accessibilityRole="link" accessibilityLabel="Segui la diretta">
       <LinearGradient
         colors={mode === 'dark' ? ['#2F62B0', '#1E4586'] : ['#FFFFFF', '#F1F5FD']}
         style={{ borderRadius: 22, padding: 14, gap: 12, borderWidth: 1.5, borderColor: 'rgba(242,184,0,0.55)' }}
