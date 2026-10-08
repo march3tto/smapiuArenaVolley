@@ -141,6 +141,7 @@ function mapPlayer(r: Row): Player {
     bio: (r.bio as string | null) ?? null,
     status: null,
     born,
+    birthDate: typeof r.data_nascita === 'string' ? r.data_nascita : null,
     isCaptain: r.capitana === true,
     heightCm: num(r.altezza_cm),
     points: num(r.punti),
