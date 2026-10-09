@@ -76,6 +76,14 @@ export const SPONSOR_LOGOS: Record<string, number> = {
   'wolnet': require('../../assets/sponsors/wolnet.png'),
 };
 
+/** Foto dello staff tecnico, per slug del nome (usate se staff.foto_url è vuoto) */
+export const STAFF_PHOTOS: Record<string, number> = {
+  'andrea-zappaterra': require('../../assets/staff/andrea-zappaterra.jpg'),
+  'simone-morari': require('../../assets/staff/simone-morari.jpg'),
+  'lara-visona': require('../../assets/staff/lara-visona.jpg'),
+  'barbara-bertollo': require('../../assets/staff/barbara-bertollo.jpg'),
+};
+
 /** Loghi delle squadre avversarie, per slug del nome (usati se in partite.logo_avversario_url non c'è un URL) */
 export const OPPONENT_LOGOS: Record<string, number> = {
   'azimut-giorgione': require('../../assets/opponents/azimut-giorgione.jpg'),

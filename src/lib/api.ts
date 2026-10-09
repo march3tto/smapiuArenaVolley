@@ -2,9 +2,9 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { storageUrl, supabase } from './supabase';
 import { slugify } from './format';
 import * as mock from '@/data/mock';
-import { COMPETITION_LOGOS, NEWS_IMAGES, OPPONENT_LOGOS, PLAYER_PHOTOS, SPONSOR_LOGOS } from '@/data/assets';
+import { COMPETITION_LOGOS, NEWS_IMAGES, OPPONENT_LOGOS, PLAYER_PHOTOS, SPONSOR_LOGOS, STAFF_PHOTOS } from '@/data/assets';
 import type {
-  Competition, ImgSrc, LiveEvent, Match, MatchStatus, MediaItem, NewsItem, Player, PlayerRole, SetScore, Sponsor, SponsorTier, Standing, Venue, YouthTeam,
+  Competition, ImgSrc, LiveEvent, Match, MatchStatus, MediaItem, NewsItem, Player, PlayerRole, SetScore, Sponsor, SponsorTier, StaffMember, Standing, Venue, YouthTeam,
 } from '@/types';
 
 /** Tabelle dello schema Supabase (in italiano) */
@@ -30,6 +30,7 @@ export interface AppData {
   news: NewsItem[];
   sponsors: Sponsor[];
   youth: YouthTeam[];
+  staff: StaffMember[];
   venues: Venue[];
   media: MediaItem[];
   source: 'supabase' | 'demo';
@@ -41,7 +42,7 @@ const str = (v: unknown, d = ''): string => (typeof v === 'string' ? v : v == nu
 const num = (v: unknown): number | null => (typeof v === 'number' ? v : v == null || v === '' ? null : Number(v));
 
 export function emptyData(): AppData {
-  return { matches: [], standings: [], players: [], news: [], sponsors: [], youth: [], venues: mock.venues, media: [], source: 'supabase' };
+  return { matches: [], standings: [], players: [], news: [], sponsors: [], youth: [], staff: [], venues: mock.venues, media: [], source: 'supabase' };
 }
 
 export function demoData(): AppData {
@@ -52,6 +53,7 @@ export function demoData(): AppData {
     news: mock.news,
     sponsors: mock.sponsors,
     youth: mock.youth,
+    staff: [],
     venues: mock.venues,
     media: [],
     source: 'demo',
@@ -174,6 +176,20 @@ function mapSponsor(r: Row): Sponsor {
   };
 }
 
+const RUOLO_STAFF: Record<string, string> = { allenatore: 'Allenatore', dirigente: 'Dirigente', staff_sanitario: 'Staff sanitario' };
+
+function mapStaff(r: Row): StaffMember {
+  const ruolo = str(r.ruolo);
+  const name = `${str(r.nome)} ${str(r.cognome)}`.trim();
+  return {
+    id: str(r.id),
+    name,
+    // "qualifica" è la dicitura precisa (es. "Primo Allenatore"), il ruolo la categoria generale
+    role: str(r.qualifica) || RUOLO_STAFF[ruolo] || ruolo.replace(/_/g, ' ').replace(/^./, (ch) => ch.toUpperCase()),
+    photo: image(r.foto_url, STAFF_PHOTOS, slugify(name)),
+  };
+}
+
 function mapMedia(r: Row): MediaItem {
   return {
     id: str(r.id),
@@ -251,6 +267,8 @@ export async function loadAll(): Promise<AppData> {
     news: (must(notizie, 'notizie') as Row[]).map(mapNews),
     sponsors: (must(sponsor, 'sponsor') as Row[]).map(mapSponsor),
     youth: buildYouth(must(categorie, 'categorie_giovanili') as Row[], must(staff, 'staff') as Row[], p),
+    // staff della prima squadra: le righe con categoria giovanile appartengono alle giovanili
+    staff: (must(staff, 'staff') as Row[]).filter((r) => r.categoria_giovanile_id == null).map(mapStaff),
     venues: mock.venues,
     media: (must(media, 'media') as Row[]).map(mapMedia),
     source: 'supabase',

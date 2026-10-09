@@ -107,6 +107,15 @@ export interface YouthTeam {
   last?: { opponent: string; our: number; opp: number } | null;
 }
 
+/** Staff tecnico e dirigenti della prima squadra (tabella staff, righe senza categoria giovanile) */
+export interface StaffMember {
+  id: string;
+  name: string;
+  role: string;
+  /** Vuota se non disponibile: si mostrano le iniziali */
+  photo: ImgSrc;
+}
+
 export interface Venue {
   name: string;
   /** Via e località, come da indirizzo postale */
