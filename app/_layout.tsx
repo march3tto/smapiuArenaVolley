@@ -61,7 +61,9 @@ function RootStack() {
           name="live"
           options={{
             headerShown: true,
-            title: 'Centro partita',
+            title: 'Partita in corso',
+            // solo la freccia "<", senza il nome della schermata precedente
+            headerBackButtonDisplayMode: 'minimal',
             headerStyle: { backgroundColor: c.bg },
             headerTintColor: c.text,
             headerTitleStyle: { fontFamily: FONT[700] },
@@ -70,7 +72,8 @@ function RootStack() {
         />
         <Stack.Screen name="player/[id]" options={{ presentation: 'modal' }} />
         <Stack.Screen name="notizia/[id]" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
+        {/* riquadro in basso sopra la schermata corrente, non a tutto schermo */}
+        <Stack.Screen name="settings" options={{ presentation: 'transparentModal', animation: 'fade', contentStyle: { backgroundColor: 'transparent' } }} />
         <Stack.Screen name="info/[section]" options={{ presentation: 'modal' }} />
       </Stack>
     </>

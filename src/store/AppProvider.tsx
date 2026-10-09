@@ -24,7 +24,7 @@ interface AppCtx {
 const Ctx = createContext<AppCtx | null>(null);
 
 const K = { user: 'av-user', guest: 'av-guest', prefs: 'av-notif', demo: 'av-demo-live' };
-const DEFAULT_PREFS: NotifPrefs = { enabled: true, start: true, points: false, sets: true, final: true, news: true, youth: [] };
+const DEFAULT_PREFS: NotifPrefs = { enabled: true, start: true, sets: true, final: true, news: true, youth: [] };
 
 function nameFromEmail(email: string): string {
   const n = email.split('@')[0].split(/[._-]/)[0] ?? '';

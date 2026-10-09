@@ -1,8 +1,9 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
 import { fetchLive, subscribeLive } from '@/lib/api';
 import { demoLive as demoInitial } from '@/data/mock';
+import { isSideSwitch, matchWinner, setWinner, setsWon, standingPoints } from '@/lib/volley';
 import { useData } from './DataProvider';
 import type { LiveEvent, Match, SetScore } from '@/types';
 
@@ -13,6 +14,8 @@ interface LiveState {
   history: SetScore[];
   events: LiveEvent[];
   serving: 'us' | 'opp';
+  /** Partita chiusa: una squadra ha vinto 3 set (history contiene tutti i set) */
+  finished: boolean;
 }
 
 interface LiveCtx extends LiveState {
@@ -21,11 +24,13 @@ interface LiveCtx extends LiveState {
   oppSets: number;
   /** Ultimo punto: serve alle animazioni (+1) */
   lastPoint: { side: 'us' | 'opp'; key: number } | null;
-  /** Simulazione disponibile solo con i dati demo */
-  canSimulate: boolean;
-  auto: boolean;
-  toggleAuto: () => void;
+  /** Punti in classifica a partita finita */
+  standing: { our: number; opp: number } | null;
+  /** Il punteggio si può cambiare a mano solo nella partita demo, finché non è finita */
+  canScore: boolean;
   addPoint: (side: 'us' | 'opp') => void;
+  /** Riporta la partita demo allo stato iniziale */
+  resetDemo: () => void;
 }
 
 const Ctx = createContext<LiveCtx | null>(null);
@@ -38,29 +43,51 @@ const US_LINES = [
   'Pallonetto di Aurora Piron, punto Smapiù!',
 ];
 
-const EMPTY: LiveState = { set: 1, our: 0, opp: 0, history: [], events: [], serving: 'us' };
+const EMPTY: LiveState = { set: 1, our: 0, opp: 0, history: [], events: [], serving: 'us', finished: false };
 
-function setsWon(history: SetScore[]) {
-  return history.reduce((acc, s) => ({ our: acc.our + (s.our > s.opp ? 1 : 0), opp: acc.opp + (s.opp > s.our ? 1 : 0) }), { our: 0, opp: 0 });
+const DEMO_START = (): LiveState => ({
+  set: demoInitial.set, our: demoInitial.our, opp: demoInitial.opp, history: demoInitial.history, events: demoInitial.events, serving: 'us', finished: false,
+});
+
+/** Applica un punto secondo il regolamento: chiusura set, cambio campo nel tie-break, fine partita */
+function scorePoint(s: LiveState, side: 'us' | 'opp'): LiveState {
+  if (s.finished) return s;
+  const before = { our: s.our, opp: s.opp };
+  const after = { our: s.our + (side === 'us' ? 1 : 0), opp: s.opp + (side === 'opp' ? 1 : 0) };
+  const stamp = Date.now();
+  const event = (text: string, who: 'us' | 'opp', n = 0): LiveEvent => ({ id: `sim-${stamp}-${n}`, set: s.set, our: after.our, opp: after.opp, side: who, text });
+  const events: LiveEvent[] = [event(side === 'us' ? US_LINES[Math.floor(Math.random() * US_LINES.length)] : 'Punto per le avversarie.', side)];
+
+  if (isSideSwitch(s.set, before, after)) events.unshift(event(`Cambio campo sull'${after.our}–${after.opp}.`, side, 1));
+
+  const setWon = setWinner(s.set, after);
+  if (!setWon) return { ...s, ...after, serving: side, events: [...events, ...s.events].slice(0, 80) };
+
+  const history = [...s.history, after];
+  const won = setsWon(history);
+  const winner = matchWinner(won);
+  events.unshift(event(winner
+    ? `Fine partita: ${won.our}–${won.opp}${winner === 'us' ? ', vittoria Smapiù!' : '.'}`
+    : `Fine ${s.set}° set: ${after.our}–${after.opp}.`, setWon, 2));
+  return winner
+    ? { ...s, ...after, history, serving: side, finished: true, events: [...events, ...s.events].slice(0, 80) }
+    : { ...s, set: s.set + 1, our: 0, opp: 0, history, serving: side, events: [...events, ...s.events].slice(0, 80) };
 }
 
 export function LiveProvider({ children }: { children: ReactNode }) {
   const { liveMatch } = useData();
   const [state, setState] = useState<LiveState>(EMPTY);
   const [lastPoint, setLastPoint] = useState<LiveCtx['lastPoint']>(null);
-  const [auto, setAuto] = useState(false);
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const isDemo = !!liveMatch?.demoLive;
 
   // Carica lo stato della partita live (demo o Supabase Realtime)
   useEffect(() => {
-    setAuto(false);
     if (!liveMatch) {
       setState(EMPTY);
       return;
     }
     if (liveMatch.demoLive) {
-      setState({ set: demoInitial.set, our: demoInitial.our, opp: demoInitial.opp, history: demoInitial.history, events: demoInitial.events, serving: 'us' });
+      setState(DEMO_START());
       return;
     }
     let active = true;
@@ -77,6 +104,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
         history: done,
         events: snap.events,
         serving: last?.side ?? 'us',
+        finished: matchWinner(setsWon(done)) !== null,
       });
     };
     load();
@@ -98,26 +126,12 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   }, [liveMatch]);
 
   const addPoint = useCallback((side: 'us' | 'opp') => {
-    setState((s) => {
-      const our = s.our + (side === 'us' ? 1 : 0);
-      const opp = s.opp + (side === 'opp' ? 1 : 0);
-      const text = side === 'us' ? US_LINES[Math.floor(Math.random() * US_LINES.length)] : 'Punto per le avversarie.';
-      const ev: LiveEvent = { id: `sim-${Date.now()}`, set: s.set, our, opp, side, text };
-      return { ...s, our, opp, serving: side, events: [ev, ...s.events].slice(0, 80) };
-    });
+    setState((s) => scorePoint(s, side));
     setLastPoint({ side, key: Date.now() });
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
   }, []);
 
-  const toggleAuto = useCallback(() => setAuto((a) => !a), []);
-
-  useEffect(() => {
-    if (timer.current) clearInterval(timer.current);
-    if (auto && isDemo) timer.current = setInterval(() => addPoint(Math.random() > 0.4 ? 'us' : 'opp'), 3000);
-    return () => {
-      if (timer.current) clearInterval(timer.current);
-    };
-  }, [auto, isDemo, addPoint]);
+  const resetDemo = useCallback(() => setState(DEMO_START()), []);
 
   const value = useMemo<LiveCtx>(() => {
     const won = setsWon(state.history);
@@ -127,12 +141,12 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       ourSets: won.our,
       oppSets: won.opp,
       lastPoint,
-      canSimulate: isDemo,
-      auto,
-      toggleAuto,
+      standing: state.finished ? standingPoints(won) : null,
+      canScore: isDemo && !state.finished,
       addPoint,
+      resetDemo,
     };
-  }, [state, liveMatch, lastPoint, isDemo, auto, toggleAuto, addPoint]);
+  }, [state, liveMatch, lastPoint, isDemo, addPoint, resetDemo]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

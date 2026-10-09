@@ -135,7 +135,6 @@ export interface AppUser {
 export interface NotifPrefs {
   enabled: boolean;
   start: boolean;
-  points: boolean;
   sets: boolean;
   final: boolean;
   news: boolean;
