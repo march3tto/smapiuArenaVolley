@@ -26,3 +26,11 @@ export const supabase: SupabaseClient | null =
     : null;
 
 export const hasSupabase = supabase !== null;
+
+/** "bucket/file" → URL pubblico dello Storage Supabase (il primo segmento del percorso è il bucket) */
+export function storageUrl(path: string): string {
+  if (!supabase || /^https?:\/\//.test(path)) return path;
+  const [bucket, ...rest] = path.split('/');
+  if (!rest.length) return path;
+  return supabase.storage.from(bucket).getPublicUrl(rest.join('/')).data.publicUrl;
+}

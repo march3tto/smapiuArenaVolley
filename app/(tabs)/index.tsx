@@ -56,7 +56,7 @@ export default function Home() {
 
       {media.length ? (
         <View style={{ gap: 12 }}>
-          <SectionHeader title="Video e podcast" action={{ label: 'Tutti', onPress: () => router.navigate('/altro') }} />
+          <SectionHeader title="Video e podcast" action={{ label: 'Tutti', onPress: () => router.navigate({ pathname: '/news', params: { filtro: 'media' } }) }} />
           <MediaStrip items={media} />
         </View>
       ) : null}

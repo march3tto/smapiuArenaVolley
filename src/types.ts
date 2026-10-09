@@ -63,6 +63,8 @@ export interface Player {
   bio?: string | null;
   status?: 'nuova' | 'confermata' | null;
   born?: number | null;
+  /** Data di nascita completa (ISO "AAAA-MM-GG"), se disponibile */
+  birthDate?: string | null;
   isCaptain?: boolean;
   heightCm?: number | null;
   points?: number | null;

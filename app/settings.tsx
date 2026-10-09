@@ -1,14 +1,13 @@
-import { Platform, Pressable, ScrollView, Switch, View } from 'react-native';
+import { Platform, ScrollView, Switch, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
-import { Bell, Check, Moon, Send, Settings as SettingsIcon, Sun, Volleyball, X } from 'lucide-react-native';
+import { Bell, Moon, Send, Settings as SettingsIcon, Sun, Volleyball, X } from 'lucide-react-native';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { Txt } from '@/components/Txt';
 import { useToast } from '@/components/Toast';
 import { useApp } from '@/store/AppProvider';
-import { useData } from '@/store/DataProvider';
 import { palette } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { NotifPrefs } from '@/types';
@@ -18,8 +17,7 @@ export default function Settings() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
-  const { prefs, updatePrefs, toggleYouth, demoLive, setDemoLive, user, signOut } = useApp();
-  const { youth } = useData();
+  const { prefs, updatePrefs, demoLive, setDemoLive, user, signOut } = useApp();
 
   const askPermission = async () => {
     if (Platform.OS === 'web') return false;
@@ -86,19 +84,6 @@ export default function Settings() {
           <Row k="points" title="Ogni punto in diretta" sub="Molte notifiche durante il match." />
           <Row k="sets" title="Fine di ogni set" />
           <Row k="final" title="Risultato finale" />
-          <Group title="Giovanili" />
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingVertical: 8 }}>
-            {youth.map((y) => {
-              const on = prefs.youth.includes(y.id);
-              return (
-                <Pressable key={y.id} onPress={() => toggleYouth(y.id)} accessibilityRole="checkbox" accessibilityState={{ checked: on }}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: on ? palette.gold : c.fill, borderWidth: on ? 0 : 1, borderColor: c.lineStrong }}>
-                  {on ? <Check size={13} color={palette.onGold} /> : null}
-                  <Txt w={600} size={13} color={on ? palette.onGold : 'text'}>{y.name}</Txt>
-                </Pressable>
-              );
-            })}
-          </View>
           <Group title="Società" />
           <Row k="news" title="Nuove notizie" />
         </View>
@@ -116,9 +101,10 @@ export default function Settings() {
         </View>
 
         {user ? (
-          <Button label={`Esci (${user.email})`} style={{ marginTop: 18 }} onPress={async () => { await signOut(); router.replace('/login'); }} />
+          <Button label={`Esci (${user.email})`} style={{ marginTop: 18 }} onPress={async () => { await signOut(); toast.show("Sei uscito dall'account."); }} />
         ) : (
-          <Button label="Accedi o registrati" variant="gold" style={{ marginTop: 18 }} onPress={() => router.replace('/login')} />
+          // accesso e registrazione disattivati per ora
+          <Button label="Accedi o registrati" variant="gold" style={{ marginTop: 18 }} disabled onPress={() => router.replace('/login')} />
         )}
       </ScrollView>
     </View>

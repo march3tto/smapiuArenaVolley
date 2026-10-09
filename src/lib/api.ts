@@ -1,5 +1,5 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
-import { supabase } from './supabase';
+import { storageUrl, supabase } from './supabase';
 import { slugify } from './format';
 import * as mock from '@/data/mock';
 import { COMPETITION_LOGOS, NEWS_IMAGES, OPPONENT_LOGOS, PLAYER_PHOTOS, SPONSOR_LOGOS } from '@/data/assets';
@@ -39,14 +39,6 @@ export interface AppData {
 type Row = Record<string, unknown>;
 const str = (v: unknown, d = ''): string => (typeof v === 'string' ? v : v == null ? d : String(v));
 const num = (v: unknown): number | null => (typeof v === 'number' ? v : v == null || v === '' ? null : Number(v));
-
-/** "bucket/file" → URL pubblico dello Storage Supabase (il primo segmento del percorso è il bucket) */
-function storageUrl(path: string): string {
-  if (!supabase || /^https?:\/\//.test(path)) return path;
-  const [bucket, ...rest] = path.split('/');
-  if (!rest.length) return path;
-  return supabase.storage.from(bucket).getPublicUrl(rest.join('/')).data.publicUrl;
-}
 
 export function emptyData(): AppData {
   return { matches: [], standings: [], players: [], news: [], sponsors: [], youth: [], venues: mock.venues, media: [], source: 'supabase' };
@@ -149,6 +141,7 @@ function mapPlayer(r: Row): Player {
     bio: (r.bio as string | null) ?? null,
     status: null,
     born,
+    birthDate: typeof r.data_nascita === 'string' ? r.data_nascita : null,
     isCaptain: r.capitana === true,
     heightCm: num(r.altezza_cm),
     points: num(r.punti),
@@ -206,7 +199,8 @@ function buildYouth(categorie: Row[], staff: Row[], partite: Row[]): YouthTeam[]
     return {
       id,
       name,
-      short: name.replace(/Under\s*/i, 'U'),
+      // "Under 14" → "U14"; altri nomi (es. "Prima Squadra") → iniziali, per stare nel badge
+      short: /under/i.test(name) ? name.replace(/Under\s*/i, 'U') : name.split(/\s+/).map((w) => w[0]).join('').toUpperCase().slice(0, 3),
       coach: coaches.join(', ') || 'Da definire',
       description: str(c.descrizione),
       next: next ? { opponent: str(next.avversario), date: str(next.data_partita), home: next.casa_trasferta === 'casa' } : null,
