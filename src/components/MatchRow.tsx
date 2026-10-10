@@ -44,7 +44,7 @@ export function MatchRow({ match: m, liveSets, onPress }: Props) {
         <View style={{ width: 60, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, backgroundColor: c.fill }} accessibilityLabel={`${m.giornata}ª giornata, ${ritorno ? 'ritorno' : 'andata'}`}>
           <Txt w={800} size={28} tnum style={{ letterSpacing: -1, lineHeight: 30 }}>{m.giornata}</Txt>
           <Txt w={600} size={10} color="muted">giornata</Txt>
-          <View style={{ marginTop: 8, width: 24, height: 24, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: ritorno ? 'rgba(124,155,255,0.18)' : 'rgba(242,184,0,0.16)' }}>
+          <View style={{ marginTop: 8, width: 24, height: 24, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: ritorno ? 'rgba(124,155,255,0.18)' : 'rgba(255,213,3,0.16)' }}>
             <Txt w={800} size={11.5} color={ritorno ? 'cobalt' : 'accent'}>{ritorno ? 'R' : 'A'}</Txt>
           </View>
         </View>
@@ -93,7 +93,7 @@ export function MatchRow({ match: m, liveSets, onPress }: Props) {
                 const h = homeIsUs ? s.our : s.opp;
                 const a = homeIsUs ? s.opp : s.our;
                 return (
-                  <View key={i} style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: w ? 'rgba(242,184,0,0.13)' : c.fill }}>
+                  <View key={i} style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: w ? 'rgba(255,213,3,0.13)' : c.fill }}>
                     <Txt w={600} size={12} color={w ? 'accent' : 'text'} tnum>{h}–{a}</Txt>
                   </View>
                 );
@@ -112,7 +112,7 @@ export function MatchRow({ match: m, liveSets, onPress }: Props) {
 
 /** Colori delle etichette stagione: ogni stagione ne prende uno fisso in base al nome */
 const SEASON_COLORS = [
-  { fg: '#F2B800', bg: 'rgba(242,184,0,0.16)' },
+  { fg: '#F2B800', bg: 'rgba(255,213,3,0.16)' },
   { fg: '#7FD8FF', bg: 'rgba(127,216,255,0.16)' },
   { fg: '#3DDC97', bg: 'rgba(61,220,151,0.16)' },
   { fg: '#FF8A9A', bg: 'rgba(255,138,154,0.16)' },

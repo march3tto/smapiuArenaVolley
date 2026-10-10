@@ -43,13 +43,13 @@ export default function PlayerScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.card }}>
-      <View style={{ flex: 1, minHeight: Math.min(180, height * 0.25), maxHeight: photoMaxH, backgroundColor: '#1E4586' }}>
+      <View style={{ flex: 1, minHeight: Math.min(180, height * 0.25), maxHeight: photoMaxH, backgroundColor: '#0B3166' }}>
         <CoverImage source={p.photo} style={{ flex: 1 }} />
-        <LinearGradient colors={['transparent', 'rgba(5,13,36,0.2)', c.card]} locations={[0.4, 0.65, 1]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+        <LinearGradient colors={['transparent', 'rgba(6,26,58,0.2)', c.card]} locations={[0.4, 0.65, 1]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
         {p.number != null ? (
           <JerseyNumber value={p.number} size={88} style={{ position: 'absolute', right: 18, bottom: -4 }} />
         ) : null}
-        <IconButton label="Chiudi" onPress={() => router.back()} style={{ position: 'absolute', top: insets.top > 30 ? 16 : insets.top + 12, right: 14, backgroundColor: 'rgba(5,13,36,0.55)' }}>
+        <IconButton label="Chiudi" onPress={() => router.back()} style={{ position: 'absolute', top: insets.top > 30 ? 16 : insets.top + 12, right: 14, backgroundColor: 'rgba(6,26,58,0.55)' }}>
           <X size={18} color="#fff" />
         </IconButton>
       </View>

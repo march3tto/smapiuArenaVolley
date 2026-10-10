@@ -16,7 +16,7 @@
       "package": "it.arenavolleyteam.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#2A5AA5",
+        "backgroundColor": "#061A3A",
         "monochromeImage": "./assets/adaptive-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
@@ -36,13 +36,13 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 160,
           "resizeMode": "contain",
-          "backgroundColor": "#2A5AA5"
+          "backgroundColor": "#061A3A"
         }
       ],
       [
         "expo-notifications",
         {
-          "color": "#F2B800"
+          "color": "#FFD503"
         }
       ]
     ]

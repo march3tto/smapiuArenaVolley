@@ -55,7 +55,7 @@ export default function Settings() {
   return (
     <View style={{ flex: 1, justifyContent: 'flex-end' }}>
       {/* tocco fuori dal riquadro = chiudi */}
-      <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Chiudi" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(3,8,22,0.55)' }} />
+      <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Chiudi" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(3,26,56,0.55)' }} />
       <Animated.View style={{
         maxHeight: height * 0.8, width: '100%', maxWidth: 520, alignSelf: 'center', marginBottom: insets.bottom + 10, paddingHorizontal: 10,
         transform: [{ translateY: rise }],

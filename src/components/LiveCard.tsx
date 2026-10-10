@@ -32,8 +32,8 @@ export function LiveCard() {
   return (
     <Pressy onPress={() => router.push('/live')} scaleTo={0.98} accessibilityRole="link" accessibilityLabel="Segui la diretta">
       <LinearGradient
-        colors={mode === 'dark' ? ['#2F62B0', '#1E4586'] : ['#FFFFFF', '#F1F5FD']}
-        style={{ borderRadius: 22, padding: 14, gap: 12, borderWidth: 1.5, borderColor: 'rgba(242,184,0,0.55)' }}
+        colors={mode === 'dark' ? ['#115BAB', '#0B3166'] : ['#FFFFFF', '#F2F5FA']}
+        style={{ borderRadius: 22, padding: 14, gap: 12, borderWidth: 1.5, borderColor: 'rgba(255,213,3,0.55)' }}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8, backgroundColor: c.live }}>

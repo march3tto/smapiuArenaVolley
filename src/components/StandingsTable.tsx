@@ -22,9 +22,9 @@ export function StandingsTable({ rows, scroll }: { rows: Standing[]; scroll?: bo
 
   const body = rows.map((r, i) => {
     const promo = i < half;
-    const barColor = r.isUs ? palette.gold : promo ? 'rgba(242,184,0,0.55)' : c.cobalt;
+    const barColor = r.isUs ? palette.gold : promo ? 'rgba(255,213,3,0.55)' : c.cobalt;
     return (
-      <View key={r.team} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingLeft: 10, paddingRight: 4, borderTopWidth: 1, borderTopColor: c.line, borderLeftWidth: 3, borderLeftColor: promo ? 'rgba(242,184,0,0.75)' : c.cobalt }}>
+      <View key={r.team} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingLeft: 10, paddingRight: 4, borderTopWidth: 1, borderTopColor: c.line, borderLeftWidth: 3, borderLeftColor: promo ? 'rgba(255,213,3,0.75)' : c.cobalt }}>
         <Txt w={800} size={15} color={r.isUs ? 'accent' : 'muted'} style={{ width: 24 }} tnum>{i + 1}</Txt>
         <View style={{ flex: 1, paddingRight: 8 }}>
           <Txt w={r.isUs ? 800 : 500} size={teamFontSize(r.team)} numberOfLines={scroll ? 1 : undefined}>{r.team}</Txt>

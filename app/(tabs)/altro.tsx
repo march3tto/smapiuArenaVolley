@@ -11,7 +11,7 @@ import { INFO, MEDIA, SOCIETA, type InfoKey } from '@/data/altro';
 import { palette } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
-const GOLD_TINT = 'rgba(242,184,0,0.18)';
+const GOLD_TINT = 'rgba(255,213,3,0.18)';
 
 export default function Altro() {
   const { c } = useTheme();

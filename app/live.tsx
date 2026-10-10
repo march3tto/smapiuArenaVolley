@@ -40,7 +40,7 @@ export default function Live() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ padding: 14, gap: 16, paddingBottom: insets.bottom + 30, width: '100%', maxWidth: 900, alignSelf: 'center' }}>
-      <Card style={{ gap: 18, borderColor: 'rgba(242,184,0,0.5)', borderWidth: 1.5 }}>
+      <Card style={{ gap: 18, borderColor: 'rgba(255,213,3,0.5)', borderWidth: 1.5 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
           {live.finished ? <Trophy size={14} color={c.accent} /> : <LiveDot />}
           <Txt w={700} size={13} color={live.finished ? 'accent' : 'live'}>{live.finished ? 'Finale' : 'In diretta'}</Txt>

@@ -215,7 +215,7 @@ function AlboOro() {
   );
 }
 
-const GOLD_TINT = 'rgba(242,184,0,0.18)';
+const GOLD_TINT = 'rgba(255,213,3,0.18)';
 const tel = (phone: string) => Linking.openURL(`tel:${phone.replace(/\s/g, '')}`);
 const mail = (email: string) => Linking.openURL(`mailto:${email}`);
 

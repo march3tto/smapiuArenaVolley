@@ -22,7 +22,7 @@ export function TeamBadge({ name, size = 44, logo: logoProp }: Props) {
     return (
       <LinearGradient
         colors={brandGradient}
-        style={{ width: size, height: size, borderRadius: r, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(242,184,0,0.65)' }}
+        style={{ width: size, height: size, borderRadius: r, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(255,213,3,0.65)' }}
         accessibilityLabel={name}
       >
         <Image source={LOGO_AVT} style={{ width: size * 0.7, height: size * 0.76 }} contentFit="contain" />

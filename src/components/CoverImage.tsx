@@ -11,7 +11,7 @@ export function CoverImage({ source, style }: { source: ImgSrc; style?: StylePro
   return (
     <View style={[{ overflow: 'hidden' }, style]}>
       <Image source={source} style={fill} contentFit="cover" blurRadius={24} />
-      <View style={[fill, { backgroundColor: 'rgba(5,13,36,0.25)' }]} />
+      <View style={[fill, { backgroundColor: 'rgba(6,26,58,0.25)' }]} />
       <Image source={source} style={fill} contentFit="contain" contentPosition="center" transition={250} />
     </View>
   );

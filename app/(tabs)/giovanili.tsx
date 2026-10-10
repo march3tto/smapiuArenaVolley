@@ -50,7 +50,7 @@ export default function Giovanili() {
                 style={{ flex: 1, aspectRatio: 3 / 2, borderRadius: 16, overflow: 'hidden', backgroundColor: c.fill }}>
                 <Image source={g.photo} style={{ flex: 1 }} contentFit="cover" transition={200} />
                 {g.title ? (
-                  <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: 'rgba(5,13,36,0.6)' }}>
+                  <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: 'rgba(6,26,58,0.6)' }}>
                     <Txt w={700} size={11.5} color={palette.white} numberOfLines={1}>{g.title}</Txt>
                   </View>
                 ) : null}
@@ -125,7 +125,7 @@ function Lightbox({ index, onChange }: { index: number | null; onChange: (i: num
 
   return (
     <Modal visible={item != null} transparent animationType="fade" onRequestClose={() => onChange(null)} statusBarTranslucent>
-      <View style={{ flex: 1, backgroundColor: 'rgba(3,8,22,0.96)', paddingTop: insets.top + 12, paddingBottom: insets.bottom + 16 }}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(3,26,56,0.96)', paddingTop: insets.top + 12, paddingBottom: insets.bottom + 16 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 }}>
           <Txt w={700} size={14} color={palette.white} style={{ flex: 1 }} tnum>{index != null ? `${index + 1} / ${GALLERIA.length}` : ''}</Txt>
           <Pressable onPress={() => onChange(null)} hitSlop={10} accessibilityRole="button" accessibilityLabel="Chiudi" style={arrow}>
