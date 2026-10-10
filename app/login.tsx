@@ -119,7 +119,7 @@ export default function Login() {
           style={{ paddingTop: insets.top + 22, paddingHorizontal: 24, paddingBottom: wide ? 40 : 130, borderBottomLeftRadius: wide ? 0 : 34, borderBottomRightRadius: 34, borderTopRightRadius: wide ? 34 : 0, overflow: 'hidden', flex: wide ? 1.1 : undefined, justifyContent: 'space-between', gap: 26 }}>
           <Arches width={wide ? width * 0.55 : width} height={wide ? 240 : 170} />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={{ width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(242,184,0,0.6)', backgroundColor: 'rgba(255,255,255,0.08)' }}>
+            <View style={{ width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,213,3,0.6)', backgroundColor: 'rgba(255,255,255,0.08)' }}>
               <Image source={LOGO_AVT} style={{ width: 40, height: 43 }} contentFit="contain" />
             </View>
             <View>
@@ -139,7 +139,7 @@ export default function Login() {
 
         <View style={{ flex: wide ? 1 : undefined, alignItems: 'center', justifyContent: wide ? 'center' : 'flex-start', padding: 14, paddingBottom: insets.bottom + 24, marginTop: wide ? 0 : -100 }}>
           <Animated.View style={{ width: '100%', maxWidth: 430, transform: [{ translateX: shake }] }}>
-            <LinearGradient colors={[c.card, c.cardAlt]} style={{ borderRadius: 28, padding: 22, borderWidth: 1.5, borderColor: 'rgba(242,184,0,0.5)', gap: 14 }}>
+            <LinearGradient colors={[c.card, c.cardAlt]} style={{ borderRadius: 28, padding: 22, borderWidth: 1.5, borderColor: 'rgba(255,213,3,0.5)', gap: 14 }}>
               <SegmentedControl stretch options={[{ value: 'login', label: 'Accedi' }, { value: 'register', label: 'Registrati' }]} value={mode} onChange={(m) => { setMode(m); setErrors({}); }} />
               <View>
                 <Txt w={900} size={28} style={{ letterSpacing: -0.8 }}>{reg ? 'Crea il tuo account' : 'Accedi'}</Txt>

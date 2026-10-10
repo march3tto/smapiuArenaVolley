@@ -26,8 +26,8 @@ export function NewsCard({ item, width, compact, onPress }: Props) {
       <Pressy onPress={onPress} scaleTo={0.97} accessibilityRole="button" accessibilityLabel={item.title}
         style={{ width: NEWS_COMPACT_W, height: NEWS_COMPACT_H, borderRadius: 18, overflow: 'hidden', backgroundColor: c.fill, borderWidth: 1, borderColor: c.line }}>
         <Image source={item.image} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} contentFit="cover" contentPosition="center" transition={250} />
-        <LinearGradient colors={['transparent', 'rgba(5,13,36,0.6)', 'rgba(5,13,36,0.95)']} locations={[0.35, 0.6, 1]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-        <View style={{ position: 'absolute', top: 8, left: 8, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, backgroundColor: 'rgba(5,13,36,0.6)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }}>
+        <LinearGradient colors={['transparent', 'rgba(6,26,58,0.6)', 'rgba(6,26,58,0.95)']} locations={[0.35, 0.6, 1]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+        <View style={{ position: 'absolute', top: 8, left: 8, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, backgroundColor: 'rgba(6,26,58,0.6)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }}>
           <Txt w={700} size={10.5} color="#fff">{item.category}</Txt>
         </View>
         <View style={{ position: 'absolute', left: 10, right: 10, bottom: 10, gap: 2 }}>
@@ -42,8 +42,8 @@ export function NewsCard({ item, width, compact, onPress }: Props) {
       <View style={{ aspectRatio: 16 / 9, backgroundColor: c.fill }}>
         {/* immagine intera e centrata (le copertine sono verticali) */}
         <CoverImage source={item.image} style={{ flex: 1 }} />
-        <LinearGradient colors={['transparent', 'rgba(5,13,36,0.55)']} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-        <View style={{ position: 'absolute', top: 8, left: 8, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 999, backgroundColor: 'rgba(5,13,36,0.6)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }}>
+        <LinearGradient colors={['transparent', 'rgba(6,26,58,0.55)']} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+        <View style={{ position: 'absolute', top: 8, left: 8, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 999, backgroundColor: 'rgba(6,26,58,0.6)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }}>
           <Txt w={700} size={11} color="#fff">{item.category}</Txt>
         </View>
       </View>

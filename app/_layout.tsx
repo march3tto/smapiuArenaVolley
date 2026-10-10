@@ -5,9 +5,11 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useFonts } from 'expo-font';
 import {
-  useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold, Inter_900Black,
-} from '@expo-google-fonts/inter';
+  Roboto_400Regular, Roboto_500Medium, Roboto_600SemiBold, Roboto_700Bold, Roboto_800ExtraBold, Roboto_900Black,
+} from '@expo-google-fonts/roboto';
+import { BarlowCondensed_800ExtraBold_Italic, BarlowCondensed_900Black_Italic } from '@expo-google-fonts/barlow-condensed';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 import { AppProvider } from '@/store/AppProvider';
 import { DataProvider } from '@/store/DataProvider';
@@ -24,7 +26,10 @@ if (Platform.OS !== 'web') {
 }
 
 export default function RootLayout() {
-  const [loaded] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold, Inter_900Black });
+  const [loaded] = useFonts({
+    Roboto_400Regular, Roboto_500Medium, Roboto_600SemiBold, Roboto_700Bold, Roboto_800ExtraBold, Roboto_900Black,
+    BarlowCondensed_800ExtraBold_Italic, BarlowCondensed_900Black_Italic,
+  });
 
   useEffect(() => {
     if (loaded) SplashScreen.hideAsync().catch(() => {});
