@@ -134,6 +134,21 @@ export interface LiveEvent {
   side: 'us' | 'opp';
 }
 
+/** Giocatrice a referto nella formazione di una partita (nostra o avversaria) */
+export interface LineupPlayer {
+  id: string;
+  team: 'us' | 'opp';
+  /** Solo nostra squadra: giocatrice della rosa */
+  playerId?: string | null;
+  number: number | null;
+  name: string;
+  role: PlayerRole | null;
+  isCaptain: boolean;
+  /** Posizione nello Starting Six (I-VI del foglio formazione, 1 = al servizio), null in panchina */
+  zone: number | null;
+  order: number;
+}
+
 export interface AppUser {
   id: string;
   name: string;

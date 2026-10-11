@@ -1,17 +1,20 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated, Linking, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MonitorPlay, Plus, RotateCcw, Trophy, Volleyball } from 'lucide-react-native';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { LineupPanel } from '@/components/LineupPanel';
 import { LiveDot } from '@/components/LiveDot';
 import { Pressy } from '@/components/Pressy';
+import { SegmentedControl } from '@/components/SegmentedControl';
 import { TeamBadge } from '@/components/TeamBadge';
 import { Txt } from '@/components/Txt';
 import { US } from '@/constants';
 import { setTarget } from '@/lib/volley';
 import { useLive } from '@/store/LiveProvider';
+import { useLineup } from '@/store/useLineup';
 import { palette } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -20,6 +23,8 @@ export default function Live() {
   const insets = useSafeAreaInsets();
   const live = useLive();
   const m = live.match;
+  const lineup = useLineup(m);
+  const [panel, setPanel] = useState<'cronaca' | 'formazioni'>('cronaca');
 
   if (!m) {
     return (
@@ -97,7 +102,12 @@ export default function Live() {
           {m.youtubeLiveId ? (
             <Button label="Guarda su YouTube" variant="gold" icon={<MonitorPlay size={18} color={palette.onGold} />} onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${m.youtubeLiveId}`)} />
           ) : null}
-          {live.canScore ? <Txt size={12} color="muted">Partita dimostrativa: tocca + per assegnare il punto.</Txt> : null}
+          {live.canScore ? (
+            <Txt size={12} color="muted" center>
+              {live.scoringLive ? 'Admin: tocca + per assegnare il punto, lo vedono tutti in diretta.' : 'Partita dimostrativa: tocca + per assegnare il punto.'}
+            </Txt>
+          ) : null}
+          {live.saveError ? <Txt size={12} color="live" center>{live.saveError}</Txt> : null}
           {m.demoLive && live.finished ? (
             <Button size="sm" label="Ricomincia la demo" icon={<RotateCcw size={14} color={c.text} />} onPress={live.resetDemo} />
           ) : null}
@@ -105,13 +115,22 @@ export default function Live() {
       </Card>
 
       <Card style={{ gap: 4 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-          <Txt w={800} size={17}>Cronaca</Txt>
-          <Txt size={13} color="muted">{live.events.length} azioni</Txt>
+        <View style={{ marginBottom: 10 }}>
+          <SegmentedControl stretch value={panel} onChange={setPanel}
+            options={[{ value: 'cronaca', label: 'Cronaca' }, { value: 'formazioni', label: 'Formazioni' }]} />
         </View>
-        {live.events.map((e, i) => (
-          <FeedItem key={e.id} first={i === 0} last={i === live.events.length - 1} us={e.side === 'us'} meta={`${e.set}° set, ${e.our}–${e.opp}`} text={e.text} />
-        ))}
+        {panel === 'cronaca' ? (
+          <>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 6 }}>
+              <Txt size={13} color="muted">{live.events.length} azioni</Txt>
+            </View>
+            {live.events.map((e, i) => (
+              <FeedItem key={e.id} first={i === 0} last={i === live.events.length - 1} us={e.side === 'us'} meta={`${e.set}° set, ${e.our}–${e.opp}`} text={e.text} />
+            ))}
+          </>
+        ) : (
+          <LineupPanel lineup={lineup} teams={[L, R].map((t) => ({ name: t.name, logo: t.logo, team: t.side, players: t.side === 'us' ? lineup.us : lineup.opp }))} />
+        )}
       </Card>
     </ScrollView>
   );

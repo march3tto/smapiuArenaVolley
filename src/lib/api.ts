@@ -4,7 +4,7 @@ import { slugify } from './format';
 import * as mock from '@/data/mock';
 import { COMPETITION_LOGOS, NEWS_IMAGES, OPPONENT_LOGOS, PLAYER_PHOTOS, SPONSOR_LOGOS, STAFF_PHOTOS } from '@/data/assets';
 import type {
-  Competition, ImgSrc, LiveEvent, Match, MatchStatus, MediaItem, NewsItem, Player, PlayerRole, SetScore, Sponsor, SponsorTier, StaffMember, Standing, Venue, YouthTeam,
+  Competition, ImgSrc, LineupPlayer, LiveEvent, Match, MatchStatus, MediaItem, NewsItem, Player, PlayerRole, SetScore, Sponsor, SponsorTier, StaffMember, Standing, Venue, YouthTeam,
 } from '@/types';
 
 /** Tabelle dello schema Supabase (in italiano) */
@@ -14,6 +14,7 @@ export const T = {
   partite: 'partite',
   setPartita: 'set_partita',
   eventiLive: 'eventi_live',
+  formazioni: 'formazioni_partita',
   classifiche: 'classifiche',
   giocatrici: 'giocatrici',
   staff: 'staff',
@@ -346,6 +347,108 @@ export function subscribeLive(matchId: string, onEvent: (e: LiveEvent) => void, 
       onEvent(mapEvent(p.new as Row)),
     )
     .on('postgres_changes', { event: '*', schema: 'public', table: T.setPartita, filter: `partita_id=eq.${matchId}` }, () => onSets())
+    .subscribe();
+  return () => {
+    client.removeChannel(ch);
+  };
+}
+
+/** uuid v4 generato sul client: l'evento ha lo stesso id in locale e nel database (si riconosce l'eco del Realtime) */
+export function newId(): string {
+  const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+  if (c?.randomUUID) return c.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (ch) => {
+    const r = (Math.random() * 16) | 0;
+    return (ch === 'x' ? r : (r & 3) | 8).toString(16);
+  });
+}
+
+/**
+ * Admin: salva un punto della diretta (richiede ruolo staff/admin, policy e_staff()).
+ * events: nuovi eventi di cronaca dal più recente; score: punteggio del set `set` dopo il punto.
+ */
+export async function pushLivePoint(
+  matchId: string,
+  p: { set: number; score: SetScore; completed: boolean; events: LiveEvent[]; final: { our: number; opp: number } | null },
+): Promise<void> {
+  if (!supabase) return;
+  // uno alla volta, dal più vecchio: creato_il (now() sul server) mantiene l'ordine della cronaca
+  for (const e of [...p.events].reverse()) {
+    const { error } = await supabase.from(T.eventiLive).insert({
+      id: e.id, partita_id: matchId, numero_set: e.set, punteggio_nostro: e.our, punteggio_avversario: e.opp, descrizione: e.text,
+    });
+    if (error) throw error;
+  }
+  const st = await supabase.from(T.setPartita).upsert(
+    { partita_id: matchId, numero_set: p.set, punti_nostri: p.score.our, punti_avversario: p.score.opp, completato: p.completed },
+    { onConflict: 'partita_id,numero_set' },
+  );
+  if (st.error) throw st.error;
+  if (p.final) {
+    const { error } = await supabase.from(T.partite).update({ nostri_set_vinti: p.final.our, set_vinti_avversario: p.final.opp }).eq('id', matchId);
+    if (error) throw error;
+  }
+}
+
+// ---------- formazioni ----------
+
+const RUOLI: PlayerRole[] = ['palleggiatrice', 'schiacciatrice', 'centrale', 'opposto', 'libero'];
+
+function mapLineup(r: Row): LineupPlayer {
+  const role = str(r.ruolo) as PlayerRole;
+  return {
+    id: str(r.id),
+    team: r.squadra === 'avversaria' ? 'opp' : 'us',
+    playerId: (r.giocatrice_id as string | null) ?? null,
+    number: num(r.numero_maglia),
+    name: str(r.nome),
+    role: RUOLI.includes(role) ? role : null,
+    isCaptain: r.capitana === true,
+    zone: num(r.zona),
+    order: num(r.ordine) ?? 0,
+  };
+}
+
+const lineupRow = (matchId: string, p: LineupPlayer) => ({
+  id: p.id, partita_id: matchId, squadra: p.team === 'opp' ? 'avversaria' : 'nostra', giocatrice_id: p.playerId ?? null,
+  numero_maglia: p.number, nome: p.name, ruolo: p.role, capitana: p.isCaptain, zona: p.zone, ordine: p.order,
+});
+
+/** Formazioni della partita; null se la tabella non è raggiungibile (es. migrazione non ancora eseguita) */
+export async function fetchLineup(matchId: string): Promise<LineupPlayer[] | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase.from(T.formazioni).select('*').eq('partita_id', matchId).order('ordine');
+  if (error) {
+    console.warn('Formazioni non disponibili', error.message);
+    return null;
+  }
+  return ((data as Row[] | null) ?? []).map(mapLineup);
+}
+
+export async function insertLineup(matchId: string, players: LineupPlayer[]): Promise<void> {
+  if (!supabase || !players.length) return;
+  const { error } = await supabase.from(T.formazioni).insert(players.map((p) => lineupRow(matchId, p)));
+  if (error) throw error;
+}
+
+export async function setLineupZone(id: string, zone: number | null): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from(T.formazioni).update({ zona: zone }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteLineupPlayer(id: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from(T.formazioni).delete().eq('id', id);
+  if (error) throw error;
+}
+
+export function subscribeLineup(matchId: string, onChange: () => void): () => void {
+  if (!supabase) return () => {};
+  const client = supabase;
+  const ch = client
+    .channel(`formazioni-${matchId}-${Math.random().toString(36).slice(2, 8)}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: T.formazioni, filter: `partita_id=eq.${matchId}` }, onChange)
     .subscribe();
   return () => {
     client.removeChannel(ch);
