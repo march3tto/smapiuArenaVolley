@@ -4,7 +4,7 @@ import { slugify } from './format';
 import * as mock from '@/data/mock';
 import { COMPETITION_LOGOS, NEWS_IMAGES, OPPONENT_LOGOS, PLAYER_PHOTOS, SPONSOR_LOGOS, STAFF_PHOTOS } from '@/data/assets';
 import type {
-  Competition, ImgSrc, LiveEvent, Match, MatchStatus, MediaItem, NewsItem, Player, PlayerRole, SetScore, Sponsor, SponsorTier, StaffMember, Standing, Venue, YouthTeam,
+  Competition, ImgSrc, LineupPlayer, LiveEvent, Match, MatchStatus, MediaItem, NewsItem, Player, PlayerRole, RegionalRoster, SetScore, Sponsor, SponsorTier, StaffMember, Standing, Venue, YouthTeam,
 } from '@/types';
 
 /** Tabelle dello schema Supabase (in italiano) */
@@ -14,6 +14,7 @@ export const T = {
   partite: 'partite',
   setPartita: 'set_partita',
   eventiLive: 'eventi_live',
+  formazioni: 'formazioni_partita',
   classifiche: 'classifiche',
   giocatrici: 'giocatrici',
   staff: 'staff',
@@ -30,6 +31,8 @@ export interface AppData {
   news: NewsItem[];
   sponsors: Sponsor[];
   youth: YouthTeam[];
+  /** Squadre regionali per nome della categoria giovanile (es. "Serie B2") */
+  rosters: Record<string, RegionalRoster>;
   staff: StaffMember[];
   venues: Venue[];
   media: MediaItem[];
@@ -42,7 +45,7 @@ const str = (v: unknown, d = ''): string => (typeof v === 'string' ? v : v == nu
 const num = (v: unknown): number | null => (typeof v === 'number' ? v : v == null || v === '' ? null : Number(v));
 
 export function emptyData(): AppData {
-  return { matches: [], standings: [], players: [], news: [], sponsors: [], youth: [], staff: [], venues: mock.venues, media: [], source: 'supabase' };
+  return { matches: [], standings: [], players: [], news: [], sponsors: [], youth: [], rosters: {}, staff: [], venues: mock.venues, media: [], source: 'supabase' };
 }
 
 export function demoData(): AppData {
@@ -53,6 +56,7 @@ export function demoData(): AppData {
     news: mock.news,
     sponsors: mock.sponsors,
     youth: mock.youth,
+    rosters: {},
     staff: [],
     venues: mock.venues,
     media: [],
@@ -203,6 +207,26 @@ function mapMedia(r: Row): MediaItem {
 }
 
 /** Categorie giovanili + allenatori (staff) + prossima/ultima partita della categoria */
+/** Giocatrici e staff delle squadre regionali, raggruppati per categoria giovanile */
+function buildRosters(categorie: Row[], giocatrici: Row[], staff: Row[]): Record<string, RegionalRoster> {
+  const out: Record<string, RegionalRoster> = {};
+  for (const c of categorie) {
+    const id = str(c.id);
+    const players = giocatrici.filter((g) => g.categoria_giovanile_id === id).map((g) => ({
+      id: str(g.id),
+      name: `${str(g.nome)} ${str(g.cognome)}`.trim(),
+      number: num(g.numero_maglia),
+      birthDate: typeof g.data_nascita === 'string' ? g.data_nascita : null,
+    }));
+    const coaches = staff.filter((s) => s.categoria_giovanile_id === id).map((s) => {
+      const m = mapStaff(s);
+      return { id: m.id, name: m.name, role: m.role };
+    });
+    if (players.length || coaches.length) out[str(c.nome)] = { players, staff: coaches };
+  }
+  return out;
+}
+
 function buildYouth(categorie: Row[], staff: Row[], partite: Row[]): YouthTeam[] {
   const now = Date.now();
   return categorie.map((c) => {
@@ -245,10 +269,12 @@ export async function loadAll(): Promise<AppData> {
   const seasons = new Map(stagioni.map((s) => [str(s.id), str(s.etichetta)]));
   if (!ids.length) throw new Error('Nessuna stagione con corrente = true in "stagioni".');
 
-  const [partite, classifiche, giocatrici, notizie, sponsor, categorie, staff, media, campionati] = await Promise.all([
+  const [partite, classifiche, giocatrici, regionali, notizie, sponsor, categorie, staff, media, campionati] = await Promise.all([
     db.from(T.partite).select(`*, ${T.setPartita}(*)`).in('stagione_id', ids).order('data_partita'),
     db.from(T.classifiche).select('*').in('stagione_id', ids).order('posizione'),
-    db.from(T.giocatrici).select('*').in('stagione_id', ids).eq('livello_squadra', 'prima_squadra').eq('attiva', true).order('ordine'),
+    // la tabella contiene anche le rose delle avversarie: solo le giocatrici della squadra con nostra_squadra = true
+    db.from(T.giocatrici).select('*, squadre!squadra_id!inner(nostra_squadra)').in('stagione_id', ids).eq('livello_squadra', 'prima_squadra').eq('attiva', true).eq('squadre.nostra_squadra', true).order('ordine'),
+    db.from(T.giocatrici).select('*').in('stagione_id', ids).in('livello_squadra', ['serie_b2', 'serie_d']).eq('attiva', true).order('ordine'),
     db.from(T.notizie).select('*').eq('pubblicata', true).order('pubblicato_il', { ascending: false }).limit(30),
     db.from(T.sponsor).select('*').eq('attivo', true).order('ordine'),
     db.from(T.categorie).select('*').order('ordine'),
@@ -267,6 +293,7 @@ export async function loadAll(): Promise<AppData> {
     news: (must(notizie, 'notizie') as Row[]).map(mapNews),
     sponsors: (must(sponsor, 'sponsor') as Row[]).map(mapSponsor),
     youth: buildYouth(must(categorie, 'categorie_giovanili') as Row[], must(staff, 'staff') as Row[], p),
+    rosters: buildRosters(must(categorie, 'categorie_giovanili') as Row[], must(regionali, 'giocatrici') as Row[], must(staff, 'staff') as Row[]),
     // staff della prima squadra: le righe con categoria giovanile appartengono alle giovanili
     staff: (must(staff, 'staff') as Row[]).filter((r) => r.categoria_giovanile_id == null).map(mapStaff),
     venues: mock.venues,
@@ -346,6 +373,108 @@ export function subscribeLive(matchId: string, onEvent: (e: LiveEvent) => void, 
       onEvent(mapEvent(p.new as Row)),
     )
     .on('postgres_changes', { event: '*', schema: 'public', table: T.setPartita, filter: `partita_id=eq.${matchId}` }, () => onSets())
+    .subscribe();
+  return () => {
+    client.removeChannel(ch);
+  };
+}
+
+/** uuid v4 generato sul client: l'evento ha lo stesso id in locale e nel database (si riconosce l'eco del Realtime) */
+export function newId(): string {
+  const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+  if (c?.randomUUID) return c.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (ch) => {
+    const r = (Math.random() * 16) | 0;
+    return (ch === 'x' ? r : (r & 3) | 8).toString(16);
+  });
+}
+
+/**
+ * Admin: salva un punto della diretta (richiede ruolo staff/admin, policy e_staff()).
+ * events: nuovi eventi di cronaca dal più recente; score: punteggio del set `set` dopo il punto.
+ */
+export async function pushLivePoint(
+  matchId: string,
+  p: { set: number; score: SetScore; completed: boolean; events: LiveEvent[]; final: { our: number; opp: number } | null },
+): Promise<void> {
+  if (!supabase) return;
+  // uno alla volta, dal più vecchio: creato_il (now() sul server) mantiene l'ordine della cronaca
+  for (const e of [...p.events].reverse()) {
+    const { error } = await supabase.from(T.eventiLive).insert({
+      id: e.id, partita_id: matchId, numero_set: e.set, punteggio_nostro: e.our, punteggio_avversario: e.opp, descrizione: e.text,
+    });
+    if (error) throw error;
+  }
+  const st = await supabase.from(T.setPartita).upsert(
+    { partita_id: matchId, numero_set: p.set, punti_nostri: p.score.our, punti_avversario: p.score.opp, completato: p.completed },
+    { onConflict: 'partita_id,numero_set' },
+  );
+  if (st.error) throw st.error;
+  if (p.final) {
+    const { error } = await supabase.from(T.partite).update({ nostri_set_vinti: p.final.our, set_vinti_avversario: p.final.opp }).eq('id', matchId);
+    if (error) throw error;
+  }
+}
+
+// ---------- formazioni ----------
+
+const RUOLI: PlayerRole[] = ['palleggiatrice', 'schiacciatrice', 'centrale', 'opposto', 'libero'];
+
+function mapLineup(r: Row): LineupPlayer {
+  const role = str(r.ruolo) as PlayerRole;
+  return {
+    id: str(r.id),
+    team: r.squadra === 'avversaria' ? 'opp' : 'us',
+    playerId: (r.giocatrice_id as string | null) ?? null,
+    number: num(r.numero_maglia),
+    name: str(r.nome),
+    role: RUOLI.includes(role) ? role : null,
+    isCaptain: r.capitana === true,
+    zone: num(r.zona),
+    order: num(r.ordine) ?? 0,
+  };
+}
+
+const lineupRow = (matchId: string, p: LineupPlayer) => ({
+  id: p.id, partita_id: matchId, squadra: p.team === 'opp' ? 'avversaria' : 'nostra', giocatrice_id: p.playerId ?? null,
+  numero_maglia: p.number, nome: p.name, ruolo: p.role, capitana: p.isCaptain, zona: p.zone, ordine: p.order,
+});
+
+/** Formazioni della partita; null se la tabella non è raggiungibile (es. migrazione non ancora eseguita) */
+export async function fetchLineup(matchId: string): Promise<LineupPlayer[] | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase.from(T.formazioni).select('*').eq('partita_id', matchId).order('ordine');
+  if (error) {
+    console.warn('Formazioni non disponibili', error.message);
+    return null;
+  }
+  return ((data as Row[] | null) ?? []).map(mapLineup);
+}
+
+export async function insertLineup(matchId: string, players: LineupPlayer[]): Promise<void> {
+  if (!supabase || !players.length) return;
+  const { error } = await supabase.from(T.formazioni).insert(players.map((p) => lineupRow(matchId, p)));
+  if (error) throw error;
+}
+
+export async function setLineupZone(id: string, zone: number | null): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from(T.formazioni).update({ zona: zone }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteLineupPlayer(id: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from(T.formazioni).delete().eq('id', id);
+  if (error) throw error;
+}
+
+export function subscribeLineup(matchId: string, onChange: () => void): () => void {
+  if (!supabase) return () => {};
+  const client = supabase;
+  const ch = client
+    .channel(`formazioni-${matchId}-${Math.random().toString(36).slice(2, 8)}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: T.formazioni, filter: `partita_id=eq.${matchId}` }, onChange)
     .subscribe();
   return () => {
     client.removeChannel(ch);

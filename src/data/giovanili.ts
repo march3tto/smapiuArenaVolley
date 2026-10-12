@@ -1,6 +1,6 @@
 /*
  * Contenuti della tab Giovanili, dal sito ufficiale:
- * arenavolley.mginteraction.com/giovanili/ e /serie-c-d/
+ * arenavolley.mginteraction.com/giovanili/ e /serie-c-d/ (la Serie C è diventata Serie B2)
  */
 
 import { storageUrl } from '@/lib/supabase';
@@ -9,7 +9,7 @@ import type { ImgSrc } from '@/types';
 /** Foto nel bucket pubblico "giovanili" dello Storage Supabase (nomi file come sul sito) */
 const foto = (file: string): ImgSrc => storageUrl(`giovanili/${file}`);
 
-const SERIE_C_PHOTO = foto('6d831334e3efd610407b8be462fcb5b2_2400x1600_fit.webp');
+const SERIE_B2_PHOTO = foto('6d831334e3efd610407b8be462fcb5b2_2400x1600_fit.webp');
 const SERIE_D_PHOTO = foto('99ad0c3b23ca2666a73b8523144df218_2400x1600_fit.webp');
 
 export const MOVIMENTO = {
@@ -25,33 +25,28 @@ export const MOVIMENTO = {
 };
 
 export interface SquadraRegionale {
-  key: 'seriec' | 'seried';
+  key: 'serieb2' | 'seried';
   name: string;
   photo: ImgSrc;
   description: string;
-  /** Elenchi vuoti = sezione non mostrata */
-  players: { name: string; number: number }[];
-  staff: { name: string; role: string }[];
+  /** Nome in categorie_giovanili: giocatrici e staff arrivano dalle tabelle giocatrici e staff */
+  categoria: string;
 }
 
 export const SQUADRE: SquadraRegionale[] = [
   {
-    key: 'seriec',
-    name: 'Serie C',
-    photo: SERIE_C_PHOTO,
-    description: 'Il team di Serie C unisce talento e determinazione per competere ai massimi livelli regionali. Un vero e proprio trampolino di lancio dove le nostre giovani atlete scendono in campo con la grinta e l’orgoglio dei colori di Arena Volley.',
-    // giocatrici e tecnici: da inserire quando la società comunicherà i dati corretti
-    players: [],
-    staff: [],
+    key: 'serieb2',
+    name: 'Serie B2',
+    photo: SERIE_B2_PHOTO,
+    description: 'Il team di Serie B2 unisce talento e determinazione per competere ai massimi livelli. Un vero e proprio trampolino di lancio dove le nostre giovani atlete scendono in campo con la grinta e l’orgoglio dei colori di Arena Volley.',
+    categoria: 'Serie B2',
   },
   {
     key: 'seried',
     name: 'Serie D',
     photo: SERIE_D_PHOTO,
     description: 'Il team di Serie D unisce crescita e passione, rappresentando il primo vero banco di prova nel volley che conta. Una squadra determinata, dove le nostre giovani atlete coltivano il talento e costruiscono il futuro di Arena Volley.',
-    // giocatrici e tecnici: da inserire quando la società comunicherà i dati corretti
-    players: [],
-    staff: [],
+    categoria: 'Serie D',
   },
 ];
 
@@ -71,7 +66,7 @@ export const GALLERIA: { photo: ImgSrc; ratio: number; title?: string }[] = [
   { photo: foto('24e0397c8f4ffa69ee527b40a4adab16_580x386_fill.webp'), ratio: 580 / 386 },
   { photo: foto('9ec4098a9e61fa0ffa65bc0f78fa4160_580x436_fill.webp'), ratio: 580 / 435 },
   { photo: foto('8f288ae707eb664def81886feaa486d1_580x436_fill.webp'), ratio: 580 / 435 },
-  { photo: SERIE_C_PHOTO, ratio: 3 / 2 },
+  { photo: SERIE_B2_PHOTO, ratio: 3 / 2 },
   { photo: foto('3f5ff0a3089eae01a02da4caab629101_580x436_fill.webp'), ratio: 580 / 435 },
   { photo: foto('3d0ba996e8401d2fc08e7fce3021a76d_580x436_fill.webp'), ratio: 580 / 435 },
   { photo: foto('1ee22c9c1aff32054c68f4d2f8733912_580x386_fill.webp'), ratio: 580 / 386 },

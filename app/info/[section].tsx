@@ -7,8 +7,6 @@ import { Pressy } from '@/components/Pressy';
 import { Card } from '@/components/Card';
 import { CoverImage } from '@/components/CoverImage';
 import { IconButton } from '@/components/IconButton';
-import { InstagramStrip } from '@/components/InstagramStrip';
-import { MediaList } from '@/components/MediaList';
 import { SponsorGrid } from '@/components/SponsorGrid';
 import { Txt } from '@/components/Txt';
 import { CONTACTS } from '@/constants';
@@ -27,7 +25,7 @@ export default function InfoScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { section } = useLocalSearchParams<{ section: string }>();
-  const { sponsors, venues, media } = useData();
+  const { sponsors, venues } = useData();
   const info = INFO[section as InfoKey];
 
   if (!info) {
@@ -145,15 +143,8 @@ export default function InfoScreen() {
         ) : info.key === 'sponsor' ? (
           <SponsorGrid sponsors={sponsors} />
         ) : info.key === 'galleria' ? (
-          <>
-            <InstagramStrip />
-            {media.length ? (
-              <View style={{ gap: 12 }}>
-                <Txt w={800} size={18} style={{ letterSpacing: -0.3, paddingHorizontal: 4 }}>Video e podcast</Txt>
-                <MediaList items={media} />
-              </View>
-            ) : null}
-          </>
+          // contenuti rimossi: la pagina resta vuota finché non si caricano le nuove foto
+          null
         ) : (
           <>
             {info.image ? <CoverImage source={info.image} style={{ aspectRatio: 4 / 3, borderRadius: 24, backgroundColor: c.fill }} /> : null}

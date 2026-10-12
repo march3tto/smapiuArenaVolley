@@ -108,6 +108,12 @@ export interface YouthTeam {
 }
 
 /** Staff tecnico e dirigenti della prima squadra (tabella staff, righe senza categoria giovanile) */
+/** Rosa e tecnici di una squadra regionale (Serie B2, Serie D), dalle tabelle giocatrici e staff */
+export interface RegionalRoster {
+  players: { id: string; name: string; number: number | null; birthDate: string | null }[];
+  staff: { id: string; name: string; role: string }[];
+}
+
 export interface StaffMember {
   id: string;
   name: string;
@@ -132,6 +138,21 @@ export interface LiveEvent {
   opp: number;
   text: string;
   side: 'us' | 'opp';
+}
+
+/** Giocatrice a referto nella formazione di una partita (nostra o avversaria) */
+export interface LineupPlayer {
+  id: string;
+  team: 'us' | 'opp';
+  /** Solo nostra squadra: giocatrice della rosa */
+  playerId?: string | null;
+  number: number | null;
+  name: string;
+  role: PlayerRole | null;
+  isCaptain: boolean;
+  /** Posizione nello Starting Six (I-VI del foglio formazione, 1 = al servizio), null in panchina */
+  zone: number | null;
+  order: number;
 }
 
 export interface AppUser {

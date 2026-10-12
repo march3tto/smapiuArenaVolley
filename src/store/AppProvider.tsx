@@ -26,6 +26,9 @@ const Ctx = createContext<AppCtx | null>(null);
 const K = { user: 'av-user', guest: 'av-guest', prefs: 'av-notif', demo: 'av-demo-live' };
 const DEFAULT_PREFS: NotifPrefs = { enabled: true, start: true, sets: true, final: true, news: true, youth: [] };
 
+/** profili.ruolo (enum ruolo_utente) → ruolo nell'app */
+const RUOLO: Record<string, NonNullable<AppUser['role']>> = { pubblico: 'public', genitore: 'parent', staff: 'staff', admin: 'admin' };
+
 function nameFromEmail(email: string): string {
   const n = email.split('@')[0].split(/[._-]/)[0] ?? '';
   return n ? n.charAt(0).toUpperCase() + n.slice(1) : 'Tifoso';
@@ -66,10 +69,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!supabase) return;
     const { data } = supabase.auth.onAuthStateChange((_e, session) => {
       const u = session?.user;
-      setUser(u ? { id: u.id, email: u.email ?? '', name: String(u.user_metadata?.full_name ?? nameFromEmail(u.email ?? '')) } : null);
+      // il ruolo resta quello già letto se l'utente non cambia (es. refresh del token)
+      setUser((prev) => (u ? { id: u.id, email: u.email ?? '', name: String(u.user_metadata?.full_name ?? nameFromEmail(u.email ?? '')), role: prev?.id === u.id ? prev.role : undefined } : null));
     });
     return () => data.subscription.unsubscribe();
   }, []);
+
+  // Ruolo dal profilo (serve ad abilitare le funzioni admin, es. il punteggio della diretta)
+  const uid = user?.id;
+  const hasRole = !!user?.role;
+  useEffect(() => {
+    if (!supabase || !uid || hasRole) return;
+    let active = true;
+    supabase.from('profili').select('ruolo').eq('id', uid).maybeSingle().then(({ data }) => {
+      const role = RUOLO[String(data?.ruolo)] ?? 'public';
+      if (active) setUser((u) => (u && u.id === uid ? { ...u, role } : u));
+    });
+    return () => {
+      active = false;
+    };
+  }, [uid, hasRole]);
 
   const finishLogin = useCallback(async (u: AppUser) => {
     setUser(u);
