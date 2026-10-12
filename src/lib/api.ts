@@ -4,7 +4,7 @@ import { slugify } from './format';
 import * as mock from '@/data/mock';
 import { COMPETITION_LOGOS, NEWS_IMAGES, OPPONENT_LOGOS, PLAYER_PHOTOS, SPONSOR_LOGOS, STAFF_PHOTOS } from '@/data/assets';
 import type {
-  Competition, ImgSrc, LineupPlayer, LiveEvent, Match, MatchStatus, MediaItem, NewsItem, Player, PlayerRole, SetScore, Sponsor, SponsorTier, StaffMember, Standing, Venue, YouthTeam,
+  Competition, ImgSrc, LineupPlayer, LiveEvent, Match, MatchStatus, MediaItem, NewsItem, Player, PlayerRole, RegionalRoster, SetScore, Sponsor, SponsorTier, StaffMember, Standing, Venue, YouthTeam,
 } from '@/types';
 
 /** Tabelle dello schema Supabase (in italiano) */
@@ -31,6 +31,8 @@ export interface AppData {
   news: NewsItem[];
   sponsors: Sponsor[];
   youth: YouthTeam[];
+  /** Squadre regionali per nome della categoria giovanile (es. "Serie B2") */
+  rosters: Record<string, RegionalRoster>;
   staff: StaffMember[];
   venues: Venue[];
   media: MediaItem[];
@@ -43,7 +45,7 @@ const str = (v: unknown, d = ''): string => (typeof v === 'string' ? v : v == nu
 const num = (v: unknown): number | null => (typeof v === 'number' ? v : v == null || v === '' ? null : Number(v));
 
 export function emptyData(): AppData {
-  return { matches: [], standings: [], players: [], news: [], sponsors: [], youth: [], staff: [], venues: mock.venues, media: [], source: 'supabase' };
+  return { matches: [], standings: [], players: [], news: [], sponsors: [], youth: [], rosters: {}, staff: [], venues: mock.venues, media: [], source: 'supabase' };
 }
 
 export function demoData(): AppData {
@@ -54,6 +56,7 @@ export function demoData(): AppData {
     news: mock.news,
     sponsors: mock.sponsors,
     youth: mock.youth,
+    rosters: {},
     staff: [],
     venues: mock.venues,
     media: [],
@@ -204,6 +207,26 @@ function mapMedia(r: Row): MediaItem {
 }
 
 /** Categorie giovanili + allenatori (staff) + prossima/ultima partita della categoria */
+/** Giocatrici e staff delle squadre regionali, raggruppati per categoria giovanile */
+function buildRosters(categorie: Row[], giocatrici: Row[], staff: Row[]): Record<string, RegionalRoster> {
+  const out: Record<string, RegionalRoster> = {};
+  for (const c of categorie) {
+    const id = str(c.id);
+    const players = giocatrici.filter((g) => g.categoria_giovanile_id === id).map((g) => ({
+      id: str(g.id),
+      name: `${str(g.nome)} ${str(g.cognome)}`.trim(),
+      number: num(g.numero_maglia),
+      birthDate: typeof g.data_nascita === 'string' ? g.data_nascita : null,
+    }));
+    const coaches = staff.filter((s) => s.categoria_giovanile_id === id).map((s) => {
+      const m = mapStaff(s);
+      return { id: m.id, name: m.name, role: m.role };
+    });
+    if (players.length || coaches.length) out[str(c.nome)] = { players, staff: coaches };
+  }
+  return out;
+}
+
 function buildYouth(categorie: Row[], staff: Row[], partite: Row[]): YouthTeam[] {
   const now = Date.now();
   return categorie.map((c) => {
@@ -246,10 +269,12 @@ export async function loadAll(): Promise<AppData> {
   const seasons = new Map(stagioni.map((s) => [str(s.id), str(s.etichetta)]));
   if (!ids.length) throw new Error('Nessuna stagione con corrente = true in "stagioni".');
 
-  const [partite, classifiche, giocatrici, notizie, sponsor, categorie, staff, media, campionati] = await Promise.all([
+  const [partite, classifiche, giocatrici, regionali, notizie, sponsor, categorie, staff, media, campionati] = await Promise.all([
     db.from(T.partite).select(`*, ${T.setPartita}(*)`).in('stagione_id', ids).order('data_partita'),
     db.from(T.classifiche).select('*').in('stagione_id', ids).order('posizione'),
-    db.from(T.giocatrici).select('*').in('stagione_id', ids).eq('livello_squadra', 'prima_squadra').eq('attiva', true).order('ordine'),
+    // la tabella contiene anche le rose delle avversarie: solo le giocatrici della squadra con nostra_squadra = true
+    db.from(T.giocatrici).select('*, squadre!squadra_id!inner(nostra_squadra)').in('stagione_id', ids).eq('livello_squadra', 'prima_squadra').eq('attiva', true).eq('squadre.nostra_squadra', true).order('ordine'),
+    db.from(T.giocatrici).select('*').in('stagione_id', ids).in('livello_squadra', ['serie_b2', 'serie_d']).eq('attiva', true).order('ordine'),
     db.from(T.notizie).select('*').eq('pubblicata', true).order('pubblicato_il', { ascending: false }).limit(30),
     db.from(T.sponsor).select('*').eq('attivo', true).order('ordine'),
     db.from(T.categorie).select('*').order('ordine'),
@@ -268,6 +293,7 @@ export async function loadAll(): Promise<AppData> {
     news: (must(notizie, 'notizie') as Row[]).map(mapNews),
     sponsors: (must(sponsor, 'sponsor') as Row[]).map(mapSponsor),
     youth: buildYouth(must(categorie, 'categorie_giovanili') as Row[], must(staff, 'staff') as Row[], p),
+    rosters: buildRosters(must(categorie, 'categorie_giovanili') as Row[], must(regionali, 'giocatrici') as Row[], must(staff, 'staff') as Row[]),
     // staff della prima squadra: le righe con categoria giovanile appartengono alle giovanili
     staff: (must(staff, 'staff') as Row[]).filter((r) => r.categoria_giovanile_id == null).map(mapStaff),
     venues: mock.venues,

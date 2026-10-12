@@ -43,10 +43,15 @@ export function newsDate(iso: string): string {
 }
 
 /** "12 marzo 2004 · 22 anni" da una data "AAAA-MM-GG" */
-export function birthDateAge(iso: string, today = new Date()): string {
+/** "2009-04-28" → "28/04/2009" */
+export function shortBirthDate(iso: string): string {
+  const [y, m, d] = iso.slice(0, 10).split('-');
+  return `${d}/${m}/${y}`;
+}
+
+export function birthDate(iso: string): string {
   const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
-  const age = today.getFullYear() - y - (today.getMonth() + 1 < m || (today.getMonth() + 1 === m && today.getDate() < d) ? 1 : 0);
-  return `${d} ${MONTHS[m - 1]} ${y} · ${age} anni`;
+  return `${d} ${MONTHS[m - 1]} ${y}`;
 }
 
 export function initials(name: string, max = 2): string {

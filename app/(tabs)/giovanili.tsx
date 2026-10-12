@@ -10,6 +10,7 @@ import { Screen } from '@/components/Screen';
 import { SectionHeader } from '@/components/SectionHeader';
 import { Txt } from '@/components/Txt';
 import { GALLERIA, MOVIMENTO, SQUADRE, type SquadraRegionale } from '@/data/giovanili';
+import { shortBirthDate } from '@/lib/format';
 import { useData } from '@/store/DataProvider';
 import { palette } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -70,6 +71,9 @@ export default function Giovanili() {
 /** Prima squadra regionale: foto, presentazione, giocatrici e staff */
 function Squadra({ team: s }: { team: SquadraRegionale }) {
   const { c } = useTheme();
+  const { rosters } = useData();
+  const players = rosters[s.categoria]?.players ?? [];
+  const staff = rosters[s.categoria]?.staff ?? [];
   return (
     <Card padded={false} style={{ overflow: 'hidden' }}>
       <CoverImage source={s.photo} style={{ aspectRatio: 3 / 2, backgroundColor: c.fill }} />
@@ -77,28 +81,29 @@ function Squadra({ team: s }: { team: SquadraRegionale }) {
         <Txt w={900} size={28} style={{ letterSpacing: -0.8 }}>{s.name}</Txt>
         <Txt size={15} color="muted" style={{ lineHeight: 22 }}>{s.description}</Txt>
 
-        {s.players.length ? (
+        {players.length ? (
           <>
             <Txt w={800} size={13} color="muted" style={{ letterSpacing: 1.4, textTransform: 'uppercase', marginTop: 4 }}>Giocatrici</Txt>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {s.players.map((p, i) => (
-                <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 4, paddingRight: 12, paddingVertical: 4, borderRadius: 999, backgroundColor: c.fill2 }}>
+            <View>
+              {players.map((p, i) => (
+                <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 9, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
                   <View style={{ minWidth: 28, height: 28, paddingHorizontal: 4, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.navy }}>
-                    <Txt w={800} size={12.5} color={palette.gold} tnum>{p.number}</Txt>
+                    <Txt w={800} size={12.5} color={palette.gold} tnum>{p.number ?? '–'}</Txt>
                   </View>
-                  <Txt w={600} size={13.5}>{p.name}</Txt>
+                  <Txt w={600} size={14} numberOfLines={1} style={{ flex: 1 }}>{p.name}</Txt>
+                  {p.birthDate ? <Txt size={13} color="muted" tnum>{shortBirthDate(p.birthDate)}</Txt> : null}
                 </View>
               ))}
             </View>
           </>
         ) : null}
 
-        {s.staff.length ? (
+        {staff.length ? (
           <>
             <Txt w={800} size={13} color="muted" style={{ letterSpacing: 1.4, textTransform: 'uppercase', marginTop: 4 }}>Tecnici</Txt>
             <View>
-              {s.staff.map((t, i) => (
-                <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
+              {staff.map((t, i) => (
+                <View key={t.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
                   <View style={{ width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: c.fill2 }}>
                     <User size={18} color={c.cobalt} />
                   </View>
