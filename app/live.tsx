@@ -7,6 +7,7 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { LineupPanel } from '@/components/LineupPanel';
 import { LiveDot } from '@/components/LiveDot';
+import { PointPicker, type Anchor } from '@/components/PointPicker';
 import { Pressy } from '@/components/Pressy';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { TeamBadge } from '@/components/TeamBadge';
@@ -14,7 +15,7 @@ import { Txt } from '@/components/Txt';
 import { US } from '@/constants';
 import { setTarget } from '@/lib/volley';
 import { useLive } from '@/store/LiveProvider';
-import { useLineup } from '@/store/useLineup';
+import { useLiveLineup } from '@/store/LineupProvider';
 import { palette } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -23,8 +24,10 @@ export default function Live() {
   const insets = useSafeAreaInsets();
   const live = useLive();
   const m = live.match;
-  const lineup = useLineup(m);
+  const lineup = useLiveLineup();
   const [panel, setPanel] = useState<'cronaca' | 'formazioni'>('cronaca');
+  // riquadro del punto aperto dal pulsante + di una squadra
+  const [picker, setPicker] = useState<{ side: 'us' | 'opp'; name: string; anchor: Anchor } | null>(null);
 
   if (!m) {
     return (
@@ -58,14 +61,14 @@ export default function Live() {
         </Txt>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
           <Side {...L} flash={live.lastPoint?.side === L.side ? live.lastPoint.key : 0} serving={L.serving && !live.finished}
-            onPlus={live.canScore ? () => live.addPoint(L.side) : undefined} />
+            onPlus={live.canScore ? (anchor) => setPicker({ side: L.side, name: L.name, anchor }) : undefined} />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, paddingTop: 8 }}>
             <AnimatedNumber value={live.finished ? L.sets : L.pts} size={48} />
             <Txt w={400} size={34} color="accent">:</Txt>
             <AnimatedNumber value={live.finished ? R.sets : R.pts} size={48} />
           </View>
           <Side {...R} flash={live.lastPoint?.side === R.side ? live.lastPoint.key : 0} serving={R.serving && !live.finished}
-            onPlus={live.canScore ? () => live.addPoint(R.side) : undefined} />
+            onPlus={live.canScore ? (anchor) => setPicker({ side: R.side, name: R.name, anchor }) : undefined} />
         </View>
 
         {live.standing ? (
@@ -104,7 +107,7 @@ export default function Live() {
           ) : null}
           {live.canScore ? (
             <Txt size={12} color="muted" center>
-              {live.scoringLive ? 'Admin: tocca + per assegnare il punto, lo vedono tutti in diretta.' : 'Partita dimostrativa: tocca + per assegnare il punto.'}
+              {live.scoringLive ? 'Admin: tocca + per assegnare il punto e scegliere l\'azione, lo vedono tutti in diretta.' : 'Partita dimostrativa: tocca + per assegnare il punto e scegliere l\'azione.'}
             </Txt>
           ) : null}
           {live.saveError ? <Txt size={12} color="live" center>{live.saveError}</Txt> : null}
@@ -129,19 +132,28 @@ export default function Live() {
             ))}
           </>
         ) : (
-          <LineupPanel lineup={lineup} teams={[L, R].map((t) => ({ name: t.name, logo: t.logo, team: t.side, players: t.side === 'us' ? lineup.us : lineup.opp }))} />
+          <LineupPanel lineup={lineup} teams={[L, R].map((t) => ({ team: t.side, players: t.side === 'us' ? lineup.us : lineup.opp }))} />
         )}
       </Card>
+
+      {picker ? (
+        <PointPicker anchor={picker.anchor} team={picker.name} players={picker.side === 'us' ? lineup.us : lineup.opp}
+          onScore={(detail) => live.addPoint(picker.side, detail)} onClose={() => setPicker(null)} />
+      ) : null}
     </ScrollView>
   );
 }
 
-function Side({ name, logo, serving, flash, onPlus }: { name: string; logo?: string | number | null; serving: boolean; flash: number; onPlus?: () => void }) {
+function Side({ name, logo, serving, flash, onPlus }: { name: string; logo?: string | number | null; serving: boolean; flash: number; onPlus?: (anchor: Anchor) => void }) {
   const { c } = useTheme();
+  const plusRef = useRef<View>(null);
   const plus = useRef(new Animated.Value(0)).current;
   const pop = useRef(new Animated.Value(1)).current;
+  // il punto già segnato prima di aprire la schermata non va rianimato: solo quelli nuovi
+  const seen = useRef(flash);
   useEffect(() => {
-    if (!flash) return;
+    if (!flash || flash === seen.current) return;
+    seen.current = flash;
     plus.setValue(0);
     Animated.timing(plus, { toValue: 1, duration: 900, useNativeDriver: true }).start();
     pop.setValue(0.85);
@@ -162,10 +174,14 @@ function Side({ name, logo, serving, flash, onPlus }: { name: string; logo?: str
         <Txt w={600} size={12} color="accent">Al servizio</Txt>
       </View>
       {onPlus ? (
-        <Pressy onPress={onPlus} scaleTo={0.88} accessibilityRole="button" accessibilityLabel={`Punto ${name}`}
-          style={{ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.gold }}>
-          <Plus size={22} color={palette.onGold} strokeWidth={3} />
-        </Pressy>
+        // la posizione del + in finestra serve al riquadro del punto per aprirsi da lì
+        <View ref={plusRef} collapsable={false}>
+          <Pressy onPress={() => plusRef.current?.measureInWindow((x, y, w, h) => onPlus({ x, y, w, h }))} scaleTo={0.88}
+            accessibilityRole="button" accessibilityLabel={`Punto ${name}`}
+            style={{ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.gold }}>
+            <Plus size={22} color={palette.onGold} strokeWidth={3} />
+          </Pressy>
+        </View>
       ) : null}
     </View>
   );

@@ -31,7 +31,7 @@ function strength(p: string): { lv: number; label: string } {
 export default function Login() {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const router = useRouter();
   const toast = useToast();
   const { signIn, signUp, signInWithProvider, resetPassword, continueAsGuest } = useApp();
@@ -107,20 +107,22 @@ export default function Login() {
 
   const guest = () => {
     continueAsGuest();
-    enter('Puoi accedere quando vuoi dal pulsante in alto.');
+    enter('Puoi accedere quando vuoi dalle impostazioni in alto.');
   };
 
   const wide = width >= 900;
+  // su telefono la schermata deve stare tutta nello schermo, senza scorrere: sugli schermi bassi si compatta ancora
+  const short = !wide && height < 760;
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView contentContainerStyle={{ flexGrow: 1, flexDirection: wide ? 'row' : 'column' }} keyboardShouldPersistTaps="handled">
         <LinearGradient colors={brandGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={{ paddingTop: insets.top + 22, paddingHorizontal: 24, paddingBottom: wide ? 40 : 130, borderBottomLeftRadius: wide ? 0 : 34, borderBottomRightRadius: 34, borderTopRightRadius: wide ? 34 : 0, overflow: 'hidden', flex: wide ? 1.1 : undefined, justifyContent: 'space-between', gap: 26 }}>
-          <Arches width={wide ? width * 0.55 : width} height={wide ? 240 : 170} />
+          style={{ paddingTop: insets.top + (wide ? 22 : 14), paddingHorizontal: 24, paddingBottom: wide ? 40 : short ? 76 : 84, borderBottomLeftRadius: wide ? 0 : 34, borderBottomRightRadius: 34, borderTopRightRadius: wide ? 34 : 0, overflow: 'hidden', flex: wide ? 1.1 : undefined, justifyContent: 'space-between', gap: wide ? 26 : 14 }}>
+          <Arches width={wide ? width * 0.55 : width} height={wide ? 240 : 130} />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={{ width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,213,3,0.6)', backgroundColor: 'rgba(255,255,255,0.08)' }}>
-              <Image source={LOGO_AVT} style={{ width: 40, height: 43 }} contentFit="contain" />
+            <View style={{ width: wide ? 56 : 44, height: wide ? 56 : 44, borderRadius: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,213,3,0.6)', backgroundColor: 'rgba(255,255,255,0.08)' }}>
+              <Image source={LOGO_AVT} style={{ width: wide ? 40 : 30, height: wide ? 43 : 32 }} contentFit="contain" />
             </View>
             <View>
               <Txt w={800} size={15} color="#fff">Smapiù Arena</Txt>
@@ -128,27 +130,30 @@ export default function Login() {
             </View>
           </View>
           <View>
-            <Txt w={900} size={wide ? 72 : 42} color="#fff" style={{ letterSpacing: wide ? -3 : -1.6, lineHeight: wide ? 72 : 44 }}>
+            <Txt w={900} size={wide ? 72 : 32} color="#fff" style={{ letterSpacing: wide ? -3 : -1.2, lineHeight: wide ? 72 : 34 }}>
               Ogni punto,{'\n'}in diretta.
             </Txt>
-            <Txt size={15} color="rgba(255,255,255,0.82)" style={{ marginTop: 14, maxWidth: 420 }}>
-              Accedi per seguire i match, salvare le giocatrici preferite e ricevere una notifica quando la squadra segna.
-            </Txt>
+            {short ? null : (
+              <Txt size={wide ? 15 : 13} color="rgba(255,255,255,0.82)" style={{ marginTop: wide ? 14 : 8, maxWidth: 420 }}>
+                Accedi per seguire i match, salvare le giocatrici preferite e ricevere una notifica quando la squadra segna.
+              </Txt>
+            )}
           </View>
         </LinearGradient>
 
-        <View style={{ flex: wide ? 1 : undefined, alignItems: 'center', justifyContent: wide ? 'center' : 'flex-start', padding: 14, paddingBottom: insets.bottom + 24, marginTop: wide ? 0 : -100 }}>
+        <View style={{ flex: wide ? 1 : undefined, alignItems: 'center', justifyContent: wide ? 'center' : 'flex-start', padding: 14, paddingBottom: insets.bottom + (wide ? 24 : 12), marginTop: wide ? 0 : short ? -58 : -64 }}>
           <Animated.View style={{ width: '100%', maxWidth: 430, transform: [{ translateX: shake }] }}>
-            <LinearGradient colors={[c.card, c.cardAlt]} style={{ borderRadius: 28, padding: 22, borderWidth: 1.5, borderColor: 'rgba(255,213,3,0.5)', gap: 14 }}>
+            <LinearGradient colors={[c.card, c.cardAlt]} style={{ borderRadius: 28, padding: wide ? 22 : 18, borderWidth: 1.5, borderColor: 'rgba(255,213,3,0.5)', gap: wide ? 14 : short ? 8 : 10 }}>
               <SegmentedControl stretch options={[{ value: 'login', label: 'Accedi' }, { value: 'register', label: 'Registrati' }]} value={mode} onChange={(m) => { setMode(m); setErrors({}); }} />
-              <View>
+              {/* su telefono il titolo ripeterebbe il selettore Accedi/Registrati: si omette per guadagnare spazio */}
+              {wide ? <View>
                 <Txt w={900} size={28} style={{ letterSpacing: -0.8 }}>{reg ? 'Crea il tuo account' : 'Accedi'}</Txt>
                 <Txt size={14} color="muted" style={{ marginTop: 4 }}>{reg ? 'Bastano pochi secondi, ed è gratis.' : 'Inserisci email e password.'}</Txt>
-              </View>
+              </View> : null}
 
-              {reg ? <Field label="Nome" value={name} onChangeText={(t) => { setName(t); setErrors((e) => ({ ...e, name: undefined })); }} error={errors.name} autoComplete="name" right={<User size={18} color={c.muted} />} /> : null}
-              <Field label="Email" value={email} onChangeText={(t) => { setEmail(t); setErrors((e) => ({ ...e, email: undefined })); }} error={errors.email} keyboardType="email-address" autoCapitalize="none" autoComplete="email" right={<Mail size={18} color={c.muted} />} />
-              <Field label="Password" value={pass} onChangeText={(t) => { setPass(t); setErrors((e) => ({ ...e, pass: undefined })); }} error={errors.pass} secureTextEntry={!show} autoCapitalize="none" autoComplete={reg ? 'new-password' : 'current-password'}
+              {reg ? <Field label="Nome" value={name} onChangeText={(t) => { setName(t); setErrors((e) => ({ ...e, name: undefined })); }} error={errors.name} compact={!wide} autoComplete="name" right={<User size={18} color={c.muted} />} /> : null}
+              <Field label="Email" value={email} onChangeText={(t) => { setEmail(t); setErrors((e) => ({ ...e, email: undefined })); }} error={errors.email} compact={!wide} keyboardType="email-address" autoCapitalize="none" autoComplete="email" right={<Mail size={18} color={c.muted} />} />
+              <Field label="Password" value={pass} onChangeText={(t) => { setPass(t); setErrors((e) => ({ ...e, pass: undefined })); }} error={errors.pass} compact={!wide} secureTextEntry={!show} autoCapitalize="none" autoComplete={reg ? 'new-password' : 'current-password'}
                 right={<Pressable onPress={() => setShow((s) => !s)} hitSlop={10} accessibilityLabel={show ? 'Nascondi password' : 'Mostra password'}>{show ? <EyeOff size={18} color={c.muted} /> : <Eye size={18} color={c.muted} />}</Pressable>} />
 
               {reg ? (
@@ -168,7 +173,7 @@ export default function Login() {
 
               {errors.form ? <Txt size={13} color="danger">{errors.form}</Txt> : null}
 
-              <Button label={done ? 'Fatto' : reg ? 'Crea account' : 'Accedi'} variant={done ? 'ok' : 'gold'} size="lg" loading={busy === 'form'} onPress={submit}
+              <Button label={done ? 'Fatto' : reg ? 'Crea account' : 'Accedi'} variant={done ? 'ok' : 'gold'} size={wide ? 'lg' : 'md'} loading={busy === 'form'} onPress={submit}
                 icon={done ? <Check size={18} color="#fff" /> : undefined} />
 
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -180,7 +185,7 @@ export default function Login() {
                 <Button label="Google" style={{ flex: 1 }} loading={busy === 'google'} onPress={() => provider('google')} />
                 <Button label="Apple" style={{ flex: 1 }} loading={busy === 'apple'} onPress={() => provider('apple')} />
               </View>
-              <Pressable onPress={guest} style={{ alignSelf: 'center', paddingVertical: 4 }} hitSlop={8}>
+              <Pressable onPress={guest} style={{ alignSelf: 'center', paddingVertical: wide ? 4 : 2 }} hitSlop={8}>
                 <Txt w={600} size={14} color="muted">Continua senza account</Txt>
               </Pressable>
             </LinearGradient>
@@ -191,13 +196,13 @@ export default function Login() {
   );
 }
 
-function Field({ label, error, right, ...input }: TextInputProps & { label: string; error?: string; right?: ReactNode }) {
+function Field({ label, error, right, compact, ...input }: TextInputProps & { label: string; error?: string; right?: ReactNode; compact?: boolean }) {
   const { c } = useTheme();
   const [focus, setFocus] = useState(false);
   return (
     <View style={{ gap: 6 }}>
-      <View style={{ height: 58, borderRadius: 16, borderWidth: 1, borderColor: error ? c.danger : focus ? palette.gold : c.lineStrong, backgroundColor: c.fill, paddingHorizontal: 16, justifyContent: 'center' }}>
-        <Txt w={600} size={12} color={error ? 'danger' : focus || input.value ? 'accent' : 'muted'}>{label}</Txt>
+      <View style={{ height: compact ? 52 : 58, borderRadius: 16, borderWidth: 1, borderColor: error ? c.danger : focus ? palette.gold : c.lineStrong, backgroundColor: c.fill, paddingHorizontal: 16, justifyContent: 'center' }}>
+        <Txt w={600} size={compact ? 11 : 12} color={error ? 'danger' : focus || input.value ? 'accent' : 'muted'}>{label}</Txt>
         <TextInput
           {...input}
           onFocus={(e) => { setFocus(true); input.onFocus?.(e); }}
@@ -205,7 +210,7 @@ function Field({ label, error, right, ...input }: TextInputProps & { label: stri
           placeholderTextColor={c.muted}
           style={{ fontFamily: FONT[500], fontSize: 16, color: c.text, paddingVertical: 2, paddingRight: 30 }}
         />
-        {right ? <View style={{ position: 'absolute', right: 14, top: 20 }}>{right}</View> : null}
+        {right ? <View style={{ position: 'absolute', right: 14, top: compact ? 17 : 20 }}>{right}</View> : null}
       </View>
       {error ? <Txt size={12.5} color="danger">{error}</Txt> : null}
     </View>

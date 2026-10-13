@@ -1,102 +1,106 @@
-import { useState } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
-import { Crown, Plus, X } from 'lucide-react-native';
+import { Pressable, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { ClipboardList, X } from 'lucide-react-native';
 import { Button } from './Button';
 import { Pressy } from './Pressy';
-import { TeamBadge } from './TeamBadge';
 import { Txt } from './Txt';
 import { STARTERS, type Lineup } from '@/store/useLineup';
-import { FONT, palette, radius } from '@/theme/colors';
+import { brand, palette, radius } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { LineupPlayer, PlayerRole } from '@/types';
 
-/** Sigle dei ruoli usate sul referto */
-const ROLE_SHORT: Record<PlayerRole, string> = { palleggiatrice: 'P', schiacciatrice: 'S', centrale: 'C', opposto: 'O', libero: 'L' };
-const ROLE_LABEL: Record<PlayerRole, string> = { palleggiatrice: 'Palleggiatrice', schiacciatrice: 'Schiacciatrice', centrale: 'Centrale', opposto: 'Opposto', libero: 'Libero' };
+export const ROLE_LABEL: Record<PlayerRole, string> = { palleggiatrice: 'Palleggiatrice', schiacciatrice: 'Schiacciatrice', centrale: 'Centrale', opposto: 'Opposto', libero: 'Libero' };
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI'];
 /** Metà campo vista da dietro: rete in alto, prima linea 4-3-2, seconda linea 5-6-1 */
 const ROWS = [[4, 3, 2], [5, 6, 1]];
+/** Campo color panna */
+const COURT = { bg: '#F6EFDF', line: 'rgba(11,49,102,0.28)', zone: 'rgba(11,49,102,0.4)', net: brand.bluScuro, text: brand.inchiostro };
 
 const surname = (name: string) => name.split(' ').slice(-1)[0] ?? name;
 
 interface TeamProps {
-  name: string;
-  logo?: string | number | null;
   players: LineupPlayer[];
   team: 'us' | 'opp';
 }
 
-/** Formazioni delle due squadre: Starting Six sul campo e giocatrici a referto */
+/** Formazioni delle due squadre affiancate, nello stesso ordine del tabellone: giocatrici a referto e Starting Six sul campo */
 export function LineupPanel({ lineup, teams }: { lineup: Lineup; teams: TeamProps[] }) {
   return (
-    <View style={{ gap: 22 }}>
+    <View style={{ gap: 16 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+        {teams.map((t) => (
+          <TeamLineup key={t.team} {...t} lineup={lineup} />
+        ))}
+      </View>
       {lineup.error ? <Txt size={12.5} color="danger">{lineup.error}</Txt> : null}
       {lineup.canEdit ? (
-        <Txt size={12} color="muted">Tocca una giocatrice per metterla nello Starting Six: l'ordine dei tocchi dà le posizioni I-VI (I al servizio).</Txt>
+        <Txt size={12} color="muted">Tocca una giocatrice per metterla nello Starting Six: l'ordine dei tocchi dà le posizioni I-VI (I al servizio). Tocca L su una giocatrice in panchina per sceglierla come libero.</Txt>
       ) : null}
-      {teams.map((t) => (
-        <TeamLineup key={t.team} {...t} lineup={lineup} />
-      ))}
     </View>
   );
 }
 
-function TeamLineup({ name, logo, players, team, lineup }: TeamProps & { lineup: Lineup }) {
+function TeamLineup({ players, team, lineup }: TeamProps & { lineup: Lineup }) {
   const { c } = useTheme();
+  const router = useRouter();
   const starters = players.filter((p) => p.zone != null).length;
+  const editOpp = team === 'opp' && lineup.canEdit;
   return (
-    <View style={{ gap: 12 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <TeamBadge name={name} logo={logo} size={32} />
-        <Txt w={700} size={15} numberOfLines={1} style={{ flex: 1 }}>{name}</Txt>
-        <Txt w={600} size={12} color={starters === STARTERS ? 'accent' : 'muted'} tnum>Starting Six {starters}/{STARTERS}</Txt>
-      </View>
-
-      <Court players={players} />
-
+    <View style={{ flex: 1, minWidth: 0, gap: 10 }}>
       {players.length ? (
         <View style={{ borderRadius: radius.md, borderWidth: 1, borderColor: c.line, overflow: 'hidden' }}>
           {players.map((p, i) => (
-            <PlayerRow key={p.id} p={p} first={i === 0} editable={lineup.canEdit} onToggle={() => lineup.toggleStarter(p)}
-              onRemove={team === 'opp' && lineup.canEdit ? () => lineup.remove(p) : undefined} />
+            <PlayerRow key={p.id} p={p} first={i === 0} editable={lineup.canEdit} onToggle={() => lineup.toggleStarter(p)} onLibero={() => lineup.toggleLibero(p)} />
           ))}
         </View>
       ) : (
-        <Txt size={13} color="muted">
+        <Txt size={13} color="muted" center>
           {lineup.loading ? 'Caricamento formazione…' : team === 'opp' ? 'Formazione avversaria non ancora inserita.' : 'Rosa non disponibile.'}
         </Txt>
       )}
 
-      {team === 'opp' && lineup.canEdit ? <AddOpponent onAdd={lineup.addOpponent} /> : null}
+      {editOpp ? (
+        <Button size="sm" label={players.length ? 'Modifica' : 'Inserisci formazione'} icon={<ClipboardList size={15} color={c.text} />}
+          onPress={() => router.push('/formazione-avversaria')} />
+      ) : null}
+
+      <View style={{ gap: 6, marginTop: 4 }}>
+        <Txt w={700} size={11.5} center color={starters === STARTERS ? 'accent' : 'muted'} tnum>Starting Six {starters}/{STARTERS}</Txt>
+        <Court players={players} />
+        <LiberoLine player={players.find((p) => p.isLibero)} />
+      </View>
     </View>
   );
 }
 
-function Court({ players }: { players: LineupPlayer[] }) {
-  const line = 'rgba(255,255,255,0.9)';
+/** Metà campo con lo Starting Six; con onPick le giocatrici si toccano (selezionata = selectedId) */
+export function Court({ players, big, selectedId, onPick }: { players: LineupPlayer[]; big?: boolean; selectedId?: string | null; onPick?: (p: LineupPlayer) => void }) {
   const at = (z: number) => players.find((p) => p.zone === z);
   return (
-    <View accessibilityLabel="Starting Six in campo">
-      <View style={{ height: 6, marginHorizontal: -6, borderRadius: 3, backgroundColor: palette.white, opacity: 0.85 }} />
-      <View style={{ backgroundColor: palette.blueDeep, borderWidth: 2, borderTopWidth: 0, borderColor: line }}>
+    <View accessibilityLabel="Starting Six in campo" style={{ width: '100%', maxWidth: big ? 300 : 200, alignSelf: 'center' }}>
+      <View style={{ height: 4, marginHorizontal: -3, borderRadius: 2, backgroundColor: COURT.net }} />
+      <View style={{ backgroundColor: COURT.bg, borderWidth: 1.5, borderTopWidth: 0, borderColor: COURT.line, borderBottomLeftRadius: 6, borderBottomRightRadius: 6 }}>
         {ROWS.map((row, r) => (
-          <View key={r} style={{ flexDirection: 'row', height: r === 0 ? 74 : 96, borderTopWidth: r ? 2 : 0, borderTopColor: line }}>
+          <View key={r} style={{ flexDirection: 'row', height: (r === 0 ? 52 : 64) * (big ? 1.25 : 1), borderTopWidth: r ? 1.5 : 0, borderTopColor: COURT.line }}>
             {row.map((z) => {
               const p = at(z);
+              const on = !!p && p.id === selectedId;
               return (
-                <View key={z} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2, paddingHorizontal: 2 }}>
-                  <Txt w={700} size={10} color="rgba(255,255,255,0.6)" style={{ position: 'absolute', top: 5, left: 7 }}>{ROMAN[z]}</Txt>
+                <Pressable key={z} disabled={!p || !onPick} onPress={p && onPick ? () => onPick(p) : undefined}
+                  accessibilityRole={p && onPick ? 'button' : undefined} accessibilityState={onPick ? { selected: on } : undefined}
+                  accessibilityLabel={p ? `${p.name}, posizione ${ROMAN[z]}` : undefined}
+                  style={({ pressed }) => ({ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2, paddingHorizontal: 2, margin: 2, borderRadius: 8,
+                    backgroundColor: on ? 'rgba(255,213,3,0.45)' : pressed ? 'rgba(11,49,102,0.08)' : undefined })}>
+                  <Txt w={700} size={8.5} color={COURT.zone} style={{ position: 'absolute', top: 0, left: 2 }}>{ROMAN[z]}</Txt>
                   {p ? (
                     <>
-                      <View style={{ width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.gold }}>
-                        <Txt w={800} size={15} color={palette.onGold} tnum display={false}>{p.number ?? '–'}</Txt>
-                      </View>
-                      <Txt w={600} size={11} color={palette.white} numberOfLines={1}>{surname(p.name)}</Txt>
+                      <NumberTag value={p.number} variant="court" size={big ? 28 : 22} />
+                      <Txt w={600} size={big ? 11 : 9.5} color={COURT.text} numberOfLines={1}>{surname(p.name)}</Txt>
                     </>
                   ) : (
-                    <Txt size={18} color="rgba(255,255,255,0.35)">—</Txt>
+                    <Txt size={14} color={COURT.zone}>—</Txt>
                   )}
-                </View>
+                </Pressable>
               );
             })}
           </View>
@@ -106,27 +110,76 @@ function Court({ players }: { players: LineupPlayer[] }) {
   );
 }
 
-function PlayerRow({ p, first, editable, onToggle, onRemove }: { p: LineupPlayer; first: boolean; editable: boolean; onToggle: () => void; onRemove?: () => void }) {
+/** Libero sotto il campo: entra al posto delle giocatrici di seconda linea */
+function LiberoLine({ player }: { player?: LineupPlayer }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 24 }}>
+      <Txt w={700} size={11} color="muted">Libero</Txt>
+      {player ? (
+        <>
+          <NumberTag value={player.number} variant="libero" size={20} />
+          <Txt w={600} size={11.5} numberOfLines={1} style={{ flexShrink: 1 }}>{surname(player.name)}</Txt>
+        </>
+      ) : (
+        <Txt size={11.5} color="muted">non scelto</Txt>
+      )}
+    </View>
+  );
+}
+
+/** Numero di maglia: piastrina arrotondata con il numero nel font dei titoli */
+export function NumberTag({ value, variant, size = 26 }: { value: number | null; variant: 'court' | 'starter' | 'bench' | 'libero'; size?: number }) {
+  const { c } = useTheme();
+  const look = {
+    court: { bg: brand.bluScuro, border: brand.bluScuro, fg: palette.gold },
+    starter: { bg: palette.gold, border: palette.gold, fg: palette.onGold },
+    bench: { bg: 'transparent', border: c.lineStrong, fg: c.text },
+    // il libero ha la maglia di un altro colore
+    libero: { bg: palette.blue, border: palette.blue, fg: palette.white },
+  }[variant];
+  return (
+    <View style={{ minWidth: size, height: size, paddingHorizontal: 3, borderRadius: Math.round(size * 0.3), borderWidth: 1.5, borderColor: look.border, backgroundColor: look.bg, alignItems: 'center', justifyContent: 'center' }}>
+      <Txt w={800} display size={Math.round(size * 0.56)} color={look.fg} tnum style={{ lineHeight: Math.round(size * 0.62) }}>{value ?? '–'}</Txt>
+    </View>
+  );
+}
+
+/** Capitana: lettera C cerchiata */
+function CaptainMark() {
+  const { c } = useTheme();
+  return (
+    <View accessibilityLabel="Capitana" style={{ width: 15, height: 15, borderRadius: 8, borderWidth: 1.5, borderColor: c.accent, alignItems: 'center', justifyContent: 'center' }}>
+      <Txt w={800} size={8.5} color="accent" display={false} style={{ lineHeight: 10 }}>C</Txt>
+    </View>
+  );
+}
+
+export function PlayerRow({ p, first, editable, onToggle, onLibero, onRemove }: { p: LineupPlayer; first: boolean; editable: boolean; onToggle: () => void; onLibero?: () => void; onRemove?: () => void }) {
   const { c } = useTheme();
   const starter = p.zone != null;
   return (
     <Pressable onPress={editable ? onToggle : undefined} disabled={!editable} accessibilityRole={editable ? 'button' : undefined}
-      accessibilityLabel={`${p.name}${starter ? `, titolare in posizione ${ROMAN[p.zone ?? 0]}` : ''}`}
-      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 9, borderTopWidth: first ? 0 : 1, borderTopColor: c.line, backgroundColor: pressed ? c.fill2 : starter ? c.fill : undefined })}>
-      <Txt w={800} size={14} tnum center display={false} color={starter ? 'accent' : 'text'} style={{ width: 26 }}>{p.number ?? '–'}</Txt>
-      <View style={{ flex: 1 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-          <Txt w={600} size={14} numberOfLines={1} style={{ flexShrink: 1 }}>{p.name}</Txt>
-          {p.isCaptain ? <Crown size={13} color={c.accent} accessibilityLabel="Capitana" /> : null}
+      accessibilityLabel={`${p.name}${p.isCaptain ? ', capitana' : ''}${p.isLibero ? ', libero' : ''}${starter ? `, titolare in posizione ${ROMAN[p.zone ?? 0]}` : ''}`}
+      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, paddingVertical: 8, borderTopWidth: first ? 0 : 1, borderTopColor: c.line, backgroundColor: pressed ? c.fill2 : starter ? c.fill : undefined })}>
+      <NumberTag value={p.number} variant={starter ? 'starter' : p.isLibero ? 'libero' : 'bench'} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Txt w={600} size={13} numberOfLines={1} style={{ flexShrink: 1 }}>{p.name}</Txt>
+          {p.isCaptain ? <CaptainMark /> : null}
         </View>
-        {p.role ? <Txt size={12} color="muted">{ROLE_LABEL[p.role]}</Txt> : null}
+        {p.role || starter ? (
+          <Txt size={11} color="muted" numberOfLines={1}>
+            {[p.role ? ROLE_LABEL[p.role] : null, starter ? `Pos. ${ROMAN[p.zone ?? 0]}` : null].filter(Boolean).join(' · ')}
+          </Txt>
+        ) : null}
       </View>
-      {starter ? (
-        <View style={{ minWidth: 30, height: 24, paddingHorizontal: 6, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.gold }}>
-          <Txt w={800} size={11} color={palette.onGold} display={false}>{ROMAN[p.zone ?? 0]}</Txt>
-        </View>
-      ) : p.role === 'libero' ? (
-        <Txt w={600} size={11} color="muted">Libero</Txt>
+      {editable && onLibero && !starter ? (
+        <Pressy onPress={onLibero} scaleTo={0.85} accessibilityRole="button" accessibilityState={{ selected: p.isLibero }}
+          accessibilityLabel={p.isLibero ? `Togli ${p.name} dal ruolo di libero` : `Scegli ${p.name} come libero`}
+          style={{ width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5,
+            borderColor: p.isLibero ? palette.blue : c.lineStrong, backgroundColor: p.isLibero ? palette.blue : undefined }}>
+          <Txt w={800} size={10.5} display={false} color={p.isLibero ? palette.white : 'muted'} style={{ lineHeight: 12 }}>L</Txt>
+        </Pressy>
       ) : null}
       {onRemove ? (
         <Pressy onPress={onRemove} scaleTo={0.85} accessibilityRole="button" accessibilityLabel={`Togli ${p.name}`} style={{ padding: 4 }}>
@@ -134,44 +187,5 @@ function PlayerRow({ p, first, editable, onToggle, onRemove }: { p: LineupPlayer
         </Pressy>
       ) : null}
     </Pressable>
-  );
-}
-
-function AddOpponent({ onAdd }: { onAdd: Lineup['addOpponent'] }) {
-  const { c } = useTheme();
-  const [number, setNumber] = useState('');
-  const [name, setName] = useState('');
-  const [role, setRole] = useState<PlayerRole | null>(null);
-  const input = { height: 44, borderRadius: radius.sm, borderWidth: 1, borderColor: c.lineStrong, backgroundColor: c.fill, paddingHorizontal: 12, fontFamily: FONT[500], fontSize: 15, color: c.text } as const;
-  const submit = () => {
-    if (!name.trim()) return;
-    const n = parseInt(number, 10);
-    onAdd({ number: Number.isFinite(n) ? n : null, name, role });
-    setNumber('');
-    setName('');
-    setRole(null);
-  };
-  return (
-    <View style={{ gap: 10, padding: 12, borderRadius: radius.md, backgroundColor: c.fill }}>
-      <Txt w={700} size={13}>Aggiungi giocatrice avversaria</Txt>
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        <TextInput value={number} onChangeText={(t) => setNumber(t.replace(/\D/g, '').slice(0, 2))} placeholder="N°" placeholderTextColor={c.muted}
-          keyboardType="number-pad" accessibilityLabel="Numero di maglia" style={[input, { width: 60, textAlign: 'center' }]} />
-        <TextInput value={name} onChangeText={setName} placeholder="Nome e cognome" placeholderTextColor={c.muted} autoCapitalize="words"
-          returnKeyType="done" onSubmitEditing={submit} accessibilityLabel="Nome e cognome" style={[input, { flex: 1 }]} />
-      </View>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-        {(Object.keys(ROLE_SHORT) as PlayerRole[]).map((r) => {
-          const on = role === r;
-          return (
-            <Pressy key={r} onPress={() => setRole(on ? null : r)} scaleTo={0.92} accessibilityRole="button" accessibilityState={{ selected: on }}
-              style={{ paddingHorizontal: 10, height: 30, borderRadius: radius.pill, justifyContent: 'center', backgroundColor: on ? palette.gold : c.fill2 }}>
-              <Txt w={600} size={12} color={on ? palette.onGold : 'muted'}>{ROLE_LABEL[r]}</Txt>
-            </Pressy>
-          );
-        })}
-      </View>
-      <Button size="sm" variant="gold" label="Aggiungi" disabled={!name.trim()} onPress={submit} icon={<Plus size={16} color={palette.onGold} />} />
-    </View>
   );
 }

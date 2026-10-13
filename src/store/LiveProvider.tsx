@@ -33,12 +33,33 @@ interface LiveCtx extends LiveState {
   scoringLive: boolean;
   /** Ultimo salvataggio non riuscito (il punteggio torna quello del database) */
   saveError: string | null;
-  addPoint: (side: 'us' | 'opp') => void;
+  /** detail: azione e giocatrice del punto, finiscono nella cronaca */
+  addPoint: (side: 'us' | 'opp', detail?: PointDetail) => void;
   /** Riporta la partita demo allo stato iniziale */
   resetDemo: () => void;
 }
 
 const Ctx = createContext<LiveCtx | null>(null);
+
+export type PointAction = 'muro' | 'schiacciata' | 'ace' | 'pipe';
+export const POINT_ACTIONS: { value: PointAction; label: string }[] = [
+  { value: 'muro', label: 'Muro' },
+  { value: 'schiacciata', label: 'Schiacciata' },
+  { value: 'ace', label: 'Ace' },
+  { value: 'pipe', label: 'Pipe' },
+];
+export interface PointDetail {
+  action: PointAction;
+  /** Nome della giocatrice che ha fatto il punto, se scelta */
+  player?: string;
+}
+
+const ACTION_TEXT: Record<PointAction, string> = { muro: 'Muro vincente', schiacciata: 'Schiacciata vincente', ace: 'Ace in battuta', pipe: 'Pipe vincente' };
+
+function detailLine(side: 'us' | 'opp', d: PointDetail): string {
+  const what = `${ACTION_TEXT[d.action]}${d.player ? ` di ${d.player}` : ''}`;
+  return side === 'us' ? `${what}, punto Smapiù!` : `Punto per le avversarie: ${what.charAt(0).toLowerCase()}${what.slice(1)}.`;
+}
 
 const US_LINES = [
   'Schiacciata vincente in parallela per Nicole Tellaroli!',
@@ -58,14 +79,15 @@ const DEMO_START = (): LiveState => ({
  * Applica un punto secondo il regolamento: chiusura set, cambio campo nel tie-break, fine partita.
  * real: diretta vera, cronaca neutra (niente azioni inventate) e id uuid salvabili nel database.
  */
-function scorePoint(s: LiveState, side: 'us' | 'opp', real = false): LiveState {
+function scorePoint(s: LiveState, side: 'us' | 'opp', real = false, detail?: PointDetail): LiveState {
   if (s.finished) return s;
   const before = { our: s.our, opp: s.opp };
   const after = { our: s.our + (side === 'us' ? 1 : 0), opp: s.opp + (side === 'opp' ? 1 : 0) };
   const stamp = Date.now();
   const event = (text: string, who: 'us' | 'opp', n = 0): LiveEvent => ({ id: real ? newId() : `sim-${stamp}-${n}`, set: s.set, our: after.our, opp: after.opp, side: who, text });
   const usLine = real ? 'Punto Smapiù!' : US_LINES[Math.floor(Math.random() * US_LINES.length)];
-  const events: LiveEvent[] = [event(side === 'us' ? usLine : 'Punto per le avversarie.', side)];
+  const line = detail ? detailLine(side, detail) : side === 'us' ? usLine : 'Punto per le avversarie.';
+  const events: LiveEvent[] = [event(line, side)];
 
   if (isSideSwitch(s.set, before, after)) events.unshift(event(`Cambio campo sull'${after.our}–${after.opp}.`, side, 1));
 
@@ -153,9 +175,9 @@ export function LiveProvider({ children }: { children: ReactNode }) {
     };
   }, [liveMatch]);
 
-  const addPoint = useCallback((side: 'us' | 'opp') => {
+  const addPoint = useCallback((side: 'us' | 'opp', detail?: PointDetail) => {
     const prev = stateRef.current;
-    const next = scorePoint(prev, side, scoringLive);
+    const next = scorePoint(prev, side, scoringLive, detail);
     if (next === prev) return;
     stateRef.current = next;
     setState(next);

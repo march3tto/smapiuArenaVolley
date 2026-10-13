@@ -1,4 +1,4 @@
-import type { LiveEvent, Match, NewsItem, Player, SetScore, Sponsor, Standing, Venue, YouthTeam } from '@/types';
+import type { LineupPlayer, LiveEvent, Match, NewsItem, Player, SetScore, Sponsor, Standing, Venue, YouthTeam } from '@/types';
 import { PLAYER_PHOTOS, SPONSOR_LOGOS } from './assets';
 
 /*
@@ -130,3 +130,17 @@ export const demoLive: { set: number; our: number; opp: number; history: SetScor
     { id: 'e1', set: 4, our: 16, opp: 15, side: 'opp', text: 'Punto per le ospiti al centro.' },
   ],
 };
+
+/** Formazione avversaria della diretta demo: nomi di fantasia, Starting Six già schierato (zone I-VI) */
+export const demoOpponentLineup: Pick<LineupPlayer, 'number' | 'name' | 'role' | 'isCaptain' | 'zone'>[] = [
+  { number: 1, name: 'Giulia Marchetti', role: 'palleggiatrice', isCaptain: true, zone: 1 },
+  { number: 4, name: 'Sofia Caruso', role: 'schiacciatrice', isCaptain: false, zone: 2 },
+  { number: 7, name: 'Martina Greco', role: 'centrale', isCaptain: false, zone: 3 },
+  { number: 9, name: 'Alessia Ferraro', role: 'opposto', isCaptain: false, zone: 4 },
+  { number: 11, name: 'Elisa Romano', role: 'schiacciatrice', isCaptain: false, zone: 5 },
+  { number: 14, name: 'Chiara Lombardi', role: 'centrale', isCaptain: false, zone: 6 },
+  { number: 3, name: 'Federica Gallo', role: 'libero', isCaptain: false, zone: null },
+  { number: 6, name: 'Noemi Costa', role: 'palleggiatrice', isCaptain: false, zone: null },
+  { number: 12, name: 'Ilaria Fontana', role: 'schiacciatrice', isCaptain: false, zone: null },
+  { number: 17, name: 'Valentina Rizzo', role: 'centrale', isCaptain: false, zone: null },
+];

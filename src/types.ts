@@ -152,6 +152,8 @@ export interface LineupPlayer {
   isCaptain: boolean;
   /** Posizione nello Starting Six (I-VI del foglio formazione, 1 = al servizio), null in panchina */
   zone: number | null;
+  /** Libero scelto dalla panchina (uno per squadra) */
+  isLibero: boolean;
   order: number;
 }
 

@@ -105,10 +105,11 @@ export default function Settings() {
               <Switch value={demoLive} onValueChange={setDemoLive} trackColor={{ true: palette.gold, false: c.fill2 }} thumbColor="#fff" style={SMALL_SWITCH} />
             </View>
 
-            {/* accesso e registrazione disattivati: "Esci" resta solo per chi aveva già un account */}
             {user ? (
-              <Button size="sm" label={`Esci (${user.email})`} style={{ marginTop: 12 }} onPress={async () => { await signOut(); toast.show("Sei uscito dall'account."); }} />
-            ) : null}
+              <Button size="sm" label={`Esci (${user.email})`} style={{ marginTop: 12 }} onPress={async () => { await signOut(); toast.show("Sei uscito dall'account."); router.replace('/login'); }} />
+            ) : (
+              <Button size="sm" label="Accedi o registrati" variant="gold" style={{ marginTop: 12 }} onPress={() => router.replace('/login')} />
+            )}
           </ScrollView>
         </View>
       </Animated.View>

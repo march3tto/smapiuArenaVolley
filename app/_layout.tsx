@@ -14,6 +14,7 @@ import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 import { AppProvider } from '@/store/AppProvider';
 import { DataProvider } from '@/store/DataProvider';
 import { LiveProvider } from '@/store/LiveProvider';
+import { LineupProvider } from '@/store/LineupProvider';
 import { ToastProvider } from '@/components/Toast';
 import { FONT } from '@/theme/colors';
 
@@ -43,9 +44,11 @@ export default function RootLayout() {
         <AppProvider>
           <DataProvider>
             <LiveProvider>
-              <ToastProvider>
-                <RootStack />
-              </ToastProvider>
+              <LineupProvider>
+                <ToastProvider>
+                  <RootStack />
+                </ToastProvider>
+              </LineupProvider>
             </LiveProvider>
           </DataProvider>
         </AppProvider>
@@ -56,25 +59,23 @@ export default function RootLayout() {
 
 function RootStack() {
   const { c, mode } = useTheme();
+  const header = {
+    headerShown: true,
+    // solo la freccia "<", senza il nome della schermata precedente
+    headerBackButtonDisplayMode: 'minimal',
+    headerStyle: { backgroundColor: c.bg },
+    headerTintColor: c.text,
+    headerTitleStyle: { fontFamily: FONT[700] },
+    headerShadowVisible: false,
+  } as const;
   return (
     <>
       <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg } }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="login" options={{ animation: 'fade' }} />
-        <Stack.Screen
-          name="live"
-          options={{
-            headerShown: true,
-            title: 'Partita in corso',
-            // solo la freccia "<", senza il nome della schermata precedente
-            headerBackButtonDisplayMode: 'minimal',
-            headerStyle: { backgroundColor: c.bg },
-            headerTintColor: c.text,
-            headerTitleStyle: { fontFamily: FONT[700] },
-            headerShadowVisible: false,
-          }}
-        />
+        <Stack.Screen name="live" options={{ ...header, title: 'Partita in corso' }} />
+        <Stack.Screen name="formazione-avversaria" options={{ ...header, title: 'Formazione avversaria' }} />
         <Stack.Screen name="player/[id]" options={{ presentation: 'modal' }} />
         <Stack.Screen name="notizia/[id]" options={{ presentation: 'modal' }} />
         {/* riquadro in basso sopra la schermata corrente, non a tutto schermo */}
