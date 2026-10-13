@@ -4,7 +4,7 @@ import { slugify } from './format';
 import * as mock from '@/data/mock';
 import { COMPETITION_LOGOS, NEWS_IMAGES, OPPONENT_LOGOS, PLAYER_PHOTOS, SPONSOR_LOGOS, STAFF_PHOTOS } from '@/data/assets';
 import type {
-  Competition, ImgSrc, LineupPlayer, LiveEvent, Match, MatchStatus, MediaItem, NewsItem, Player, PlayerRole, RegionalRoster, SetScore, Sponsor, SponsorTier, StaffMember, Standing, Venue, YouthTeam,
+  Competition, ImgSrc, LineupPlayer, LiveEvent, Match, MatchStatus, MediaItem, NewsItem, Player, PlayerRole, PointAction, PointDetail, PointPhase, RegionalRoster, SetScore, Sponsor, SponsorTier, StaffMember, Standing, Venue, YouthTeam,
 } from '@/types';
 
 /** Tabelle dello schema Supabase (in italiano) */
@@ -14,6 +14,7 @@ export const T = {
   partite: 'partite',
   setPartita: 'set_partita',
   eventiLive: 'eventi_live',
+  azioniPunto: 'azioni_punto',
   formazioni: 'formazioni_partita',
   classifiche: 'classifiche',
   giocatrici: 'giocatrici',
@@ -343,6 +344,37 @@ function withSides(desc: Row[]): LiveEvent[] {
   });
 }
 
+const AZIONI: PointAction[] = ['schiacciata', 'pipe', 'primo_tempo', 'pallonetto', 'ace', 'muro', 'errore_avversario'];
+
+/** Riga di azioni_punto → evento (id) + chi ha fatto punto + azione */
+export interface LiveAction {
+  eventId: string;
+  side: 'us' | 'opp';
+  detail: PointDetail;
+}
+
+function mapAction(r: Row): LiveAction | null {
+  const action = str(r.azione) as PointAction;
+  if (!AZIONI.includes(action)) return null;
+  const name = (r.nome_giocatrice as string | null) || null;
+  return {
+    eventId: str(r.evento_id),
+    side: r.squadra === 'avversaria' ? 'opp' : 'us',
+    detail: {
+      action,
+      phase: (r.fase === 'difesa' ? 'difesa' : 'attacco') as PointPhase,
+      zone: num(r.zona),
+      player: name ? { lineupId: str(r.formazione_id), playerId: (r.giocatrice_id as string | null) ?? null, name, number: null } : null,
+      aiText: r.frase_ai === true,
+    },
+  };
+}
+
+/** L'azione registrata dice chi ha fatto punto: più affidabile del confronto tra punteggi */
+export function withAction(e: LiveEvent, a: LiveAction | undefined): LiveEvent {
+  return a ? { ...e, side: a.side, detail: { ...a.detail, text: e.text } } : e;
+}
+
 export interface LiveSnapshot {
   events: LiveEvent[];
   sets: SetScore[];
@@ -351,20 +383,23 @@ export interface LiveSnapshot {
 
 export async function fetchLive(matchId: string): Promise<LiveSnapshot | null> {
   if (!supabase) return null;
-  const [ev, st] = await Promise.all([
+  const [ev, st, az] = await Promise.all([
     supabase.from(T.eventiLive).select('*').eq('partita_id', matchId).order('creato_il', { ascending: false }).limit(80),
     supabase.from(T.setPartita).select('*').eq('partita_id', matchId).order('numero_set'),
+    // tabella facoltativa (migrazione 20261014_azioni_punto): senza, la cronaca resta solo testo
+    supabase.from(T.azioniPunto).select('*').eq('partita_id', matchId),
   ]);
   const sets = (st.data as Row[] | null) ?? [];
+  const actions = new Map(((az.data as Row[] | null) ?? []).map(mapAction).filter((a): a is LiveAction => !!a).map((a) => [a.eventId, a]));
   return {
-    events: withSides((ev.data as Row[] | null) ?? []),
+    events: withSides((ev.data as Row[] | null) ?? []).map((e) => withAction(e, actions.get(e.id))),
     sets: sets.map((s) => ({ our: num(s.punti_nostri) ?? 0, opp: num(s.punti_avversario) ?? 0 })),
     completed: sets.map((s) => s.completato === true),
   };
 }
 
 /** Realtime: nuovi eventi di cronaca e aggiornamenti dei set (tabelle nella pubblicazione supabase_realtime) */
-export function subscribeLive(matchId: string, onEvent: (e: LiveEvent) => void, onSets: () => void): () => void {
+export function subscribeLive(matchId: string, onEvent: (e: LiveEvent) => void, onSets: () => void, onAction: (a: LiveAction) => void): () => void {
   if (!supabase) return () => {};
   const client = supabase;
   const ch: RealtimeChannel = client
@@ -373,6 +408,10 @@ export function subscribeLive(matchId: string, onEvent: (e: LiveEvent) => void, 
       onEvent(mapEvent(p.new as Row)),
     )
     .on('postgres_changes', { event: '*', schema: 'public', table: T.setPartita, filter: `partita_id=eq.${matchId}` }, () => onSets())
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: T.azioniPunto, filter: `partita_id=eq.${matchId}` }, (p) => {
+      const a = mapAction(p.new as Row);
+      if (a) onAction(a);
+    })
     .subscribe();
   return () => {
     client.removeChannel(ch);
@@ -404,6 +443,7 @@ export async function pushLivePoint(
       id: e.id, partita_id: matchId, numero_set: e.set, punteggio_nostro: e.our, punteggio_avversario: e.opp, descrizione: e.text,
     });
     if (error) throw error;
+    if (e.detail) await pushAction(matchId, e);
   }
   const st = await supabase.from(T.setPartita).upsert(
     { partita_id: matchId, numero_set: p.set, punti_nostri: p.score.our, punti_avversario: p.score.opp, completato: p.completed },
@@ -414,6 +454,44 @@ export async function pushLivePoint(
     const { error } = await supabase.from(T.partite).update({ nostri_set_vinti: p.final.our, set_vinti_avversario: p.final.opp }).eq('id', matchId);
     if (error) throw error;
   }
+}
+
+/** Azione tecnica del punto: se non si salva (es. migrazione non eseguita) il punto e la cronaca restano validi */
+async function pushAction(matchId: string, e: LiveEvent): Promise<void> {
+  if (!supabase || !e.detail) return;
+  const d = e.detail;
+  const { error } = await supabase.from(T.azioniPunto).insert({
+    partita_id: matchId, evento_id: e.id, numero_set: e.set, squadra: e.side === 'opp' ? 'avversaria' : 'nostra',
+    azione: d.action, fase: d.phase, zona: d.zone ?? null,
+    formazione_id: d.player?.lineupId ?? null, giocatrice_id: d.player?.playerId ?? null, nome_giocatrice: d.player?.name ?? null,
+    punteggio_nostro: e.our, punteggio_avversario: e.opp, frase_ai: d.aiText === true,
+  });
+  if (error) console.warn('Azione del punto non salvata', error.message);
+}
+
+/** Dati del punto per l'AI: chi ha fatto punto e il punteggio li decide l'app, l'AI scrive solo le frasi */
+export interface CommentaryRequest {
+  squadra: string;
+  avversaria: string;
+  puntoA: 'us' | 'opp';
+  azione: PointAction;
+  fase: PointPhase;
+  zona?: number | null;
+  giocatrice?: string | null;
+  set: number;
+  nostri: number;
+  loro: number;
+  chiudeSet?: boolean;
+  evita?: string[];
+}
+
+/** Frasi di cronaca proposte dall'AI (Edge Function cronaca-ai con Groq, solo staff/admin) */
+export async function suggestCommentary(req: CommentaryRequest): Promise<string[]> {
+  if (!supabase) throw new Error('Supabase non configurato');
+  const { data, error } = await supabase.functions.invoke('cronaca-ai', { body: req });
+  if (error) throw error;
+  const frasi = (data as { frasi?: unknown } | null)?.frasi;
+  return Array.isArray(frasi) ? frasi.filter((f): f is string => typeof f === 'string') : [];
 }
 
 // ---------- formazioni ----------

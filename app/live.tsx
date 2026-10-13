@@ -13,11 +13,14 @@ import { SegmentedControl } from '@/components/SegmentedControl';
 import { TeamBadge } from '@/components/TeamBadge';
 import { Txt } from '@/components/Txt';
 import { US } from '@/constants';
+import { hasSupabase } from '@/lib/supabase';
 import { setTarget } from '@/lib/volley';
-import { useLive } from '@/store/LiveProvider';
+import { useApp } from '@/store/AppProvider';
+import { PHASE_LABEL, ZONE_LABEL, actionLabel, useLive } from '@/store/LiveProvider';
 import { useLiveLineup } from '@/store/LineupProvider';
 import { palette } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
+import type { PointDetail } from '@/types';
 
 export default function Live() {
   const { c } = useTheme();
@@ -25,6 +28,9 @@ export default function Live() {
   const live = useLive();
   const m = live.match;
   const lineup = useLiveLineup();
+  const { user } = useApp();
+  // la funzione cronaca-ai accetta solo staff e admin
+  const ai = hasSupabase && (user?.role === 'admin' || user?.role === 'staff');
   const [panel, setPanel] = useState<'cronaca' | 'formazioni'>('cronaca');
   // riquadro del punto aperto dal pulsante + di una squadra
   const [picker, setPicker] = useState<{ side: 'us' | 'opp'; name: string; anchor: Anchor } | null>(null);
@@ -128,7 +134,7 @@ export default function Live() {
               <Txt size={13} color="muted">{live.events.length} azioni</Txt>
             </View>
             {live.events.map((e, i) => (
-              <FeedItem key={e.id} first={i === 0} last={i === live.events.length - 1} us={e.side === 'us'} meta={`${e.set}° set, ${e.our}–${e.opp}`} text={e.text} />
+              <FeedItem key={e.id} first={i === 0} last={i === live.events.length - 1} us={e.side === 'us'} meta={`${e.set}° set, ${e.our}–${e.opp}`} text={e.text} detail={e.detail} />
             ))}
           </>
         ) : (
@@ -137,7 +143,8 @@ export default function Live() {
       </Card>
 
       {picker ? (
-        <PointPicker anchor={picker.anchor} team={picker.name} players={picker.side === 'us' ? lineup.us : lineup.opp}
+        <PointPicker anchor={picker.anchor} side={picker.side} team={picker.name} names={{ us: US, opp: m.opponent }}
+          players={picker.side === 'us' ? lineup.us : lineup.opp} score={{ set: live.set, our: live.our, opp: live.opp }} ai={ai}
           onScore={(detail) => live.addPoint(picker.side, detail)} onClose={() => setPicker(null)} />
       ) : null}
     </ScrollView>
@@ -187,7 +194,7 @@ function Side({ name, logo, serving, flash, onPlus }: { name: string; logo?: str
   );
 }
 
-function FeedItem({ meta, text, us, first, last }: { meta: string; text: string; us: boolean; first: boolean; last: boolean }) {
+function FeedItem({ meta, text, detail, us, first, last }: { meta: string; text: string; detail?: PointDetail | null; us: boolean; first: boolean; last: boolean }) {
   const { c } = useTheme();
   const anim = useRef(new Animated.Value(first ? 0 : 1)).current;
   useEffect(() => {
@@ -202,6 +209,18 @@ function FeedItem({ meta, text, us, first, last }: { meta: string; text: string;
       <View style={{ flex: 1 }}>
         <Txt w={600} size={12} color="muted" tnum>{meta}</Txt>
         <Txt size={14}>{text}</Txt>
+        {detail ? (
+          // azione tecnica registrata: tipo, fase, posizione, giocatrice
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 5 }}>
+            {[actionLabel(detail.action), PHASE_LABEL[detail.phase], detail.zone ? `Zona ${ZONE_LABEL[detail.zone]}` : null, detail.player?.name ?? null]
+              .filter((x): x is string => !!x)
+              .map((x) => (
+                <View key={x} style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, backgroundColor: c.fill }}>
+                  <Txt w={600} size={11} color="muted">{x}</Txt>
+                </View>
+              ))}
+          </View>
+        ) : null}
       </View>
     </Animated.View>
   );

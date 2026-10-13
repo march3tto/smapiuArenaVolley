@@ -131,6 +131,22 @@ export interface Venue {
   kind: 'arena' | 'palasport' | 'palestra';
 }
 
+export type PointAction = 'schiacciata' | 'pipe' | 'primo_tempo' | 'pallonetto' | 'ace' | 'muro' | 'errore_avversario';
+export type PointPhase = 'attacco' | 'difesa';
+
+/** Azione tecnica di un punto (tabella azioni_punto), separata dalla frase di cronaca */
+export interface PointDetail {
+  action: PointAction;
+  phase: PointPhase;
+  /** Posizione in campo I-VI */
+  zone?: number | null;
+  /** Giocatrice che ha fatto il punto, se scelta */
+  player?: { lineupId: string; playerId?: string | null; name: string; number: number | null } | null;
+  /** Frase di cronaca scelta (dall'AI o predefinita) */
+  text?: string;
+  aiText?: boolean;
+}
+
 export interface LiveEvent {
   id: string;
   set: number;
@@ -138,6 +154,8 @@ export interface LiveEvent {
   opp: number;
   text: string;
   side: 'us' | 'opp';
+  /** Solo per i punti registrati con l'azione */
+  detail?: PointDetail | null;
 }
 
 /** Giocatrice a referto nella formazione di una partita (nostra o avversaria) */
