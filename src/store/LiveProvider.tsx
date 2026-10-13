@@ -1,12 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
-import { fetchLive, newId, pushLivePoint, subscribeLive } from '@/lib/api';
+import { fetchLive, newId, pushLivePoint, subscribeLive, withAction } from '@/lib/api';
 import { demoLive as demoInitial } from '@/data/mock';
 import { isSideSwitch, matchWinner, setWinner, setsWon, standingPoints } from '@/lib/volley';
 import { useApp } from './AppProvider';
 import { useData } from './DataProvider';
-import type { LiveEvent, Match, SetScore } from '@/types';
+import type { LiveEvent, Match, PointAction, PointDetail, PointPhase, SetScore } from '@/types';
 
 interface LiveState {
   set: number;
@@ -33,7 +33,7 @@ interface LiveCtx extends LiveState {
   scoringLive: boolean;
   /** Ultimo salvataggio non riuscito (il punteggio torna quello del database) */
   saveError: string | null;
-  /** detail: azione e giocatrice del punto, finiscono nella cronaca */
+  /** detail: azione, posizione, fase, giocatrice e frase scelta; chi fa punto lo dice side, non l'AI */
   addPoint: (side: 'us' | 'opp', detail?: PointDetail) => void;
   /** Riporta la partita demo allo stato iniziale */
   resetDemo: () => void;
@@ -41,23 +41,32 @@ interface LiveCtx extends LiveState {
 
 const Ctx = createContext<LiveCtx | null>(null);
 
-export type PointAction = 'muro' | 'schiacciata' | 'ace' | 'pipe';
-export const POINT_ACTIONS: { value: PointAction; label: string }[] = [
-  { value: 'muro', label: 'Muro' },
-  { value: 'schiacciata', label: 'Schiacciata' },
-  { value: 'ace', label: 'Ace' },
-  { value: 'pipe', label: 'Pipe' },
+export type { PointAction, PointDetail, PointPhase };
+
+/** Azioni di gioco con la fase proposta di default (modificabile nel riquadro del punto) */
+export const POINT_ACTIONS: { value: PointAction; label: string; phase: PointPhase }[] = [
+  { value: 'schiacciata', label: 'Schiacciata', phase: 'attacco' },
+  { value: 'pipe', label: 'Pipe', phase: 'attacco' },
+  { value: 'primo_tempo', label: 'Primo tempo', phase: 'attacco' },
+  { value: 'pallonetto', label: 'Pallonetto', phase: 'attacco' },
+  { value: 'ace', label: 'Ace', phase: 'attacco' },
+  { value: 'muro', label: 'Muro', phase: 'difesa' },
+  { value: 'errore_avversario', label: 'Errore avv.', phase: 'difesa' },
 ];
-export interface PointDetail {
-  action: PointAction;
-  /** Nome della giocatrice che ha fatto il punto, se scelta */
-  player?: string;
-}
+export const PHASE_LABEL: Record<PointPhase, string> = { attacco: 'Attacco', difesa: 'Difesa' };
+export const ZONE_LABEL = ['', 'I', 'II', 'III', 'IV', 'V', 'VI'];
 
-const ACTION_TEXT: Record<PointAction, string> = { muro: 'Muro vincente', schiacciata: 'Schiacciata vincente', ace: 'Ace in battuta', pipe: 'Pipe vincente' };
+const ACTION_TEXT: Record<PointAction, string> = {
+  schiacciata: 'Schiacciata vincente', pipe: 'Pipe vincente', primo_tempo: 'Primo tempo vincente', pallonetto: 'Pallonetto vincente',
+  ace: 'Ace in battuta', muro: 'Muro vincente', errore_avversario: 'Errore avversario',
+};
+export const actionLabel = (a: PointAction) => POINT_ACTIONS.find((x) => x.value === a)?.label ?? a;
 
-function detailLine(side: 'us' | 'opp', d: PointDetail): string {
-  const what = `${ACTION_TEXT[d.action]}${d.player ? ` di ${d.player}` : ''}`;
+/** Frase predefinita (senza AI): sempre disponibile come alternativa */
+export function detailLine(side: 'us' | 'opp', d: PointDetail): string {
+  if (d.action === 'errore_avversario') return side === 'us' ? 'Errore delle avversarie, punto Smapiù!' : 'Errore Smapiù, punto per le avversarie.';
+  const where = d.zone ? ` da zona ${ZONE_LABEL[d.zone]}` : '';
+  const what = `${ACTION_TEXT[d.action]}${d.player ? ` di ${d.player.name}` : ''}${where}`;
   return side === 'us' ? `${what}, punto Smapiù!` : `Punto per le avversarie: ${what.charAt(0).toLowerCase()}${what.slice(1)}.`;
 }
 
@@ -86,8 +95,8 @@ function scorePoint(s: LiveState, side: 'us' | 'opp', real = false, detail?: Poi
   const stamp = Date.now();
   const event = (text: string, who: 'us' | 'opp', n = 0): LiveEvent => ({ id: real ? newId() : `sim-${stamp}-${n}`, set: s.set, our: after.our, opp: after.opp, side: who, text });
   const usLine = real ? 'Punto Smapiù!' : US_LINES[Math.floor(Math.random() * US_LINES.length)];
-  const line = detail ? detailLine(side, detail) : side === 'us' ? usLine : 'Punto per le avversarie.';
-  const events: LiveEvent[] = [event(line, side)];
+  const line = detail ? detail.text?.trim() || detailLine(side, detail) : side === 'us' ? usLine : 'Punto per le avversarie.';
+  const events: LiveEvent[] = [{ ...event(line, side), detail: detail ? { ...detail, text: line } : null }];
 
   if (isSideSwitch(s.set, before, after)) events.unshift(event(`Cambio campo sull'${after.our}–${after.opp}.`, side, 1));
 
@@ -168,6 +177,10 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       () => {
         if (pending.current === 0) load();
       },
+      // l'azione arriva subito dopo il suo evento: si aggancia alla riga di cronaca
+      (a) => setState((s) => (s.events.some((x) => x.id === a.eventId && !x.detail)
+        ? { ...s, events: s.events.map((x) => (x.id === a.eventId ? withAction(x, a) : x)) }
+        : s)),
     );
     return () => {
       active = false;
