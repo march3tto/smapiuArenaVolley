@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { deleteLineupPlayer, fetchLineup, insertLineup, newId, setLineupZone, subscribeLineup } from '@/lib/api';
+import { deleteLineupPlayer, fetchLineup, insertLineup, newId, setLineupLibero, setLineupZone, subscribeLineup } from '@/lib/api';
+import { demoOpponentLineup } from '@/data/mock';
 import { useApp } from './AppProvider';
 import { useData } from './DataProvider';
 import type { LineupPlayer, Match, Player, PlayerRole } from '@/types';
@@ -15,6 +16,8 @@ export interface Lineup {
   error: string | null;
   /** Titolare ↔ panchina; la titolare prende la prima zona libera (I-VI) */
   toggleStarter: (p: LineupPlayer) => void;
+  /** Libero ↔ panchina: solo dalla panchina, il nuovo libero sostituisce il precedente */
+  toggleLibero: (p: LineupPlayer) => void;
   addOpponent: (p: { number: number | null; name: string; role: PlayerRole | null }) => void;
   remove: (p: LineupPlayer) => void;
 }
@@ -25,9 +28,12 @@ function fromRoster(players: Player[]): LineupPlayer[] {
     .sort((a, b) => (a.number ?? 99) - (b.number ?? 99))
     .map((p, i) => ({
       id: newId(), team: 'us', playerId: p.id, number: p.number ?? null, name: `${p.firstName} ${p.lastName}`.trim(),
-      role: p.role, isCaptain: !!p.isCaptain, zone: null, order: i,
+      role: p.role, isCaptain: !!p.isCaptain, zone: null, isLibero: false, order: i,
     }));
 }
+
+/** Avversarie della partita demo, ogni volta con id nuovi */
+const demoOpp = (): LineupPlayer[] => demoOpponentLineup.map((p, i) => ({ ...p, id: newId(), team: 'opp', playerId: null, isLibero: p.role === 'libero', order: i }));
 
 const byOrder = (a: LineupPlayer, b: LineupPlayer) => a.order - b.order || (a.number ?? 99) - (b.number ?? 99);
 
@@ -55,7 +61,8 @@ export function useLineup(match: Match | null): Lineup {
       return;
     }
     if (!live) {
-      setRows([]);
+      // nella demo le avversarie partono già schierate; le modifiche restano solo in locale
+      setRows(demoOpp());
       reload.current = () => {};
       return;
     }
@@ -124,7 +131,7 @@ export function useLineup(match: Match | null): Lineup {
     const team = p.team === 'us' ? us : opp;
     let zone: number | null = null;
     if (p.zone == null) {
-      if (p.role === 'libero') {
+      if (p.role === 'libero' || p.isLibero) {
         setError('Il libero non può far parte dello Starting Six.');
         return;
       }
@@ -140,6 +147,18 @@ export function useLineup(match: Match | null): Lineup {
     save(() => setLineupZone(p.id, zone));
   }, [canEdit, matchId, us, opp, patch, save]);
 
+  const toggleLibero = useCallback((p: LineupPlayer) => {
+    if (!canEdit || !matchId) return;
+    if (p.zone != null) {
+      setError('Il libero si sceglie dalla panchina: togli prima la giocatrice dallo Starting Six.');
+      return;
+    }
+    const on = !p.isLibero;
+    setError(null);
+    patch(p.team, (list) => list.map((x) => ({ ...x, isLibero: on && x.id === p.id })));
+    save(() => setLineupLibero(matchId, p.team, on ? p.id : null));
+  }, [canEdit, matchId, patch, save]);
+
   const addOpponent = useCallback((n: { number: number | null; name: string; role: PlayerRole | null }) => {
     if (!canEdit || !matchId) return;
     const name = n.name.trim();
@@ -149,7 +168,7 @@ export function useLineup(match: Match | null): Lineup {
       return;
     }
     const p: LineupPlayer = {
-      id: newId(), team: 'opp', playerId: null, number: n.number, name, role: n.role, isCaptain: false, zone: null,
+      id: newId(), team: 'opp', playerId: null, number: n.number, name, role: n.role, isCaptain: false, zone: null, isLibero: false,
       order: opp.reduce((m, x) => Math.max(m, x.order + 1), 0),
     };
     setError(null);
@@ -163,5 +182,5 @@ export function useLineup(match: Match | null): Lineup {
     save(() => deleteLineupPlayer(p.id));
   }, [canEdit, patch, save]);
 
-  return { us, opp, loading, canEdit, error, toggleStarter, addOpponent, remove };
+  return { us, opp, loading, canEdit, error, toggleStarter, toggleLibero, addOpponent, remove };
 }

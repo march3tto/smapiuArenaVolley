@@ -431,6 +431,7 @@ function mapLineup(r: Row): LineupPlayer {
     role: RUOLI.includes(role) ? role : null,
     isCaptain: r.capitana === true,
     zone: num(r.zona),
+    isLibero: r.libero === true,
     order: num(r.ordine) ?? 0,
   };
 }
@@ -438,6 +439,8 @@ function mapLineup(r: Row): LineupPlayer {
 const lineupRow = (matchId: string, p: LineupPlayer) => ({
   id: p.id, partita_id: matchId, squadra: p.team === 'opp' ? 'avversaria' : 'nostra', giocatrice_id: p.playerId ?? null,
   numero_maglia: p.number, nome: p.name, ruolo: p.role, capitana: p.isCaptain, zona: p.zone, ordine: p.order,
+  // solo se serve: le righe nuove si salvano anche prima della migrazione della colonna libero
+  ...(p.isLibero ? { libero: true } : {}),
 });
 
 /** Formazioni della partita; null se la tabella non è raggiungibile (es. migrazione non ancora eseguita) */
@@ -461,6 +464,17 @@ export async function setLineupZone(id: string, zone: number | null): Promise<vo
   if (!supabase) return;
   const { error } = await supabase.from(T.formazioni).update({ zona: zone }).eq('id', id);
   if (error) throw error;
+}
+
+/** Sceglie il libero della squadra (id null = nessuno): prima si toglie il precedente, c'è un solo libero per squadra */
+export async function setLineupLibero(matchId: string, team: 'us' | 'opp', id: string | null): Promise<void> {
+  if (!supabase) return;
+  const squadra = team === 'opp' ? 'avversaria' : 'nostra';
+  const off = await supabase.from(T.formazioni).update({ libero: false }).eq('partita_id', matchId).eq('squadra', squadra).eq('libero', true);
+  if (off.error) throw off.error;
+  if (!id) return;
+  const on = await supabase.from(T.formazioni).update({ libero: true }).eq('id', id);
+  if (on.error) throw on.error;
 }
 
 export async function deleteLineupPlayer(id: string): Promise<void> {
