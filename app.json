@@ -43,6 +43,13 @@
           "color": "#FFD503"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "adc32f55-7445-4b19-bcb6-d3dfa66bacc7"
+      }
+    },
+    "owner": "marchetto84"
   }
 }
