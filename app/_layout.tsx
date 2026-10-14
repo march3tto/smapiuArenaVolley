@@ -1,9 +1,7 @@
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import * as Notifications from 'expo-notifications';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import {
@@ -11,20 +9,15 @@ import {
 } from '@expo-google-fonts/roboto';
 import { BarlowCondensed_800ExtraBold_Italic, BarlowCondensed_900Black_Italic } from '@expo-google-fonts/barlow-condensed';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
-import { AppProvider } from '@/store/AppProvider';
+import { AppProvider, useApp } from '@/store/AppProvider';
 import { DataProvider } from '@/store/DataProvider';
 import { LiveProvider } from '@/store/LiveProvider';
 import { LineupProvider } from '@/store/LineupProvider';
 import { ToastProvider } from '@/components/Toast';
 import { FONT } from '@/theme/colors';
+import { useNotifichePush } from '@/notifications';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
-
-if (Platform.OS !== 'web') {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({ shouldPlaySound: true, shouldSetBadge: false, shouldShowBanner: true, shouldShowList: true }),
-  });
-}
 
 export default function RootLayout() {
   const [loaded] = useFonts({
@@ -59,6 +52,8 @@ export default function RootLayout() {
 
 function RootStack() {
   const { c, mode } = useTheme();
+  const { ready, user, prefs } = useApp();
+  useNotifichePush({ ready, userId: user?.id ?? null, enabled: prefs.enabled });
   const header = {
     headerShown: true,
     // solo la freccia "<", senza il nome della schermata precedente
