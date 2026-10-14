@@ -16,7 +16,7 @@ export interface Lineup {
   error: string | null;
   /** Titolare ↔ panchina; la titolare prende la prima zona libera (I-VI) */
   toggleStarter: (p: LineupPlayer) => void;
-  /** Libero ↔ panchina: solo dalla panchina, il nuovo libero sostituisce il precedente */
+  /** Libero ↔ panchina: solo dalla panchina e con ruolo Libero, il nuovo libero sostituisce il precedente */
   toggleLibero: (p: LineupPlayer) => void;
   addOpponent: (p: { number: number | null; name: string; role: PlayerRole | null }) => void;
   remove: (p: LineupPlayer) => void;
@@ -149,6 +149,10 @@ export function useLineup(match: Match | null): Lineup {
 
   const toggleLibero = useCallback((p: LineupPlayer) => {
     if (!canEdit || !matchId) return;
+    if (!p.isLibero && p.role !== 'libero') {
+      setError('Come libero si possono scegliere solo le giocatrici con ruolo Libero.');
+      return;
+    }
     if (p.zone != null) {
       setError('Il libero si sceglie dalla panchina: togli prima la giocatrice dallo Starting Six.');
       return;

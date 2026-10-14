@@ -49,3 +49,11 @@ export function standingPoints(won: { our: number; opp: number }): { our: number
 export function isSideSwitch(set: number, before: SetScore, after: SetScore): boolean {
   return set === TIE_BREAK_SET && Math.max(before.our, before.opp) < TIE_BREAK_SWITCH && Math.max(after.our, after.opp) === TIE_BREAK_SWITCH;
 }
+
+/**
+ * Posizione dopo n rotazioni: si gira in senso orario, II→I (al servizio), I→VI, VI→V, V→IV, IV→III, III→II.
+ * Una squadra ruota quando conquista il punto in ricezione (cambio palla).
+ */
+export function rotateZone(zone: number, n: number): number {
+  return ((((zone - 1 - n) % 6) + 6) % 6) + 1;
+}

@@ -14,13 +14,13 @@ import { TeamBadge } from '@/components/TeamBadge';
 import { Txt } from '@/components/Txt';
 import { US } from '@/constants';
 import { hasSupabase } from '@/lib/supabase';
-import { setTarget } from '@/lib/volley';
+import { rotateZone, setTarget } from '@/lib/volley';
 import { useApp } from '@/store/AppProvider';
 import { PHASE_LABEL, ZONE_LABEL, actionLabel, useLive } from '@/store/LiveProvider';
 import { useLiveLineup } from '@/store/LineupProvider';
 import { palette } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
-import type { PointDetail } from '@/types';
+import type { LineupPlayer, PointDetail } from '@/types';
 
 export default function Live() {
   const { c } = useTheme();
@@ -51,6 +51,9 @@ export default function Live() {
   // a partita finita lo storico contiene già tutti i set
   const rowsSets = live.finished ? live.history : [...live.history, { our: live.our, opp: live.opp }];
   const pts = (side: 'us' | 'opp') => (side === 'us' ? live.standing?.our : live.standing?.opp) ?? 0;
+  // posizioni attuali in campo: solo nel riquadro del punto, nelle formazioni resta lo Starting Six
+  const onCourt = (side: 'us' | 'opp'): LineupPlayer[] => (side === 'us' ? lineup.us : lineup.opp)
+    .map((p) => (p.zone == null ? p : { ...p, zone: rotateZone(p.zone, live.rotation[side]) }));
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ padding: 14, gap: 16, paddingBottom: insets.bottom + 30, width: '100%', maxWidth: 900, alignSelf: 'center' }}>
@@ -144,7 +147,7 @@ export default function Live() {
 
       {picker ? (
         <PointPicker anchor={picker.anchor} side={picker.side} team={picker.name} names={{ us: US, opp: m.opponent }}
-          players={picker.side === 'us' ? lineup.us : lineup.opp} score={{ set: live.set, our: live.our, opp: live.opp }} ai={ai}
+          players={onCourt(picker.side)} rotation={live.rotation[picker.side]} score={{ set: live.set, our: live.our, opp: live.opp }} ai={ai}
           onScore={(detail) => live.addPoint(picker.side, detail)} onClose={() => setPicker(null)} />
       ) : null}
     </ScrollView>
