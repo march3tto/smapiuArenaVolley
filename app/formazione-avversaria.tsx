@@ -48,7 +48,7 @@ export default function FormazioneAvversaria() {
         {lineup.error ? <Txt size={12.5} color="danger">{lineup.error}</Txt> : null}
         {players.length ? (
           <>
-            <Txt size={12} color="muted">Tocca una giocatrice per metterla nello Starting Six (l'ordine dei tocchi dà le posizioni I-VI), tocca L per sceglierla come libero.</Txt>
+            <Txt size={12} color="muted">Tocca una giocatrice per metterla nello Starting Six (l'ordine dei tocchi dà le posizioni I-VI), tocca L su una giocatrice con ruolo Libero per sceglierla come libero.</Txt>
             <View style={{ borderRadius: radius.md, borderWidth: 1, borderColor: c.line, overflow: 'hidden' }}>
               {players.map((p, i) => (
                 <PlayerRow key={p.id} p={p} first={i === 0} editable onToggle={() => lineup.toggleStarter(p)} onLibero={() => lineup.toggleLibero(p)} onRemove={() => lineup.remove(p)} />

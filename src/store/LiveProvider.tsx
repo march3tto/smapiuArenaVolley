@@ -33,6 +33,8 @@ interface LiveCtx extends LiveState {
   scoringLive: boolean;
   /** Ultimo salvataggio non riuscito (il punteggio torna quello del database) */
   saveError: string | null;
+  /** Rotazioni di ciascuna squadra nel set in corso, rispetto allo Starting Six */
+  rotation: { us: number; opp: number };
   /** detail: azione, posizione, fase, giocatrice e frase scelta; chi fa punto lo dice side, non l'AI */
   addPoint: (side: 'us' | 'opp', detail?: PointDetail) => void;
   /** Riporta la partita demo allo stato iniziale */
@@ -112,6 +114,25 @@ function scorePoint(s: LiveState, side: 'us' | 'opp', real = false, detail?: Poi
   return winner
     ? { ...s, ...after, history, serving: side, finished: true, events: [...events, ...s.events].slice(0, 80) }
     : { ...s, set: s.set + 1, our: 0, opp: 0, history, serving: side, events: [...events, ...s.events].slice(0, 80) };
+}
+
+/**
+ * Rotazioni del set in corso: si parte dallo Starting Six e la squadra che fa punto in ricezione (cambio palla)
+ * ruota di una posizione. Al primo scambio serve chi ha chiuso il set precedente (1° set: noi), come nel tabellone.
+ */
+function setRotations(events: LiveEvent[], set: number): { us: number; opp: number } {
+  const rot = { us: 0, opp: 0 };
+  let server: 'us' | 'opp' = events.find((e) => e.set === set - 1)?.side ?? 'us';
+  let total = 0;
+  // dal più vecchio; cambio campo e fine set ripetono il punteggio del punto e si saltano
+  for (const e of [...events].reverse()) {
+    if (e.set !== set || e.our + e.opp <= total) continue;
+    // se nella cronaca mancano dei punti non si sa chi serviva: niente rotazione
+    if (e.our + e.opp === total + 1 && e.side !== server) rot[e.side] += 1;
+    server = e.side;
+    total = e.our + e.opp;
+  }
+  return rot;
 }
 
 export function LiveProvider({ children }: { children: ReactNode }) {
@@ -241,6 +262,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       canScore: (isDemo || scoringLive) && !state.finished,
       scoringLive,
       saveError,
+      rotation: setRotations(state.events, state.set),
       addPoint,
       resetDemo,
     };

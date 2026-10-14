@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { AnimatedNumber } from './AnimatedNumber';
 import { Button } from './Button';
 import { LiveSignal } from './LiveDot';
+import { LiveTicker } from './LiveTicker';
 import { Pressy } from './Pressy';
 import { TeamBadge } from './TeamBadge';
 import { Txt } from './Txt';
@@ -28,6 +29,8 @@ export function LiveCard() {
   const right = { name: home ? m.opponent : US, logo: home ? m.opponentLogo : null, sets: home ? live.oppSets : live.ourSets, pts: home ? live.opp : live.our };
 
   const season = m.season || m.competition?.name || 'Campionato';
+  // la cronaca è dalla più recente
+  const last = live.events[0];
 
   return (
     <Pressy onPress={() => router.push('/live')} scaleTo={0.98} accessibilityRole="link" accessibilityLabel="Segui la diretta">
@@ -82,6 +85,8 @@ export function LiveCard() {
             accessibilityLabel="Guarda la diretta su YouTube"
           />
         ) : null}
+
+        {last ? <LiveTicker text={`${last.set}° set ${home ? `${last.our}–${last.opp}` : `${last.opp}–${last.our}`} · ${last.text}`} /> : null}
       </LinearGradient>
     </Pressy>
   );

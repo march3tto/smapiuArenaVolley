@@ -23,21 +23,23 @@ export interface Anchor {
 }
 
 const GUTTER = 12;
-const ZONES = [4, 3, 2, 5, 6, 1];
 
 /**
  * Riquadro del punto in due passi.
- * 1. Azione: giocatrice (facoltativa), posizione in campo, attacco o difesa, tipo di azione.
+ * 1. Azione: giocatrice (facoltativa, la posizione è quella che occupa in campo), attacco o difesa, tipo di azione.
  * 2. Cronaca: frasi proposte dall'AI (se disponibile) o predefinita; si sceglie e si assegna il punto.
  * Chi conquista il punto è deciso qui (side), l'AI scrive solo la frase.
  */
-export function PointPicker({ anchor, side, team, names, players, score, ai, onScore, onClose }: {
+export function PointPicker({ anchor, side, team, names, players, rotation = 0, score, ai, onScore, onClose }: {
   anchor: Anchor;
   side: 'us' | 'opp';
   team: string;
   /** Nomi delle due squadre per la cronaca */
   names: { us: string; opp: string };
+  /** Formazione con le posizioni attuali (Starting Six già ruotato) */
   players: LineupPlayer[];
+  /** Rotazioni fatte nel set in corso */
+  rotation?: number;
   /** Set e punteggio prima del punto */
   score: { set: number; our: number; opp: number };
   /** Frasi dall'AI (solo staff/admin con Supabase) */
@@ -51,7 +53,6 @@ export function PointPicker({ anchor, side, team, names, players, score, ai, onS
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   const [step, setStep] = useState<'azione' | 'cronaca'>('azione');
   const [picked, setPicked] = useState<LineupPlayer | null>(null);
-  const [zone, setZone] = useState<number | null>(null);
   const [phase, setPhase] = useState<PointPhase>('attacco');
   const [action, setAction] = useState<PointAction | null>(null);
   const [phrases, setPhrases] = useState<string[]>([]);
@@ -62,6 +63,8 @@ export function PointPicker({ anchor, side, team, names, players, score, ai, onS
   const request = useRef(0);
   const t = useRef(new Animated.Value(0)).current;
   const starters = players.filter((p) => p.zone != null);
+  // la posizione è quella della giocatrice scelta sul campo
+  const zone = picked?.zone ?? null;
 
   const width = Math.min(360, win.width - GUTTER * 2);
   const maxH = win.height - insets.top - insets.bottom - GUTTER * 2;
@@ -84,12 +87,7 @@ export function PointPicker({ anchor, side, team, names, players, score, ai, onS
     Animated.timing(t, { toValue: 0, duration: 160, useNativeDriver: true }).start(() => onClose());
   };
 
-  const pickPlayer = (p: LineupPlayer) => {
-    const off = picked?.id === p.id;
-    setPicked(off ? null : p);
-    // la posizione di partenza della giocatrice è un suggerimento: si può cambiare
-    if (!off && p.zone) setZone(p.zone);
-  };
+  const pickPlayer = (p: LineupPlayer) => setPicked((cur) => (cur?.id === p.id ? null : p));
 
   const pickAction = (a: (typeof POINT_ACTIONS)[number]) => {
     setAction(a.value);
@@ -195,7 +193,7 @@ export function PointPicker({ anchor, side, team, names, players, score, ai, onS
                 <Txt size={12} color="muted" numberOfLines={1}>
                   {step === 'cronaca'
                     ? `${score.set === 5 ? 'Tie-break' : `${score.set}° set`}, ${after.our}–${after.opp}`
-                    : picked ? `${picked.number != null ? `#${picked.number} ` : ''}${picked.name}` : starters.length ? 'Chi ha fatto punto? (facoltativo)' : 'Starting Six non inserito'}
+                    : picked ? `${picked.number != null ? `#${picked.number} ` : ''}${picked.name}${zone ? ` · Pos. ${ZONE_LABEL[zone]}` : ''}` : starters.length ? 'Chi ha fatto punto? (facoltativo)' : 'Starting Six non inserito'}
                 </Txt>
               </View>
               <Pressy onPress={() => close()} scaleTo={0.85} accessibilityRole="button" accessibilityLabel="Chiudi"
@@ -206,19 +204,11 @@ export function PointPicker({ anchor, side, team, names, players, score, ai, onS
 
             {step === 'azione' ? (
               <>
-                {starters.length ? <Court big players={starters} selectedId={picked?.id} onPick={pickPlayer} /> : null}
-
-                <Field label="Posizione in campo">
-                  <View style={{ flexDirection: 'row', gap: 6 }}>
-                    {ZONES.map((z) => (
-                      <Pressy key={z} scaleTo={0.92} onPress={() => setZone((cur) => (cur === z ? null : z))}
-                        accessibilityRole="button" accessibilityState={{ selected: zone === z }} accessibilityLabel={`Zona ${ZONE_LABEL[z]}`}
-                        style={[chip(zone === z), { flex: 1, height: 36 }]}>
-                        <Txt w={700} size={13} color={zone === z ? palette.onGold : 'text'}>{ZONE_LABEL[z]}</Txt>
-                      </Pressy>
-                    ))}
-                  </View>
-                </Field>
+                {starters.length ? (
+                  <Field label={rotation ? `In campo adesso: ${rotation} ${rotation === 1 ? 'rotazione' : 'rotazioni'} nel set` : 'In campo adesso: formazione di inizio set'}>
+                    <Court big players={starters} selectedId={picked?.id} onPick={pickPlayer} />
+                  </Field>
+                ) : null}
 
                 <Field label="Fase">
                   <SegmentedControl stretch value={phase} onChange={setPhase}

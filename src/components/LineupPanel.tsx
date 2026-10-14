@@ -34,7 +34,7 @@ export function LineupPanel({ lineup, teams }: { lineup: Lineup; teams: TeamProp
       </View>
       {lineup.error ? <Txt size={12.5} color="danger">{lineup.error}</Txt> : null}
       {lineup.canEdit ? (
-        <Txt size={12} color="muted">Tocca una giocatrice per metterla nello Starting Six: l'ordine dei tocchi dà le posizioni I-VI (I al servizio). Tocca L su una giocatrice in panchina per sceglierla come libero.</Txt>
+        <Txt size={12} color="muted">Tocca una giocatrice per metterla nello Starting Six: l'ordine dei tocchi dà le posizioni I-VI (I al servizio). Tocca L su una giocatrice con ruolo Libero per sceglierla come libero della partita.</Txt>
       ) : null}
     </View>
   );
@@ -167,13 +167,11 @@ export function PlayerRow({ p, first, editable, onToggle, onLibero, onRemove }: 
           <Txt w={600} size={13} numberOfLines={1} style={{ flexShrink: 1 }}>{p.name}</Txt>
           {p.isCaptain ? <CaptainMark /> : null}
         </View>
-        {p.role || starter ? (
-          <Txt size={11} color="muted" numberOfLines={1}>
-            {[p.role ? ROLE_LABEL[p.role] : null, starter ? `Pos. ${ROMAN[p.zone ?? 0]}` : null].filter(Boolean).join(' · ')}
-          </Txt>
-        ) : null}
+        {/* la posizione si vede solo sul campo */}
+        {p.role ? <Txt size={11} color="muted" numberOfLines={1}>{ROLE_LABEL[p.role]}</Txt> : null}
       </View>
-      {editable && onLibero && !starter ? (
+      {/* L solo per le giocatrici con ruolo Libero (o per togliere un libero già scelto) */}
+      {editable && onLibero && !starter && (p.role === 'libero' || p.isLibero) ? (
         <Pressy onPress={onLibero} scaleTo={0.85} accessibilityRole="button" accessibilityState={{ selected: p.isLibero }}
           accessibilityLabel={p.isLibero ? `Togli ${p.name} dal ruolo di libero` : `Scegli ${p.name} come libero`}
           style={{ width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5,
