@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { CalendarDays } from 'lucide-react-native';
+import { CalendarDays, Trophy } from 'lucide-react-native';
 import { Card } from '@/components/Card';
+import { IconButton } from '@/components/IconButton';
 import { MatchRow } from '@/components/MatchRow';
 import { Screen } from '@/components/Screen';
 import { SectionHeader } from '@/components/SectionHeader';
@@ -11,22 +12,24 @@ import { StandingsTable } from '@/components/StandingsTable';
 import { Txt } from '@/components/Txt';
 import { useData } from '@/store/DataProvider';
 import { useLive } from '@/store/LiveProvider';
+import { palette } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
-type Filter = 'all' | 'past' | 'future' | 'standings';
-const OPTIONS: { value: Filter; label: string }[] = [
+type Filter = 'all' | 'past' | 'future' | 'a3' | 'standings';
+const OPTIONS: { value: Exclude<Filter, 'standings'>; label: string }[] = [
   { value: 'all', label: 'Tutte' },
   { value: 'past', label: 'Giocate' },
   { value: 'future', label: 'Prossime' },
-  { value: 'standings', label: 'Classifica' },
+  { value: 'a3', label: 'Serie A3' },
 ];
-const FILTERS = OPTIONS.map((o) => o.value as string);
+// la classifica non sta nel banner: si apre con l'icona alla sua destra
+const FILTERS = [...OPTIONS.map((o) => o.value as string), 'standings'];
 
 export default function Risultati() {
   const { c } = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams<{ filter?: string }>();
-  const [filter, setFilter] = useState<Filter>('all');
+  const [filter, setFilter] = useState<Filter>('future');
   const { matches, standings, loading, refresh } = useData();
   const live = useLive();
 
@@ -38,13 +41,22 @@ export default function Risultati() {
     const sorted = [...matches].sort((a, b) => a.date.localeCompare(b.date));
     if (filter === 'past') return sorted.filter((m) => m.status === 'finished');
     if (filter === 'future') return sorted.filter((m) => m.status === 'scheduled' || m.status === 'live' || m.status === 'postponed');
+    if (filter === 'a3') return sorted.filter((m) => m.competition?.name.includes('Serie A3'));
     return sorted;
   }, [matches, filter]);
 
   return (
     <Screen onRefresh={refresh} refreshing={loading}>
       <SectionHeader big title="Risultati" subtitle="Calendario e classifica Serie A3 femminile, girone B." />
-      <SegmentedControl options={OPTIONS} value={filter} onChange={setFilter} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View style={{ flexShrink: 1 }}>
+          {/* con la classifica aperta nessuna pillola è evidenziata */}
+          <SegmentedControl options={OPTIONS} value={filter === 'standings' ? null : filter} onChange={setFilter} />
+        </View>
+        <IconButton label="Classifica" size={44} active={filter === 'standings'} onPress={() => setFilter('standings')}>
+          <Trophy size={19} color={filter === 'standings' ? palette.onGold : c.accent} />
+        </IconButton>
+      </View>
       {filter === 'standings' ? (
         <Card style={{ gap: 6 }}>
           <SectionHeader title="Classifica" subtitle="Serie A3, girone B" />
