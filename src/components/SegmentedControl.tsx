@@ -6,7 +6,8 @@ import { useTheme } from '@/theme/ThemeProvider';
 
 interface Props<T extends string> {
   options: { value: T; label: string }[];
-  value: T;
+  /** null: nessuna opzione selezionata (indicatore nascosto) */
+  value: T | null;
   onChange: (v: T) => void;
   /** true: larghezza piena con segmenti uguali; false: scorrevole */
   stretch?: boolean;
@@ -21,6 +22,10 @@ export function SegmentedControl<T extends string>({ options, value, onChange, s
   const scroll = useRef<ScrollView>(null);
 
   useEffect(() => {
+    if (value == null) {
+      w.setValue(0);
+      return;
+    }
     const l = layouts[value];
     if (!l) return;
     Animated.parallel([

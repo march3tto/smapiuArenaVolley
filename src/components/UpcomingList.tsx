@@ -46,13 +46,13 @@ export function UpcomingList({ matches, onPress }: { matches: Match[]; onPress?:
   );
 }
 
-/** Conto alla rovescia all'inizio della partita, aggiornato ogni secondo; sparisce a partita iniziata */
+/** Conto alla rovescia all'inizio della partita, aggiornato ogni 15 secondi (mostra fino ai minuti); sparisce a partita iniziata */
 function Countdown({ date }: { date: string }) {
   const { c } = useTheme();
   const target = new Date(date).getTime();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
+    const id = setInterval(() => setNow(Date.now()), 15000);
     return () => clearInterval(id);
   }, []);
   const left = Math.floor((target - now) / 1000);
@@ -60,7 +60,6 @@ function Countdown({ date }: { date: string }) {
   const d = Math.floor(left / 86400);
   const h = Math.floor((left % 86400) / 3600);
   const min = Math.floor((left % 3600) / 60);
-  const sec = left % 60;
   const pad = (n: number) => String(n).padStart(2, '0');
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }} accessibilityLabel={`Mancano ${d} giorni, ${h} ore, ${min} minuti`}>
@@ -68,7 +67,7 @@ function Countdown({ date }: { date: string }) {
         <Timer size={16} color={c.accent} />
       </View>
       <Txt w={700} size={12.5} color="accent" tnum numberOfLines={1} style={{ flex: 1 }}>
-        {d > 0 ? `${d}g ` : ''}{pad(h)}h {pad(min)}m {pad(sec)}s
+        {d > 0 ? `${d}g ` : ''}{pad(h)}h {pad(min)}m
       </Txt>
     </View>
   );

@@ -1,6 +1,6 @@
 import { Linking, View } from 'react-native';
 import { Image } from 'expo-image';
-import { Mic, Play } from 'lucide-react-native';
+import { Play } from 'lucide-react-native';
 import { Pressy } from './Pressy';
 import { Txt } from './Txt';
 import { youtubeThumb, youtubeUrl } from '@/lib/api';
@@ -32,9 +32,11 @@ export function MediaList({ items }: { items: MediaItem[] }) {
             style={{ flexDirection: 'row', gap: 12, padding: 10, borderRadius: 18, backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
             <View style={{ width: 112, aspectRatio: 16 / 9, borderRadius: 12, overflow: 'hidden', backgroundColor: c.fill, alignItems: 'center', justifyContent: 'center' }}>
               {cover ? <Image source={cover} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} contentFit="cover" /> : null}
-              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(6,26,58,0.6)', alignItems: 'center', justifyContent: 'center' }}>
-                {video ? <Play size={15} color="#fff" fill="#fff" /> : <Mic size={15} color="#fff" />}
-              </View>
+              {video ? (
+                <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(6,26,58,0.6)', alignItems: 'center', justifyContent: 'center' }}>
+                  <Play size={15} color="#fff" fill="#fff" />
+                </View>
+              ) : null}
             </View>
             <View style={{ flex: 1, justifyContent: 'center', gap: 3 }}>
               <Txt w={700} size={11} color={palette.gold}>{video ? 'VIDEO' : 'PODCAST'}{m.duration ? `  ·  ${m.duration}` : ''}</Txt>

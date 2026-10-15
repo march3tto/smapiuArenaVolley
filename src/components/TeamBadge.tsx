@@ -6,6 +6,7 @@ import { LOGO_AVT, OPPONENT_LOGOS } from '@/data/assets';
 import { TEAM_BADGES, US } from '@/constants';
 import { initials, slugify } from '@/lib/format';
 import { brandGradient } from '@/theme/colors';
+import { useTheme } from '@/theme/ThemeProvider';
 import type { ImgSrc } from '@/types';
 
 interface Props {
@@ -16,6 +17,7 @@ interface Props {
 
 /** Stemma squadra: il nostro logo, il logo dell'avversaria se c'è, altrimenti sigla colorata */
 export function TeamBadge({ name, size = 44, logo: logoProp }: Props) {
+  const { c } = useTheme();
   const logo = logoProp || OPPONENT_LOGOS[slugify(name)];
   const r = Math.round(size * 0.32);
   if (name === US || name.startsWith('Smapiù')) {
@@ -31,7 +33,7 @@ export function TeamBadge({ name, size = 44, logo: logoProp }: Props) {
   }
   if (logo) {
     return (
-      <View style={{ width: size, height: size, borderRadius: r, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }} accessibilityLabel={name}>
+      <View style={{ width: size, height: size, borderRadius: r, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 1.5, borderColor: c.line }} accessibilityLabel={name}>
         <Image source={logo} style={{ width: size * 0.82, height: size * 0.82 }} contentFit="contain" />
       </View>
     );
