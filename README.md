@@ -16,6 +16,15 @@ npx expo start
 
 Poi apri con Expo Go (QR code), oppure premi `i` / `a` / `w` per simulatore iOS, Android o browser.
 
+L'accesso con **Apple e Google** usa moduli nativi e richiede una **development build** (`expo-dev-client`), non
+Expo Go:
+
+```bash
+npx expo run:ios            # oppure: eas build --profile development --platform ios
+npx expo run:android        # oppure: eas build --profile development --platform android
+npx expo start --dev-client
+```
+
 ## Supabase
 
 Imposta in `.env` (stesse variabili del progetto precedente):
@@ -48,11 +57,20 @@ Migrazioni in `supabase/migrations/`.
 - Chi ha fatto punto si deduce dal punteggio degli eventi (timeout e cambi restano neutri).
 - In modalità demo: Impostazioni (rotella) > Anteprima > "Partita in diretta (demo)".
 
-### Accesso
+### Accesso, consensi e GDPR
 
-Email/password con Supabase Auth (tabella `profili` per il ruolo). Google e Apple richiedono la
-configurazione dei provider in Supabase (Authentication > Providers) e un flusso OAuth nativo:
-i pulsanti sono già presenti.
+- Email/password, **Apple** (solo iOS, nativo), **Google** (nativo) e **Facebook** (OAuth nel browser, PKCE) con
+  Supabase Auth: `src/lib/auth.ts`. Sul web solo email.
+- Ogni nuovo utente nasce con ruolo `pubblico` (trigger su `auth.users`); i ruoli si cambiano solo con la RPC
+  `imposta_ruolo_utente`, `admin` solo da SQL.
+- Dopo il login, se mancano la dichiarazione 14 anni o l'informativa nella versione corrente
+  (`PRIVACY_POLICY_VERSION` in `app.config.ts`), l'app mostra l'onboarding consensi bloccante
+  (`src/components/ConsentGate.tsx`). Consensi in `consensi_utente` (append-only).
+- Impostazioni > Account e privacy: consensi, marketing, categoria giovanile, eliminazione account (Edge Function
+  `elimina-account`).
+- La rosa si legge dalla vista `giocatrici_pubbliche`: foto e bio solo con liberatoria (`giocatrici.consenso_foto`).
+
+Configurazione delle console (Supabase, Apple, Google, Meta), secrets e attività manuali: `docs/gdpr/README.md`.
 
 ## Struttura
 
@@ -62,6 +80,9 @@ app/                      rotte (Expo Router)
   login.tsx               accesso / registrazione / ospite
   live.tsx                centro partita (punteggio, set, cronaca)
   settings.tsx            notifiche e anteprima (modale)
+  account.tsx             account e privacy: consensi, categoria, link a elimina-account
+  elimina-account.tsx     cancellazione dell'account
+  auth/callback.tsx       ritorno dal login Facebook
   player/[id].tsx         scheda giocatrice (modale)
   (tabs)/                 Home, Risultati, Squadra, Giovanili, News, Altro
 src/

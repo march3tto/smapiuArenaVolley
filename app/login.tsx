@@ -1,16 +1,22 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Animated, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View, useWindowDimensions, type TextInputProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { Check, Eye, EyeOff, Mail, User } from 'lucide-react-native';
 import { Arches } from '@/components/Arches';
 import { Button } from '@/components/Button';
+import { Checkbox } from '@/components/Checkbox';
+import { FacebookIcon } from '@/components/FacebookIcon';
+import { GoogleIcon } from '@/components/GoogleIcon';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { Txt } from '@/components/Txt';
 import { useToast } from '@/components/Toast';
 import { LOGO_AVT } from '@/data/assets';
+import { AccessoAnnullato, PROVIDER_LABEL, providerDisponibili, type SocialProvider } from '@/lib/auth';
+import { apriInformativa } from '@/lib/privacy';
 import { useApp } from '@/store/AppProvider';
 import { brandGradient, FONT, palette } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -29,7 +35,7 @@ function strength(p: string): { lv: number; label: string } {
 }
 
 export default function Login() {
-  const { c } = useTheme();
+  const { c, mode: theme } = useTheme();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const router = useRouter();
@@ -41,12 +47,21 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [pass, setPass] = useState('');
   const [show, setShow] = useState(false);
-  const [errors, setErrors] = useState<Partial<Record<'name' | 'email' | 'pass' | 'form', string>>>({});
-  const [busy, setBusy] = useState<null | 'form' | 'google' | 'apple'>(null);
+  // registrazione: dichiarazione 14 anni e informativa obbligatorie, marketing facoltativo (mai preselezionato)
+  const [eta, setEta] = useState(false);
+  const [privacy, setPrivacy] = useState(false);
+  const [marketing, setMarketing] = useState(false);
+  const [errors, setErrors] = useState<Partial<Record<'name' | 'email' | 'pass' | 'consents' | 'form', string>>>({});
+  const [busy, setBusy] = useState<null | 'form' | SocialProvider>(null);
+  const [socials, setSocials] = useState<SocialProvider[]>([]);
   const [done, setDone] = useState(false);
   const shake = useRef(new Animated.Value(0)).current;
   const st = useMemo(() => strength(pass), [pass]);
   const reg = mode === 'register';
+
+  useEffect(() => {
+    providerDisponibili().then(setSocials);
+  }, []);
 
   const doShake = () => {
     shake.setValue(0);
@@ -60,16 +75,24 @@ export default function Login() {
 
   const submit = async () => {
     const e: typeof errors = {};
-    if (reg && !name.trim()) e.name = 'Scrivi il tuo nome.';
+    if (reg && !name.trim()) e.name = 'Scrivi nome e cognome.';
     if (!email.trim()) e.email = "Inserisci l'email.";
     else if (!EMAIL_RE.test(email.trim())) e.email = 'Email non valida: controlla che contenga @ e un dominio.';
     if (!pass) e.pass = 'Inserisci la password.';
     else if (pass.length < (reg ? 8 : 6)) e.pass = reg ? 'La password deve avere almeno 8 caratteri.' : 'Password troppo corta.';
+    if (reg && (!eta || !privacy)) e.consents = 'Per registrarti servono le due conferme obbligatorie.';
     setErrors(e);
     if (Object.keys(e).length) return doShake();
     setBusy('form');
     try {
-      const u = reg ? await signUp(name.trim(), email.trim(), pass) : await signIn(email.trim(), pass);
+      const u = reg ? await signUp(name.trim(), email.trim(), pass, marketing) : await signIn(email.trim(), pass);
+      if (!u) {
+        // conferma dell'email attiva: si accede dopo aver aperto il link
+        toast.show(`Ti abbiamo inviato un'email a ${email.trim()}: conferma l'indirizzo e poi accedi.`, Mail);
+        setMode('login');
+        setPass('');
+        return;
+      }
       setDone(true);
       setTimeout(() => enter(reg ? `Account creato. Ciao ${u.name}, sei in squadra!` : `Ciao ${u.name}!`), 500);
     } catch (err) {
@@ -80,13 +103,14 @@ export default function Login() {
     }
   };
 
-  const provider = async (p: 'google' | 'apple') => {
+  const provider = async (p: SocialProvider) => {
+    if (busy) return;
     setBusy(p);
     try {
       await signInWithProvider(p);
-      enter(`Accesso effettuato con ${p === 'google' ? 'Google' : 'Apple'}.`);
+      enter(`Accesso effettuato con ${PROVIDER_LABEL[p]}.`);
     } catch (err) {
-      toast.show(err instanceof Error ? err.message : 'Accesso non riuscito.');
+      if (!(err instanceof AccessoAnnullato)) toast.show(err instanceof Error ? err.message : 'Accesso non riuscito.');
     } finally {
       setBusy(null);
     }
@@ -113,6 +137,8 @@ export default function Login() {
   const wide = width >= 900;
   // su telefono la schermata deve stare tutta nello schermo, senza scorrere: sugli schermi bassi si compatta ancora
   const short = !wide && height < 760;
+  // altezza dei pulsanti social, uguale a quella di Button (sm 38, md 46)
+  const socialH = short ? 38 : 46;
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: c.bg }}>
@@ -151,7 +177,7 @@ export default function Login() {
                 <Txt size={14} color="muted" style={{ marginTop: 4 }}>{reg ? 'Bastano pochi secondi, ed è gratis.' : 'Inserisci email e password.'}</Txt>
               </View> : null}
 
-              {reg ? <Field label="Nome" value={name} onChangeText={(t) => { setName(t); setErrors((e) => ({ ...e, name: undefined })); }} error={errors.name} compact={!wide} autoComplete="name" right={<User size={18} color={c.muted} />} /> : null}
+              {reg ? <Field label="Nome e cognome" value={name} onChangeText={(t) => { setName(t); setErrors((e) => ({ ...e, name: undefined })); }} error={errors.name} compact={!wide} autoComplete="name" right={<User size={18} color={c.muted} />} /> : null}
               <Field label="Email" value={email} onChangeText={(t) => { setEmail(t); setErrors((e) => ({ ...e, email: undefined })); }} error={errors.email} compact={!wide} keyboardType="email-address" autoCapitalize="none" autoComplete="email" right={<Mail size={18} color={c.muted} />} />
               <Field label="Password" value={pass} onChangeText={(t) => { setPass(t); setErrors((e) => ({ ...e, pass: undefined })); }} error={errors.pass} compact={!wide} secureTextEntry={!show} autoCapitalize="none" autoComplete={reg ? 'new-password' : 'current-password'}
                 right={<Pressable onPress={() => setShow((s) => !s)} hitSlop={10} accessibilityLabel={show ? 'Nascondi password' : 'Mostra password'}>{show ? <EyeOff size={18} color={c.muted} /> : <Eye size={18} color={c.muted} />}</Pressable>} />
@@ -171,20 +197,52 @@ export default function Login() {
                 </Pressable>
               )}
 
+              {reg ? (
+                <View style={{ gap: 8 }}>
+                  <Checkbox checked={eta} onChange={(v) => { setEta(v); setErrors((e) => ({ ...e, consents: undefined })); }} error={!!errors.consents && !eta}>
+                    <Txt size={13} style={{ lineHeight: 18 }}>Dichiaro di avere almeno 14 anni</Txt>
+                  </Checkbox>
+                  <Checkbox checked={privacy} onChange={(v) => { setPrivacy(v); setErrors((e) => ({ ...e, consents: undefined })); }} error={!!errors.consents && !privacy}>
+                    <Txt size={13} style={{ lineHeight: 18 }}>
+                      Ho letto l’<Txt size={13} w={700} color="cobalt" style={{ textDecorationLine: 'underline' }} onPress={apriInformativa} accessibilityRole="link">informativa privacy</Txt>
+                    </Txt>
+                  </Checkbox>
+                  <Checkbox checked={marketing} onChange={setMarketing}>
+                    <Txt size={13} style={{ lineHeight: 18 }}>Acconsento a ricevere comunicazioni promozionali della società e dei suoi sponsor (facoltativo)</Txt>
+                  </Checkbox>
+                  {errors.consents ? <Txt size={12.5} color="danger">{errors.consents}</Txt> : null}
+                </View>
+              ) : null}
+
               {errors.form ? <Txt size={13} color="danger">{errors.form}</Txt> : null}
 
               <Button label={done ? 'Fatto' : reg ? 'Crea account' : 'Accedi'} variant={done ? 'ok' : 'gold'} size={wide ? 'lg' : 'md'} loading={busy === 'form'} onPress={submit}
                 icon={done ? <Check size={18} color="#fff" /> : undefined} />
 
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <View style={{ flex: 1, height: 1, backgroundColor: c.line }} />
-                <Txt size={13} color="muted">oppure</Txt>
-                <View style={{ flex: 1, height: 1, backgroundColor: c.line }} />
-              </View>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <Button label="Google" style={{ flex: 1 }} loading={busy === 'google'} onPress={() => provider('google')} />
-                <Button label="Apple" style={{ flex: 1 }} loading={busy === 'apple'} onPress={() => provider('apple')} />
-              </View>
+              {socials.length ? (
+                <>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <View style={{ flex: 1, height: 1, backgroundColor: c.line }} />
+                    <Txt size={13} color="muted">oppure</Txt>
+                    <View style={{ flex: 1, height: 1, backgroundColor: c.line }} />
+                  </View>
+                  {/* stessa misura ed evidenza per tutti i provider (App Store, guideline 4.8) */}
+                  <View style={{ gap: 8 }}>
+                    {socials.map((p) => p === 'apple' ? (
+                      <AppleAuthentication.AppleAuthenticationButton key={p}
+                        buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+                        buttonStyle={theme === 'dark' ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                        cornerRadius={socialH / 2} style={{ width: '100%', height: socialH, opacity: busy && busy !== p ? 0.5 : 1 }} onPress={() => provider(p)} />
+                    ) : (
+                      <Button key={p} label={`Continua con ${PROVIDER_LABEL[p]}`} size={short ? 'sm' : 'md'} loading={busy === p} disabled={!!busy && busy !== p} onPress={() => provider(p)}
+                        icon={p === 'google' ? <GoogleIcon size={17} /> : <FacebookIcon size={18} color={c.text} />} />
+                    ))}
+                  </View>
+                  <Txt size={12} color="muted" center style={{ lineHeight: 17 }}>
+                    Continuando accetti l’<Txt size={12} w={700} color="cobalt" style={{ textDecorationLine: 'underline' }} onPress={apriInformativa} accessibilityRole="link">informativa privacy</Txt>
+                  </Txt>
+                </>
+              ) : null}
               <Pressable onPress={guest} style={{ alignSelf: 'center', paddingVertical: wide ? 4 : 2 }} hitSlop={8}>
                 <Txt w={600} size={14} color="muted">Continua senza account</Txt>
               </Pressable>

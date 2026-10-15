@@ -8,7 +8,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 interface Props {
   label: string;
   onPress?: () => void;
-  variant?: 'gold' | 'ghost' | 'ok';
+  variant?: 'gold' | 'ghost' | 'ok' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   icon?: ReactNode;
   loading?: boolean;
@@ -20,8 +20,8 @@ interface Props {
 export function Button({ label, onPress, variant = 'ghost', size = 'md', icon, loading, disabled, style, accessibilityLabel }: Props) {
   const { c } = useTheme();
   const h = size === 'sm' ? 38 : size === 'lg' ? 54 : 46;
-  const bg = variant === 'gold' ? palette.gold : variant === 'ok' ? c.ok : c.fill;
-  const fg = variant === 'gold' ? palette.onGold : variant === 'ok' ? '#fff' : c.text;
+  const bg = variant === 'gold' ? palette.gold : variant === 'ok' ? c.ok : variant === 'danger' ? c.danger : c.fill;
+  const fg = variant === 'gold' ? palette.onGold : variant === 'ok' || variant === 'danger' ? '#fff' : c.text;
   return (
     <Pressy
       onPress={disabled || loading ? undefined : onPress}

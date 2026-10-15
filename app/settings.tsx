@@ -3,7 +3,7 @@ import { Animated, Platform, Pressable, ScrollView, Switch, View, useWindowDimen
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
-import { Moon, Settings as SettingsIcon, Sun, Volleyball, X } from 'lucide-react-native';
+import { ChevronRight, Moon, Settings as SettingsIcon, ShieldCheck, Sun, Volleyball, X } from 'lucide-react-native';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { Txt } from '@/components/Txt';
@@ -104,6 +104,17 @@ export default function Settings() {
               </View>
               <Switch value={demoLive} onValueChange={setDemoLive} trackColor={{ true: palette.gold, false: c.fill2 }} thumbColor="#fff" style={SMALL_SWITCH} />
             </View>
+
+            <Group title="Account" />
+            <Pressable onPress={() => router.push('/account')} accessibilityRole="button"
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderTopWidth: 1, borderTopColor: c.line }}>
+              <ShieldCheck size={17} color={c.accent} />
+              <View style={{ flex: 1 }}>
+                <Txt w={600} size={14}>Account e privacy</Txt>
+                <Txt size={12} color="muted">{user ? 'Consensi, informativa, elimina account' : 'Informativa privacy'}</Txt>
+              </View>
+              <ChevronRight size={17} color={c.muted} />
+            </Pressable>
 
             {user ? (
               <Button size="sm" label={`Esci (${user.email})`} style={{ marginTop: 12 }} onPress={async () => { await signOut(); toast.show("Sei uscito dall'account."); router.replace('/login'); }} />

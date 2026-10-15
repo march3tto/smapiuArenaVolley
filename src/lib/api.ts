@@ -18,6 +18,8 @@ export const T = {
   formazioni: 'formazioni_partita',
   classifiche: 'classifiche',
   giocatrici: 'giocatrici',
+  /** Vista pubblica della rosa: foto e bio solo con la liberatoria (migrazione 20261016000200_consensi_e_foto) */
+  giocatriciPubbliche: 'giocatrici_pubbliche',
   staff: 'staff',
   categorie: 'categorie_giovanili',
   notizie: 'notizie',
@@ -144,7 +146,8 @@ function mapPlayer(r: Row): Player {
     lastName: last,
     role: (str(r.ruolo, 'schiacciatrice') as PlayerRole),
     number: num(r.numero_maglia),
-    photo: image(r.foto_url, PLAYER_PHOTOS, slugify(`${first} ${last}`)),
+    // senza liberatoria niente foto, nemmeno quella inclusa nell'app: si mostra il segnaposto con il numero di maglia
+    photo: r.consenso_foto === true ? image(r.foto_url, PLAYER_PHOTOS, slugify(`${first} ${last}`)) : '',
     bio: (r.bio as string | null) ?? null,
     status: null,
     born,
@@ -273,9 +276,9 @@ export async function loadAll(): Promise<AppData> {
   const [partite, classifiche, giocatrici, regionali, notizie, sponsor, categorie, staff, media, campionati] = await Promise.all([
     db.from(T.partite).select(`*, ${T.setPartita}(*)`).in('stagione_id', ids).order('data_partita'),
     db.from(T.classifiche).select('*').in('stagione_id', ids).order('posizione'),
-    // la tabella contiene anche le rose delle avversarie: solo le giocatrici della squadra con nostra_squadra = true
-    db.from(T.giocatrici).select('*, squadre!squadra_id!inner(nostra_squadra)').in('stagione_id', ids).eq('livello_squadra', 'prima_squadra').eq('attiva', true).eq('squadre.nostra_squadra', true).order('ordine'),
-    db.from(T.giocatrici).select('*').in('stagione_id', ids).in('livello_squadra', ['serie_b2', 'serie_d']).eq('attiva', true).order('ordine'),
+    // la vista contiene anche le rose delle avversarie: solo le giocatrici della squadra con nostra_squadra = true
+    db.from(T.giocatriciPubbliche).select('*').in('stagione_id', ids).eq('livello_squadra', 'prima_squadra').eq('attiva', true).eq('nostra_squadra', true).order('ordine'),
+    db.from(T.giocatriciPubbliche).select('*').in('stagione_id', ids).in('livello_squadra', ['serie_b2', 'serie_d']).eq('attiva', true).order('ordine'),
     db.from(T.notizie).select('*').eq('pubblicata', true).order('pubblicato_il', { ascending: false }).limit(30),
     db.from(T.sponsor).select('*').eq('attivo', true).order('ordine'),
     db.from(T.categorie).select('*').order('ordine'),

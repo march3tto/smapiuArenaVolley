@@ -21,6 +21,8 @@ export const supabase: SupabaseClient | null =
           autoRefreshToken: !noWindow(),
           persistSession: true,
           detectSessionInUrl: false,
+          // login Facebook (OAuth nel browser): il ritorno all'app porta un ?code= da scambiare con exchangeCodeForSession
+          flowType: 'pkce',
         },
       })
     : null;

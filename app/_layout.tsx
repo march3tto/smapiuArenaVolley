@@ -13,6 +13,7 @@ import { AppProvider, useApp } from '@/store/AppProvider';
 import { DataProvider } from '@/store/DataProvider';
 import { LiveProvider } from '@/store/LiveProvider';
 import { LineupProvider } from '@/store/LineupProvider';
+import { ConsentGate } from '@/components/ConsentGate';
 import { ToastProvider } from '@/components/Toast';
 import { FONT } from '@/theme/colors';
 import { useNotifichePush } from '@/notifications';
@@ -52,7 +53,7 @@ export default function RootLayout() {
 
 function RootStack() {
   const { c, mode } = useTheme();
-  const { ready, user, prefs } = useApp();
+  const { ready, user, prefs, consentStatus } = useApp();
   useNotifichePush({ ready, userId: user?.id ?? null, enabled: prefs.enabled });
   const header = {
     headerShown: true,
@@ -76,7 +77,13 @@ function RootStack() {
         {/* riquadro in basso sopra la schermata corrente, non a tutto schermo */}
         <Stack.Screen name="settings" options={{ presentation: 'transparentModal', animation: 'fade', contentStyle: { backgroundColor: 'transparent' } }} />
         <Stack.Screen name="info/[section]" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="account" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="elimina-account" options={{ presentation: 'modal' }} />
+        {/* ritorno dal login Facebook su Android: il codice lo gestisce già openAuthSessionAsync */}
+        <Stack.Screen name="auth/callback" options={{ animation: 'none' }} />
       </Stack>
+      {/* sopra tutto (navigazione compresa) finché mancano i consensi obbligatori */}
+      {user && consentStatus === 'mancanti' ? <ConsentGate /> : null}
     </>
   );
 }
