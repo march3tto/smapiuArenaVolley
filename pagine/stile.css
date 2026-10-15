@@ -1,0 +1,64 @@
+/* Pagine pubbliche dell'app Arena Volley (GitHub Pages): colori del brand, chiaro e scuro */
+:root {
+  --sfondo: #F2F5FA;
+  --carta: #FFFFFF;
+  --testo: #0C1D3A;
+  --tenue: #33456A;
+  --bordo: #D9DDE4;
+  --link: #115BAB;
+  --giallo: #FFD503;
+  --blu-notte: #061A3A;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sfondo: #061A3A;
+    --carta: #0B3166;
+    --testo: #FFFFFF;
+    --tenue: #B9C6DC;
+    --bordo: rgba(255, 255, 255, 0.14);
+    --link: #FFD503;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--sfondo);
+  color: var(--testo);
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+header {
+  background: var(--blu-notte);
+  color: #fff;
+  padding: 28px 16px 24px;
+  border-bottom: 4px solid var(--giallo);
+}
+header .contenuto { max-width: 760px; margin: 0 auto; }
+header p { margin: 0; color: #D6E4F7; font-size: 14px; }
+header h1 { margin: 6px 0 0; font-size: 28px; line-height: 1.2; }
+main { max-width: 760px; margin: 0 auto; padding: 16px; }
+section {
+  background: var(--carta);
+  border: 1px solid var(--bordo);
+  border-radius: 16px;
+  padding: 4px 20px 12px;
+  margin: 16px 0;
+}
+h2 { font-size: 19px; line-height: 1.3; margin: 18px 0 8px; }
+h3 { font-size: 16px; margin: 16px 0 6px; }
+p, li { color: var(--testo); }
+.tenue, small { color: var(--tenue); }
+a { color: var(--link); text-underline-offset: 2px; }
+ul, ol { padding-left: 22px; }
+li { margin: 4px 0; }
+table { width: 100%; border-collapse: collapse; font-size: 15px; margin: 8px 0 12px; }
+th, td { text-align: left; vertical-align: top; padding: 8px 8px 8px 0; border-top: 1px solid var(--bordo); }
+th { width: 34%; color: var(--tenue); font-weight: 600; }
+.tabella { overflow-x: auto; }
+footer { max-width: 760px; margin: 0 auto; padding: 8px 16px 32px; font-size: 14px; color: var(--tenue); }
+@media (max-width: 560px) {
+  header h1 { font-size: 24px; }
+  section { padding: 2px 16px 10px; }
+  th, td { display: block; width: 100%; padding: 6px 0; }
+  td { border-top: 0; padding-top: 0; }
+}

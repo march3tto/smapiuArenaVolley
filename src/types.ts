@@ -180,6 +180,12 @@ export interface AppUser {
   name: string;
   email: string;
   role?: 'public' | 'parent' | 'staff' | 'admin';
+  /** false se nome e cognome non sono noti (il nome mostrato viene dall'email) */
+  hasName?: boolean;
+  /** Metodi di accesso collegati all'account */
+  providers?: ('email' | 'apple' | 'google' | 'facebook')[];
+  /** Categoria giovanile di interesse (profili.categoria_giovanile_id), scelta dai genitori */
+  youthCategoryId?: string | null;
 }
 
 export interface NotifPrefs {

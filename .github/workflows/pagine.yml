@@ -1,0 +1,34 @@
+# Pubblica la cartella pagine/ su GitHub Pages: informativa privacy e pagina "Elimina account"
+# (https://march3tto.github.io/smapiuArenaVolley/privacy/ e /elimina-account/).
+# Una volta sola: Settings > Pages > Build and deployment > Source = "GitHub Actions".
+name: Pagine pubbliche
+
+on:
+  push:
+    branches: [main]
+    paths: ['pagine/**', '.github/workflows/pagine.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  pubblica:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: pagine
+      - id: deployment
+        uses: actions/deploy-pages@v4
