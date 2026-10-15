@@ -19,7 +19,7 @@
 
 | Soggetto | Ruolo | Servizio | Luogo / trasferimenti | Garanzie |
 |---|---|---|---|---|
-| Supabase Inc. | Responsabile (art. 28) | Database, autenticazione, Storage, Edge Functions, Realtime | Progetto in **eu-west-1 (Irlanda)**, infrastruttura AWS; accessi di supporto e sub-responsabili anche USA | DPA Supabase [DA ACCETTARE], SCC / Data Privacy Framework |
+| Supabase Inc. | Responsabile (art. 28) | Database, autenticazione, Storage, Edge Functions, Realtime | Progetto in **eu-west-1 (Irlanda)**, infrastruttura AWS; accessi di supporto e sub-responsabili anche USA | DPA Supabase (parte dei Termini di servizio, copia PDF archiviata), SCC incluse nel DPA |
 | 650 Industries Inc. (Expo) | Responsabile | Invio notifiche push (Expo Push Service), build dell'app (EAS) | USA | DPA Expo [DA VERIFICARE], SCC / DPF |
 | Apple Inc. / Google LLC | Destinatari tecnici per le push | Recapito delle notifiche (APNs, Firebase Cloud Messaging) tramite Expo | USA / UE | Condizioni delle piattaforme |
 | Groq Inc. | Responsabile | Generazione delle frasi di cronaca live (Edge Function `cronaca-ai`) | USA | DPA [DA VERIFICARE], SCC |

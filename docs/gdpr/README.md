@@ -6,6 +6,8 @@ console, secrets, pubblicazione di pagine, verifiche con il consulente privacy.
 
 Altri documenti:
 
+- [../DA_FARE.md](../DA_FARE.md) — **elenco aggiornato di ciò che resta da fare** (oggi l'app offre solo l'accesso con email)
+
 - [registro-trattamenti.md](registro-trattamenti.md) — bozza del registro dei trattamenti (art. 30 GDPR)
 - [eliminazione-account.md](eliminazione-account.md) — testo della pagina pubblica "Elimina account" (Google Play, Meta)
 
@@ -143,7 +145,8 @@ where id = (select id from auth.users where email = 'nome.cognome@esempio.it');
 
 ## 4. Supabase (pannello)
 
-- **DPA**: Organization settings > Legal documents: firmare/accettare il Data Processing Addendum.
+- **DPA**: non va firmato a parte, fa parte dei Termini di servizio accettati alla creazione del progetto (vale anche
+  come sottoscrizione delle SCC). Salvare in PDF https://supabase.com/legal/dpa con la data e archiviarlo.
 - **Region**: il progetto è in `eu-west-1` (Irlanda). Riportarla nel registro dei trattamenti.
 - **Authentication > Providers**:
   - **Apple**: abilitare; in "Client IDs" inserire il bundle ID `it.arenavolleyteam.app` (login nativo iOS). Il

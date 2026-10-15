@@ -14,6 +14,11 @@
     </div>
   </header>
   <main>
+    <!-- Site URL di Supabase Auth: dopo il link di conferma email si arriva qui con ?code=... oppure ?error_description=... -->
+    <section id="conferma" hidden>
+      <h2 id="conferma-titolo"></h2>
+      <p id="conferma-testo"></p>
+    </section>
     <section>
       <h2>Documenti</h2>
       <ul>
@@ -22,6 +27,20 @@
       </ul>
     </section>
   </main>
+  <script>
+    (function () {
+      var q = new URLSearchParams(location.search + '&' + location.hash.replace(/^#/, ''));
+      var errore = q.get('error_description');
+      if (!errore && !q.get('code') && !q.get('access_token')) return;
+      document.getElementById('conferma').hidden = false;
+      document.getElementById('conferma-titolo').textContent = errore ? 'Link non valido' : 'Email confermata';
+      document.getElementById('conferma-testo').textContent = errore
+        ? 'Il link è scaduto o è già stato usato. Apri l’app e accedi: se serve, richiedi un nuovo link.'
+        : 'Grazie! Ora torna nell’app Arena Volley e accedi con la tua email e la password.';
+      // il codice nell'indirizzo non serve qui: si toglie dalla barra degli indirizzi
+      history.replaceState(null, '', location.pathname);
+    })();
+  </script>
   <footer>Contatti: <a href="mailto:segreteria@arenavolleyteam.it">segreteria@arenavolleyteam.it</a> · <a href="https://arenavolleyteam.it">arenavolleyteam.it</a></footer>
 </body>
 </html>
