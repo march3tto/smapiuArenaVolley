@@ -29,15 +29,21 @@ export class AccessoAnnullato extends Error {
   }
 }
 
-const extra = (Constants.expoConfig?.extra ?? {}) as { googleWebClientId?: string; googleIosClientId?: string };
+const extra = (Constants.expoConfig?.extra ?? {}) as { googleWebClientId?: string; googleIosClientId?: string; appleLogin?: boolean; facebookLogin?: boolean };
 const inExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 const nativo = Platform.OS === 'ios' || Platform.OS === 'android';
 
-/** Pulsanti da mostrare nella schermata di accesso, nell'ordine */
+/**
+ * Pulsanti da mostrare nella schermata di accesso, nell'ordine. Ogni provider compare solo se attivato in configurazione
+ * (EXPO_PUBLIC_LOGIN_APPLE=1, EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID, EXPO_PUBLIC_LOGIN_FACEBOOK=1): senza nulla, solo email.
+ * App Store 4.8: con Google o Facebook su iOS va attivato anche Apple.
+ */
 export async function providerDisponibili(): Promise<SocialProvider[]> {
   if (!supabase || !nativo) return [];
-  const apple = Platform.OS === 'ios' && (await AppleAuthentication.isAvailableAsync().catch(() => false));
-  return [...(apple ? (['apple'] as const) : []), 'google', 'facebook'];
+  const apple = !!extra.appleLogin && Platform.OS === 'ios' && (await AppleAuthentication.isAvailableAsync().catch(() => false));
+  const google = !!extra.googleWebClientId && !inExpoGo;
+  const facebook = !!extra.facebookLogin;
+  return [...(apple ? (['apple'] as const) : []), ...(google ? (['google'] as const) : []), ...(facebook ? (['facebook'] as const) : [])];
 }
 
 /** Metodo con cui l'utente ha fatto l'ultimo accesso su questo dispositivo (per il registro dei consensi) */

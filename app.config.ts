@@ -35,6 +35,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       privacyPolicyVersion: PRIVACY_POLICY_VERSION,
       googleWebClientId,
       googleIosClientId,
+      // accessi social da attivare solo dopo aver configurato i provider (vedi docs/DA_FARE.md)
+      appleLogin: process.env.EXPO_PUBLIC_LOGIN_APPLE === '1',
+      facebookLogin: process.env.EXPO_PUBLIC_LOGIN_FACEBOOK === '1',
     },
   };
 };
