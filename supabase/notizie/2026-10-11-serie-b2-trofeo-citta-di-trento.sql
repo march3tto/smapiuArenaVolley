@@ -1,0 +1,4 @@
+insert into public.notizie (titolo, categoria, corpo, url_immagine_copertina, autore, pubblicato_il, pubblicata)
+select E'Serie B2, nostro il 39° Trofeo Città di Trento', 'giovanili', E'Le ragazze della B2 conquistano la 39ª edizione del Trofeo Città di Trento – Memorial Sandro Baratto, un triangolare che le ha viste opposte al Volano (Serie B1) e al Torrefranca (Serie B2). Un buon viatico per il prossimo inizio del campionato. Brave ragazze!\n\nRisultati:\nTorrefranca - Volano 2-1\nVolano - Arena 2-1\nTorrefranca - Arena 0-2\n\nClassifica:\nArena 4 punti\nVolano 3 punti\nTorrefranca 2 punti',
+       'news/2026-10-11-serie-b2-trofeo-citta-di-trento.jpg', E'Arena Volley Team', '2026-10-11 10:00:00+00', true
+where not exists (select 1 from public.notizie where url_immagine_copertina = 'news/2026-10-11-serie-b2-trofeo-citta-di-trento.jpg');
