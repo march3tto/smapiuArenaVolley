@@ -1,0 +1,4 @@
+insert into public.notizie (titolo, categoria, corpo, url_immagine_copertina, autore, pubblicato_il, pubblicata)
+select E'Serie D, Coppa Veneto: vittoria 3-1 contro Iper Volley', 'giovanili', E'Terza sfida di Coppa Veneto per le nostre ragazze di Serie D. Una bella vittoria contro Iper Volley dopo la vittoria di Peschiera.\n\nSITTA Arena - Iper Volley 3-1 (25-22, 25-22, 18-25, 26-24).\n\nSabato 17, a Palazzolo, l''ultima sfida del girone. Tre buone prove per le nostre ragazze, guidate da Luca Beltrame e Mattia Donato, in vista della partenza del campionato di Serie D!',
+       'news/2026-10-12-serie-d-coppa-veneto-iper-volley.jpg', E'Arena Volley Team', '2026-10-12 10:00:00+00', true
+where not exists (select 1 from public.notizie where url_immagine_copertina = 'news/2026-10-12-serie-d-coppa-veneto-iper-volley.jpg');

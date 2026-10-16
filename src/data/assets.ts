@@ -103,4 +103,6 @@ export const NEWS_IMAGES: Record<string, number> = {
   '2026-09-14-capitana-beatrice-giroldi': require('../../assets/news/2026-09-14-capitana-beatrice-giroldi.jpg'),
   '2026-09-16-calendario-serie-a3-2026-27': require('../../assets/news/2026-09-16-calendario-serie-a3-2026-27.jpg'),
   '2026-09-26-inside-the-game': require('../../assets/news/2026-09-26-inside-the-game.jpg'),
+  '2026-10-11-serie-b2-trofeo-citta-di-trento': require('../../assets/news/2026-10-11-serie-b2-trofeo-citta-di-trento.jpg'),
+  '2026-10-12-serie-d-coppa-veneto-iper-volley': require('../../assets/news/2026-10-12-serie-d-coppa-veneto-iper-volley.jpg'),
 };

@@ -39,3 +39,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# screenshot da trasformare in news (skill news-da-screenshot)
+news-inbox/*
+!news-inbox/.gitkeep
