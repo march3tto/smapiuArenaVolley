@@ -43,3 +43,6 @@ yarn-error.*
 # screenshot da trasformare in news (skill news-da-screenshot)
 news-inbox/*
 !news-inbox/.gitkeep
+
+# Python
+__pycache__/
