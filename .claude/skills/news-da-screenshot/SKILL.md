@@ -1,6 +1,6 @@
 ---
 name: news-da-screenshot
-description: Trasforma gli screenshot di post (Instagram/Facebook) messi in news-inbox/ in news per l'app — copertina jpg, query SQL per public.notizie, voce in NEWS_IMAGES — ed elimina lo screenshot sorgente. Usala quando l'utente chiede di elaborare la cartella news-inbox o di creare news da screenshot.
+description: Trasforma gli screenshot di post (Instagram/Facebook) messi in news-inbox/ in news per l'app — copertina jpg caricata nel bucket news di Supabase Storage, query SQL per public.notizie — ed elimina lo screenshot sorgente. Usala quando l'utente chiede di elaborare la cartella news-inbox o di creare news da screenshot.
 ---
 
 # News da screenshot
@@ -27,7 +27,8 @@ Elabora **ogni** immagine (`.png`, `.jpg`, `.jpeg`, `.heic` esclusi i file nasco
      --data AAAA-MM-GG --slug <slug> --titolo "<titolo>" \
      --categoria <categoria> --corpo-file /tmp/corpo.txt
    ```
-   Lo script salva `assets/news/<data>-<slug>.jpg`, scrive `supabase/notizie/<data>-<slug>.sql` (INSERT idempotente), aggiunge la voce a `NEWS_IMAGES` in `src/data/assets.ts` e **solo dopo aver verificato i file** elimina lo screenshot. Se un passo fallisce lo screenshot resta in `news-inbox/`.
+   Lo script salva `supabase/notizie/<data>-<slug>.jpg`, scrive `supabase/notizie/<data>-<slug>.sql` (INSERT idempotente), carica la copertina nel bucket pubblico `news` dello Storage Supabase e **solo dopo aver verificato i file** elimina lo screenshot. L'app legge le copertine **solo** dallo Storage (`url_immagine_copertina = "news/<file>.jpg"`): non vanno mai messe in `assets/` né registrate in `src/data/assets.ts`.
+   Il caricamento richiede `SUPABASE_SERVICE_ROLE_KEY` nell'ambiente (mai nel `.env` dell'app); se manca, lo script lo segnala e la copertina va caricata a mano nel bucket `news`. Se un passo fallisce lo screenshot resta in `news-inbox/`.
 
 ## Regole
 
@@ -37,4 +38,4 @@ Elabora **ogni** immagine (`.png`, `.jpg`, `.jpeg`, `.heic` esclusi i file nasco
 
 ## Riepilogo finale
 
-Una riga per news: titolo, categoria, data (indicando che è stimata dal tempo relativo, e che l'ora 10:00 è convenzionale), file creati. Poi l'elenco degli screenshot rimasti in `news-inbox/` con il motivo.
+Una riga per news: titolo, categoria, data (indicando che è stimata dal tempo relativo, e che l'ora 10:00 è convenzionale), file creati, esito del caricamento su Storage. Poi l'elenco degli screenshot rimasti in `news-inbox/` con il motivo.

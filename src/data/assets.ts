@@ -95,14 +95,3 @@ export const OPPONENT_LOGOS: Record<string, number> = {
   'zero5-castellana-grotte': require('../../assets/opponents/zero5-castellana-grotte.jpg'),
 };
 
-/** Copertine delle notizie, per nome file (notizie.url_immagine_copertina = "news/<file>.jpg") */
-export const NEWS_IMAGES: Record<string, number> = {
-  '2026-08-16-nasce-arena-volley-young': require('../../assets/news/2026-08-16-nasce-arena-volley-young.jpg'),
-  '2026-08-27-libro-finalmente-in-serie-a': require('../../assets/news/2026-08-27-libro-finalmente-in-serie-a.jpg'),
-  '2026-09-02-nuova-casa-palazzetto-vigasio': require('../../assets/news/2026-09-02-nuova-casa-palazzetto-vigasio.jpg'),
-  '2026-09-14-capitana-beatrice-giroldi': require('../../assets/news/2026-09-14-capitana-beatrice-giroldi.jpg'),
-  '2026-09-16-calendario-serie-a3-2026-27': require('../../assets/news/2026-09-16-calendario-serie-a3-2026-27.jpg'),
-  '2026-09-26-inside-the-game': require('../../assets/news/2026-09-26-inside-the-game.jpg'),
-  '2026-10-11-serie-b2-trofeo-citta-di-trento': require('../../assets/news/2026-10-11-serie-b2-trofeo-citta-di-trento.jpg'),
-  '2026-10-12-serie-d-coppa-veneto-iper-volley': require('../../assets/news/2026-10-12-serie-d-coppa-veneto-iper-volley.jpg'),
-};

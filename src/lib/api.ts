@@ -2,7 +2,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { storageUrl, supabase } from './supabase';
 import { slugify } from './format';
 import * as mock from '@/data/mock';
-import { COMPETITION_LOGOS, NEWS_IMAGES, OPPONENT_LOGOS, PLAYER_PHOTOS, SPONSOR_LOGOS, STAFF_PHOTOS } from '@/data/assets';
+import { COMPETITION_LOGOS, OPPONENT_LOGOS, PLAYER_PHOTOS, SPONSOR_LOGOS, STAFF_PHOTOS } from '@/data/assets';
 import type {
   Competition, ImgSrc, LineupPlayer, LiveEvent, Match, MatchStatus, MediaItem, NewsItem, Player, PlayerRole, PointAction, PointDetail, PointPhase, RegionalRoster, SetScore, Sponsor, SponsorTier, StaffMember, Standing, Venue, YouthTeam,
 } from '@/types';
@@ -167,7 +167,8 @@ function mapNews(r: Row): NewsItem {
     title: str(r.titolo),
     category: CATEGORIA_NOTIZIA[str(r.categoria)] ?? str(r.categoria),
     date: str(r.pubblicato_il),
-    image: image(r.url_immagine_copertina, NEWS_IMAGES),
+    // copertina sempre dallo Storage Supabase (bucket "news"), nessuna immagine inclusa nell'app
+    image: image(r.url_immagine_copertina, {}),
     excerpt: body.length > 160 ? `${body.slice(0, 157)}…` : body,
     body,
   };
