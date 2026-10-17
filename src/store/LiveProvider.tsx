@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
-import { fetchLive, newId, pushLivePoint, subscribeLive, withAction } from '@/lib/api';
+import { LIVE_EVENTS_MAX, fetchLive, newId, pushLivePoint, subscribeLive, withAction } from '@/lib/api';
 import { demoLive as demoInitial } from '@/data/mock';
 import { isSideSwitch, matchWinner, setWinner, setsWon, standingPoints } from '@/lib/volley';
 import { useApp } from './AppProvider';
@@ -103,7 +103,7 @@ function scorePoint(s: LiveState, side: 'us' | 'opp', real = false, detail?: Poi
   if (isSideSwitch(s.set, before, after)) events.unshift(event(`Cambio campo sull'${after.our}–${after.opp}.`, side, 1));
 
   const setWon = setWinner(s.set, after);
-  if (!setWon) return { ...s, ...after, serving: side, events: [...events, ...s.events].slice(0, 80) };
+  if (!setWon) return { ...s, ...after, serving: side, events: [...events, ...s.events].slice(0, LIVE_EVENTS_MAX) };
 
   const history = [...s.history, after];
   const won = setsWon(history);
@@ -112,8 +112,8 @@ function scorePoint(s: LiveState, side: 'us' | 'opp', real = false, detail?: Poi
     ? `Fine partita: ${won.our}–${won.opp}${winner === 'us' ? ', vittoria Smapiù!' : '.'}`
     : `Fine ${s.set}° set: ${after.our}–${after.opp}.`, setWon, 2));
   return winner
-    ? { ...s, ...after, history, serving: side, finished: true, events: [...events, ...s.events].slice(0, 80) }
-    : { ...s, set: s.set + 1, our: 0, opp: 0, history, serving: side, events: [...events, ...s.events].slice(0, 80) };
+    ? { ...s, ...after, history, serving: side, finished: true, events: [...events, ...s.events].slice(0, LIVE_EVENTS_MAX) }
+    : { ...s, set: s.set + 1, our: 0, opp: 0, history, serving: side, events: [...events, ...s.events].slice(0, LIVE_EVENTS_MAX) };
 }
 
 /**
