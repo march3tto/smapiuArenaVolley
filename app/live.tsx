@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Linking, ScrollView, View } from 'react-native';
+import { Animated, Linking, ScrollView, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MonitorPlay, Plus, RotateCcw, Trophy, Volleyball } from 'lucide-react-native';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
@@ -7,9 +7,11 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { LineupPanel } from '@/components/LineupPanel';
 import { LiveDot } from '@/components/LiveDot';
+import { MvpPanel } from '@/components/MvpPanel';
 import { PointPicker, type Anchor } from '@/components/PointPicker';
 import { Pressy } from '@/components/Pressy';
 import { SegmentedControl } from '@/components/SegmentedControl';
+import { StatsPanel } from '@/components/StatsPanel';
 import { TeamBadge } from '@/components/TeamBadge';
 import { Txt } from '@/components/Txt';
 import { US } from '@/constants';
@@ -31,7 +33,9 @@ export default function Live() {
   const { user } = useApp();
   // la funzione cronaca-ai accetta solo staff e admin
   const ai = hasSupabase && (user?.role === 'admin' || user?.role === 'staff');
-  const [panel, setPanel] = useState<'cronaca' | 'formazioni'>('cronaca');
+  const [panel, setPanel] = useState<'cronaca' | 'formazioni' | 'mvp' | 'statistiche'>('cronaca');
+  // quattro schede: a larghezza piena solo se le etichette ci stanno, altrimenti scorrono
+  const wide = useWindowDimensions().width >= 480;
   // riquadro del punto aperto dal pulsante + di una squadra
   const [picker, setPicker] = useState<{ side: 'us' | 'opp'; name: string; anchor: Anchor } | null>(null);
 
@@ -50,6 +54,10 @@ export default function Live() {
   const R = { name: home ? m.opponent : US, logo: home ? m.opponentLogo : null, pts: home ? live.opp : live.our, sets: home ? live.oppSets : live.ourSets, serving: (live.serving === 'us') !== home, side: (home ? 'opp' : 'us') as 'us' | 'opp' };
   // a partita finita lo storico contiene già tutti i set
   const rowsSets = live.finished ? live.history : [...live.history, { our: live.our, opp: live.opp }];
+  // al servizio va chi è in zona I dopo le rotazioni del set: col nome si controlla che la rotazione sia giusta
+  const serverOf = (side: 'us' | 'opp') => onCourt(side).find((p) => p.zone === 1) ?? null;
+  // punti totali della partita (tutti i set), per le statistiche di squadra
+  const totals = { us: rowsSets.reduce((n, s) => n + s.our, 0), opp: rowsSets.reduce((n, s) => n + s.opp, 0) };
   const pts = (side: 'us' | 'opp') => (side === 'us' ? live.standing?.our : live.standing?.opp) ?? 0;
   // posizioni attuali in campo: solo nel riquadro del punto, nelle formazioni resta lo Starting Six
   const onCourt = (side: 'us' | 'opp'): LineupPlayer[] => (side === 'us' ? lineup.us : lineup.opp)
@@ -69,14 +77,14 @@ export default function Live() {
             : `${live.set === 5 ? 'Tie-break' : `${live.set}° set`} a ${setTarget(live.set)}, set ${L.sets}–${R.sets}`}
         </Txt>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-          <Side {...L} flash={live.lastPoint?.side === L.side ? live.lastPoint.key : 0} serving={L.serving && !live.finished}
+          <Side {...L} flash={live.lastPoint?.side === L.side ? live.lastPoint.key : 0} serving={L.serving && !live.finished} server={serverOf(L.side)}
             onPlus={live.canScore ? (anchor) => setPicker({ side: L.side, name: L.name, anchor }) : undefined} />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, paddingTop: 8 }}>
             <AnimatedNumber value={live.finished ? L.sets : L.pts} size={48} />
             <Txt w={400} size={34} color="accent">:</Txt>
             <AnimatedNumber value={live.finished ? R.sets : R.pts} size={48} />
           </View>
-          <Side {...R} flash={live.lastPoint?.side === R.side ? live.lastPoint.key : 0} serving={R.serving && !live.finished}
+          <Side {...R} flash={live.lastPoint?.side === R.side ? live.lastPoint.key : 0} serving={R.serving && !live.finished} server={serverOf(R.side)}
             onPlus={live.canScore ? (anchor) => setPicker({ side: R.side, name: R.name, anchor }) : undefined} />
         </View>
 
@@ -128,8 +136,8 @@ export default function Live() {
 
       <Card style={{ gap: 4 }}>
         <View style={{ marginBottom: 10 }}>
-          <SegmentedControl stretch value={panel} onChange={setPanel}
-            options={[{ value: 'cronaca', label: 'Cronaca' }, { value: 'formazioni', label: 'Formazioni' }]} />
+          <SegmentedControl stretch={wide} value={panel} onChange={setPanel}
+            options={[{ value: 'cronaca', label: 'Cronaca' }, { value: 'formazioni', label: 'Formazioni' }, { value: 'mvp', label: 'Vota MVP' }, { value: 'statistiche', label: 'Statistiche' }]} />
         </View>
         {panel === 'cronaca' ? (
           <>
@@ -140,8 +148,13 @@ export default function Live() {
               <FeedItem key={e.id} first={i === 0} last={i === live.events.length - 1} us={e.side === 'us'} meta={`${e.set}° set, ${e.our}–${e.opp}`} text={e.text} detail={e.detail} />
             ))}
           </>
-        ) : (
+        ) : panel === 'formazioni' ? (
           <LineupPanel lineup={lineup} teams={[L, R].map((t) => ({ team: t.side, players: t.side === 'us' ? lineup.us : lineup.opp }))} />
+        ) : panel === 'mvp' ? (
+          <MvpPanel key={m.id} match={m} players={lineup.us} events={live.events} totalPoints={totals.us} finished={live.finished} />
+        ) : (
+          <StatsPanel events={live.events} names={{ us: US, opp: m.opponent }} totals={totals}
+            sets={rowsSets.length} current={live.finished ? live.history.length : live.set} />
         )}
       </Card>
 
@@ -154,7 +167,7 @@ export default function Live() {
   );
 }
 
-function Side({ name, logo, serving, flash, onPlus }: { name: string; logo?: string | number | null; serving: boolean; flash: number; onPlus?: (anchor: Anchor) => void }) {
+function Side({ name, logo, serving, server, flash, onPlus }: { name: string; logo?: string | number | null; serving: boolean; server: LineupPlayer | null; flash: number; onPlus?: (anchor: Anchor) => void }) {
   const { c } = useTheme();
   const plusRef = useRef<View>(null);
   const plus = useRef(new Animated.Value(0)).current;
@@ -179,9 +192,15 @@ function Side({ name, logo, serving, flash, onPlus }: { name: string; logo?: str
       </Animated.Text>
       {/* altezza fissa di due righe: i pulsanti + restano allineati anche con nomi di lunghezza diversa */}
       <Txt w={700} size={12.5} center numberOfLines={2} style={{ paddingHorizontal: 2, minHeight: 33 }}>{name}</Txt>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, opacity: serving ? 1 : 0 }}>
-        <Volleyball size={13} color={c.accent} />
-        <Txt w={600} size={12} color="accent">Al servizio</Txt>
+      <View style={{ alignItems: 'center', opacity: serving ? 1 : 0 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+          <Volleyball size={13} color={c.accent} />
+          <Txt w={600} size={12} color="accent">Al servizio</Txt>
+        </View>
+        {/* riga sempre presente (anche vuota): i pulsanti + restano allineati tra le due squadre */}
+        <Txt size={11.5} color="muted" center numberOfLines={1} style={{ paddingHorizontal: 2 }}>
+          {server ? `${server.number != null ? `#${server.number} ` : ''}${server.name}` : ' '}
+        </Txt>
       </View>
       {onPlus ? (
         // la posizione del + in finestra serve al riquadro del punto per aprirsi da lì

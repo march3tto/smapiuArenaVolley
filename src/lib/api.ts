@@ -16,6 +16,7 @@ export const T = {
   eventiLive: 'eventi_live',
   azioniPunto: 'azioni_punto',
   formazioni: 'formazioni_partita',
+  votiMvp: 'voti_mvp',
   classifiche: 'classifiche',
   giocatrici: 'giocatrici',
   /** Vista pubblica della rosa: foto e bio solo con la liberatoria (migrazione 20261016000200_consensi_e_foto) */
@@ -379,6 +380,9 @@ export function withAction(e: LiveEvent, a: LiveAction | undefined): LiveEvent {
   return a ? { ...e, side: a.side, detail: { ...a.detail, text: e.text } } : e;
 }
 
+/** Eventi di cronaca tenuti per la diretta: abbastanza per una partita intera al tie-break (statistiche e grafico) */
+export const LIVE_EVENTS_MAX = 600;
+
 export interface LiveSnapshot {
   events: LiveEvent[];
   sets: SetScore[];
@@ -388,7 +392,7 @@ export interface LiveSnapshot {
 export async function fetchLive(matchId: string): Promise<LiveSnapshot | null> {
   if (!supabase) return null;
   const [ev, st, az] = await Promise.all([
-    supabase.from(T.eventiLive).select('*').eq('partita_id', matchId).order('creato_il', { ascending: false }).limit(80),
+    supabase.from(T.eventiLive).select('*').eq('partita_id', matchId).order('creato_il', { ascending: false }).limit(LIVE_EVENTS_MAX),
     supabase.from(T.setPartita).select('*').eq('partita_id', matchId).order('numero_set'),
     // tabella facoltativa (migrazione 20261014_azioni_punto): senza, la cronaca resta solo testo
     supabase.from(T.azioniPunto).select('*').eq('partita_id', matchId),
@@ -579,3 +583,38 @@ export function subscribeLineup(matchId: string, onChange: () => void): () => vo
 
 export const youtubeThumb = (id: string) => `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
 export const youtubeUrl = (id: string) => `https://www.youtube.com/watch?v=${id}`;
+
+/** Voti MVP di una partita: conteggi per giocatrice della rosa e voto dell'utente (migrazione 20261017_statistiche_giocatrici_e_mvp) */
+export interface MvpVotes {
+  counts: Record<string, number>;
+  mine: string | null;
+}
+
+export async function fetchMvpVotes(matchId: string, userId: string | null): Promise<MvpVotes | null> {
+  if (!supabase) return null;
+  const [cnt, own] = await Promise.all([
+    supabase.rpc('voti_mvp_partita', { p_partita: matchId }),
+    userId ? supabase.from(T.votiMvp).select('giocatrice_id').eq('partita_id', matchId).eq('utente_id', userId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+  ]);
+  if (cnt.error) throw cnt.error;
+  const counts: Record<string, number> = {};
+  for (const r of (cnt.data as Row[] | null) ?? []) counts[str(r.giocatrice_id)] = num(r.voti) ?? 0;
+  return { counts, mine: ((own.data as Row | null)?.giocatrice_id as string | null) ?? null };
+}
+
+/** Un voto per utente e partita: votare di nuovo cambia la giocatrice scelta */
+export async function voteMvp(matchId: string, userId: string, playerId: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from(T.votiMvp).upsert(
+    { partita_id: matchId, utente_id: userId, giocatrice_id: playerId, aggiornato_il: new Date().toISOString() },
+    { onConflict: 'partita_id,utente_id' },
+  );
+  if (error) throw error;
+}
+
+/** Toglie il voto dell'utente per la partita (policy voti_mvp_cancellazione: solo il proprio) */
+export async function unvoteMvp(matchId: string, userId: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from(T.votiMvp).delete().eq('partita_id', matchId).eq('utente_id', userId);
+  if (error) throw error;
+}

@@ -157,19 +157,22 @@ function CaptainMark() {
 export function PlayerRow({ p, first, editable, onToggle, onLibero, onRemove }: { p: LineupPlayer; first: boolean; editable: boolean; onToggle: () => void; onLibero?: () => void; onRemove?: () => void }) {
   const { c } = useTheme();
   const starter = p.zone != null;
+  // i pulsanti L e X stanno accanto alla parte toccabile, non dentro (sul web un pulsante non può contenerne un altro)
   return (
-    <Pressable onPress={editable ? onToggle : undefined} disabled={!editable} accessibilityRole={editable ? 'button' : undefined}
-      accessibilityLabel={`${p.name}${p.isCaptain ? ', capitana' : ''}${p.isLibero ? ', libero' : ''}${starter ? `, titolare in posizione ${ROMAN[p.zone ?? 0]}` : ''}`}
-      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, paddingVertical: 8, borderTopWidth: first ? 0 : 1, borderTopColor: c.line, backgroundColor: pressed ? c.fill2 : starter ? c.fill : undefined })}>
-      <NumberTag value={p.number} variant={starter ? 'starter' : p.isLibero ? 'libero' : 'bench'} />
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <Txt w={600} size={13} numberOfLines={1} style={{ flexShrink: 1 }}>{p.name}</Txt>
-          {p.isCaptain ? <CaptainMark /> : null}
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingRight: 8, borderTopWidth: first ? 0 : 1, borderTopColor: c.line, backgroundColor: starter ? c.fill : undefined }}>
+      <Pressable onPress={editable ? onToggle : undefined} disabled={!editable} accessibilityRole={editable ? 'button' : undefined}
+        accessibilityLabel={`${p.name}${p.isCaptain ? ', capitana' : ''}${p.isLibero ? ', libero' : ''}${starter ? `, titolare in posizione ${ROMAN[p.zone ?? 0]}` : ''}`}
+        style={({ pressed }) => ({ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 8, paddingVertical: 8, backgroundColor: pressed ? c.fill2 : undefined })}>
+        <NumberTag value={p.number} variant={starter ? 'starter' : p.isLibero ? 'libero' : 'bench'} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Txt w={600} size={13} numberOfLines={1} style={{ flexShrink: 1 }}>{p.name}</Txt>
+            {p.isCaptain ? <CaptainMark /> : null}
+          </View>
+          {/* la posizione si vede solo sul campo */}
+          {p.role ? <Txt size={11} color="muted" numberOfLines={1}>{ROLE_LABEL[p.role]}</Txt> : null}
         </View>
-        {/* la posizione si vede solo sul campo */}
-        {p.role ? <Txt size={11} color="muted" numberOfLines={1}>{ROLE_LABEL[p.role]}</Txt> : null}
-      </View>
+      </Pressable>
       {/* L solo per le giocatrici con ruolo Libero (o per togliere un libero già scelto) */}
       {editable && onLibero && !starter && (p.role === 'libero' || p.isLibero) ? (
         <Pressy onPress={onLibero} scaleTo={0.85} accessibilityRole="button" accessibilityState={{ selected: p.isLibero }}
@@ -184,6 +187,6 @@ export function PlayerRow({ p, first, editable, onToggle, onLibero, onRemove }: 
           <X size={16} color={c.muted} />
         </Pressy>
       ) : null}
-    </Pressable>
+    </View>
   );
 }

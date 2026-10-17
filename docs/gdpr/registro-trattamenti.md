@@ -54,10 +54,10 @@
 
 | | |
 |---|---|
-| **Finalità** | Creazione e gestione dell'account; autenticazione; funzioni riservate agli utenti registrati (scelta della categoria giovanile per i genitori, gestione della diretta per lo staff); sicurezza del servizio |
+| **Finalità** | Creazione e gestione dell'account; autenticazione; funzioni riservate agli utenti registrati (scelta della categoria giovanile per i genitori, voto MVP della partita, gestione della diretta per lo staff); sicurezza del servizio |
 | **Base giuridica** | Art. 6.1.b (esecuzione del servizio richiesto dall'utente); art. 6.1.f (sicurezza, prevenzione abusi) |
 | **Interessati** | Utenti dell'app con almeno 14 anni (tifosi, genitori, staff e dirigenti) |
-| **Categorie di dati** | Email; password (solo hash, gestita da Supabase Auth); nome e cognome; per i login social: identificativo del provider (Apple, Google, Facebook), email fornita dal provider (anche indirizzi anonimi `@privaterelay.appleid.com`), nome. **Nessun altro dato del profilo social** (niente foto, amici, data di nascita, pagine). Tipo di profilo (pubblico, genitore, staff, admin); categoria giovanile di interesse; date di creazione e ultimo accesso; indirizzo IP e user agent nei log di autenticazione |
+| **Categorie di dati** | Email; password (solo hash, gestita da Supabase Auth); nome e cognome; per i login social: identificativo del provider (Apple, Google, Facebook), email fornita dal provider (anche indirizzi anonimi `@privaterelay.appleid.com`), nome. **Nessun altro dato del profilo social** (niente foto, amici, data di nascita, pagine). Tipo di profilo (pubblico, genitore, staff, admin); categoria giovanile di interesse; voti MVP espressi (partita, giocatrice votata, data: ognuno vede solo il proprio, pubblici solo i conteggi aggregati, cancellati con l'account); date di creazione e ultimo accesso; indirizzo IP e user agent nei log di autenticazione |
 | **Dati particolari / giudiziari** | No |
 | **Destinatari** | Supabase (responsabile); staff e admin della società (solo lettura dei profili); Apple, Google, Meta come titolari autonomi per l'autenticazione |
 | **Trasferimenti extra-UE** | Dati nel progetto Supabase in Irlanda; possibili accessi da sub-responsabili USA (SCC/DPF nel DPA). Apple, Google, Meta: titolari autonomi |
