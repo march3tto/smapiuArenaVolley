@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Linking, ScrollView, View, useWindowDimensions } from 'react-native';
+import { Animated, ScrollView, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MonitorPlay, Plus, RotateCcw, Trophy, Volleyball } from 'lucide-react-native';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { PlayerSlot } from '@/components/FloatingPlayer';
 import { LineupPanel } from '@/components/LineupPanel';
 import { LiveDot } from '@/components/LiveDot';
 import { MvpPanel } from '@/components/MvpPanel';
@@ -20,6 +21,7 @@ import { rotateZone, setTarget } from '@/lib/volley';
 import { useApp } from '@/store/AppProvider';
 import { PHASE_LABEL, ZONE_LABEL, actionLabel, useLive } from '@/store/LiveProvider';
 import { useLiveLineup } from '@/store/LineupProvider';
+import { usePlayer } from '@/store/PlayerProvider';
 import { palette } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { LineupPlayer, PointDetail } from '@/types';
@@ -31,6 +33,7 @@ export default function Live() {
   const m = live.match;
   const lineup = useLiveLineup();
   const { user } = useApp();
+  const player = usePlayer();
   // la funzione cronaca-ai accetta solo staff e admin
   const ai = hasSupabase && (user?.role === 'admin' || user?.role === 'staff');
   const [panel, setPanel] = useState<'cronaca' | 'formazioni' | 'mvp' | 'statistiche'>('cronaca');
@@ -64,106 +67,111 @@ export default function Live() {
     .map((p) => (p.zone == null ? p : { ...p, zone: rotateZone(p.zone, live.rotation[side]) }));
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ padding: 14, gap: 16, paddingBottom: insets.bottom + 30, width: '100%', maxWidth: 900, alignSelf: 'center' }}>
-      <Card style={{ gap: 18, borderColor: 'rgba(255,213,3,0.5)', borderWidth: 1.5 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          {live.finished ? <Trophy size={14} color={c.accent} /> : <LiveDot />}
-          <Txt w={700} size={13} color={live.finished ? 'accent' : 'live'}>{live.finished ? 'Finale' : 'In diretta'}</Txt>
-          <Txt size={13} color="muted" numberOfLines={1} style={{ flexShrink: 1 }}>· {m.venue}</Txt>
-        </View>
-        <Txt w={600} size={13} color="muted" center>
-          {live.finished
-            ? `Set ${L.sets}–${R.sets}`
-            : `${live.set === 5 ? 'Tie-break' : `${live.set}° set`} a ${setTarget(live.set)}, set ${L.sets}–${R.sets}`}
-        </Txt>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-          <Side {...L} flash={live.lastPoint?.side === L.side ? live.lastPoint.key : 0} serving={L.serving && !live.finished} server={serverOf(L.side)}
-            onPlus={live.canScore ? (anchor) => setPicker({ side: L.side, name: L.name, anchor }) : undefined} />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, paddingTop: 8 }}>
-            <AnimatedNumber value={live.finished ? L.sets : L.pts} size={48} />
-            <Txt w={400} size={34} color="accent">:</Txt>
-            <AnimatedNumber value={live.finished ? R.sets : R.pts} size={48} />
+    <View style={{ flex: 1, backgroundColor: c.bg }}>
+      {/* il video resta fisso in alto mentre sotto scorrono punteggio e cronaca */}
+      <PlayerSlot />
+      <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ padding: 14, gap: 16, paddingBottom: insets.bottom + 30, width: '100%', maxWidth: 900, alignSelf: 'center' }}>
+        <Card style={{ gap: 18, borderColor: 'rgba(255,213,3,0.5)', borderWidth: 1.5 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            {live.finished ? <Trophy size={14} color={c.accent} /> : <LiveDot />}
+            <Txt w={700} size={13} color={live.finished ? 'accent' : 'live'}>{live.finished ? 'Finale' : 'In diretta'}</Txt>
+            <Txt size={13} color="muted" numberOfLines={1} style={{ flexShrink: 1 }}>· {m.venue}</Txt>
           </View>
-          <Side {...R} flash={live.lastPoint?.side === R.side ? live.lastPoint.key : 0} serving={R.serving && !live.finished} server={serverOf(R.side)}
-            onPlus={live.canScore ? (anchor) => setPicker({ side: R.side, name: R.name, anchor }) : undefined} />
-        </View>
-
-        {live.standing ? (
-          <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 10, padding: 12, borderRadius: 16, backgroundColor: c.fill }}>
-            <Txt size={13} color="muted">Punti in classifica</Txt>
-            <Txt w={800} size={13} tnum>{pts(L.side)} – {pts(R.side)}</Txt>
+          <Txt w={600} size={13} color="muted" center>
+            {live.finished
+              ? `Set ${L.sets}–${R.sets}`
+              : `${live.set === 5 ? 'Tie-break' : `${live.set}° set`} a ${setTarget(live.set)}, set ${L.sets}–${R.sets}`}
+          </Txt>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+            <Side {...L} flash={live.lastPoint?.side === L.side ? live.lastPoint.key : 0} serving={L.serving && !live.finished} server={serverOf(L.side)}
+              onPlus={live.canScore ? (anchor) => setPicker({ side: L.side, name: L.name, anchor }) : undefined} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, paddingTop: 8 }}>
+              <AnimatedNumber value={live.finished ? L.sets : L.pts} size={48} />
+              <Txt w={400} size={34} color="accent">:</Txt>
+              <AnimatedNumber value={live.finished ? R.sets : R.pts} size={48} />
+            </View>
+            <Side {...R} flash={live.lastPoint?.side === R.side ? live.lastPoint.key : 0} serving={R.serving && !live.finished} server={serverOf(R.side)}
+              onPlus={live.canScore ? (anchor) => setPicker({ side: R.side, name: R.name, anchor }) : undefined} />
           </View>
+  
+          {live.standing ? (
+            <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 10, padding: 12, borderRadius: 16, backgroundColor: c.fill }}>
+              <Txt size={13} color="muted">Punti in classifica</Txt>
+              <Txt w={800} size={13} tnum>{pts(L.side)} – {pts(R.side)}</Txt>
+            </View>
+          ) : null}
+  
+          <View style={{ borderTopWidth: 1, borderTopColor: c.line, paddingTop: 12 }}>
+            <View style={{ flexDirection: 'row' }}>
+              <Txt size={12} color="muted" style={{ flex: 1 }}> </Txt>
+              {rowsSets.map((_, i) => (
+                <Txt key={i} w={600} size={11} center color={i === rowsSets.length - 1 && !live.finished ? 'accent' : 'muted'} style={{ width: 34 }}>{i + 1}°</Txt>
+              ))}
+            </View>
+            {[L, R].map((t) => (
+              <View key={t.name} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 9, borderTopWidth: 1, borderTopColor: c.line }}>
+                <Txt w={700} size={12} numberOfLines={2} style={{ flex: 1, paddingRight: 6 }}>{t.name}</Txt>
+                {rowsSets.map((s, i) => {
+                  const mine = t.side === 'us' ? s.our : s.opp;
+                  const theirs = t.side === 'us' ? s.opp : s.our;
+                  const current = i === rowsSets.length - 1 && !live.finished;
+                  return (
+                    <Txt key={i} w={!current && mine > theirs ? 800 : current ? 800 : 400} size={13} center tnum color={!current && mine > theirs ? 'accent' : 'text'}
+                      style={{ width: 34, backgroundColor: current ? c.fill : undefined, paddingVertical: 2, borderRadius: 6 }}>{mine}</Txt>
+                  );
+                })}
+              </View>
+            ))}
+          </View>
+  
+          <View style={{ gap: 8, alignItems: 'center' }}>
+            {m.youtubeLiveId ? (
+              <Button label={player.stream ? 'Diretta aperta' : 'Guarda la diretta'} variant="gold" icon={<MonitorPlay size={18} color={palette.onGold} />}
+                onPress={() => player.open(m.youtubeLiveId!, `${US} – ${m.opponent}`)} />
+            ) : null}
+            {live.canScore ? (
+              <Txt size={12} color="muted" center>
+                {live.scoringLive ? 'Admin: tocca + per assegnare il punto e scegliere l\'azione, lo vedono tutti in diretta.' : 'Partita dimostrativa: tocca + per assegnare il punto e scegliere l\'azione.'}
+              </Txt>
+            ) : null}
+            {live.saveError ? <Txt size={12} color="live" center>{live.saveError}</Txt> : null}
+            {m.demoLive && live.finished ? (
+              <Button size="sm" label="Ricomincia la demo" icon={<RotateCcw size={14} color={c.text} />} onPress={live.resetDemo} />
+            ) : null}
+          </View>
+        </Card>
+  
+        <Card style={{ gap: 4 }}>
+          <View style={{ marginBottom: 10 }}>
+            <SegmentedControl stretch={wide} value={panel} onChange={setPanel}
+              options={[{ value: 'cronaca', label: 'Cronaca' }, { value: 'formazioni', label: 'Formazioni' }, { value: 'mvp', label: 'Vota MVP' }, { value: 'statistiche', label: 'Statistiche' }]} />
+          </View>
+          {panel === 'cronaca' ? (
+            <>
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 6 }}>
+                <Txt size={13} color="muted">{live.events.length} azioni</Txt>
+              </View>
+              {live.events.map((e, i) => (
+                <FeedItem key={e.id} first={i === 0} last={i === live.events.length - 1} us={e.side === 'us'} meta={`${e.set}° set, ${e.our}–${e.opp}`} text={e.text} detail={e.detail} />
+              ))}
+            </>
+          ) : panel === 'formazioni' ? (
+            <LineupPanel lineup={lineup} teams={[L, R].map((t) => ({ team: t.side, players: t.side === 'us' ? lineup.us : lineup.opp }))} />
+          ) : panel === 'mvp' ? (
+            <MvpPanel key={m.id} match={m} players={lineup.us} events={live.events} totalPoints={totals.us} finished={live.finished} />
+          ) : (
+            <StatsPanel events={live.events} names={{ us: US, opp: m.opponent }} totals={totals}
+              sets={rowsSets.length} current={live.finished ? live.history.length : live.set} />
+          )}
+        </Card>
+  
+        {picker ? (
+          <PointPicker anchor={picker.anchor} side={picker.side} team={picker.name} names={{ us: US, opp: m.opponent }}
+            players={onCourt(picker.side)} rotation={live.rotation[picker.side]} score={{ set: live.set, our: live.our, opp: live.opp }} ai={ai}
+            onScore={(detail) => live.addPoint(picker.side, detail)} onClose={() => setPicker(null)} />
         ) : null}
-
-        <View style={{ borderTopWidth: 1, borderTopColor: c.line, paddingTop: 12 }}>
-          <View style={{ flexDirection: 'row' }}>
-            <Txt size={12} color="muted" style={{ flex: 1 }}> </Txt>
-            {rowsSets.map((_, i) => (
-              <Txt key={i} w={600} size={11} center color={i === rowsSets.length - 1 && !live.finished ? 'accent' : 'muted'} style={{ width: 34 }}>{i + 1}°</Txt>
-            ))}
-          </View>
-          {[L, R].map((t) => (
-            <View key={t.name} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 9, borderTopWidth: 1, borderTopColor: c.line }}>
-              <Txt w={700} size={12} numberOfLines={2} style={{ flex: 1, paddingRight: 6 }}>{t.name}</Txt>
-              {rowsSets.map((s, i) => {
-                const mine = t.side === 'us' ? s.our : s.opp;
-                const theirs = t.side === 'us' ? s.opp : s.our;
-                const current = i === rowsSets.length - 1 && !live.finished;
-                return (
-                  <Txt key={i} w={!current && mine > theirs ? 800 : current ? 800 : 400} size={13} center tnum color={!current && mine > theirs ? 'accent' : 'text'}
-                    style={{ width: 34, backgroundColor: current ? c.fill : undefined, paddingVertical: 2, borderRadius: 6 }}>{mine}</Txt>
-                );
-              })}
-            </View>
-          ))}
-        </View>
-
-        <View style={{ gap: 8, alignItems: 'center' }}>
-          {m.youtubeLiveId ? (
-            <Button label="Guarda su YouTube" variant="gold" icon={<MonitorPlay size={18} color={palette.onGold} />} onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${m.youtubeLiveId}`)} />
-          ) : null}
-          {live.canScore ? (
-            <Txt size={12} color="muted" center>
-              {live.scoringLive ? 'Admin: tocca + per assegnare il punto e scegliere l\'azione, lo vedono tutti in diretta.' : 'Partita dimostrativa: tocca + per assegnare il punto e scegliere l\'azione.'}
-            </Txt>
-          ) : null}
-          {live.saveError ? <Txt size={12} color="live" center>{live.saveError}</Txt> : null}
-          {m.demoLive && live.finished ? (
-            <Button size="sm" label="Ricomincia la demo" icon={<RotateCcw size={14} color={c.text} />} onPress={live.resetDemo} />
-          ) : null}
-        </View>
-      </Card>
-
-      <Card style={{ gap: 4 }}>
-        <View style={{ marginBottom: 10 }}>
-          <SegmentedControl stretch={wide} value={panel} onChange={setPanel}
-            options={[{ value: 'cronaca', label: 'Cronaca' }, { value: 'formazioni', label: 'Formazioni' }, { value: 'mvp', label: 'Vota MVP' }, { value: 'statistiche', label: 'Statistiche' }]} />
-        </View>
-        {panel === 'cronaca' ? (
-          <>
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 6 }}>
-              <Txt size={13} color="muted">{live.events.length} azioni</Txt>
-            </View>
-            {live.events.map((e, i) => (
-              <FeedItem key={e.id} first={i === 0} last={i === live.events.length - 1} us={e.side === 'us'} meta={`${e.set}° set, ${e.our}–${e.opp}`} text={e.text} detail={e.detail} />
-            ))}
-          </>
-        ) : panel === 'formazioni' ? (
-          <LineupPanel lineup={lineup} teams={[L, R].map((t) => ({ team: t.side, players: t.side === 'us' ? lineup.us : lineup.opp }))} />
-        ) : panel === 'mvp' ? (
-          <MvpPanel key={m.id} match={m} players={lineup.us} events={live.events} totalPoints={totals.us} finished={live.finished} />
-        ) : (
-          <StatsPanel events={live.events} names={{ us: US, opp: m.opponent }} totals={totals}
-            sets={rowsSets.length} current={live.finished ? live.history.length : live.set} />
-        )}
-      </Card>
-
-      {picker ? (
-        <PointPicker anchor={picker.anchor} side={picker.side} team={picker.name} names={{ us: US, opp: m.opponent }}
-          players={onCourt(picker.side)} rotation={live.rotation[picker.side]} score={{ set: live.set, our: live.our, opp: live.opp }} ai={ai}
-          onScore={(detail) => live.addPoint(picker.side, detail)} onClose={() => setPicker(null)} />
-      ) : null}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 

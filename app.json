@@ -9,7 +9,12 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "it.arenavolleyteam.app"
+      "bundleIdentifier": "it.arenavolleyteam.app",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "audio"
+        ]
+      }
     },
     "android": {
       "package": "it.arenavolleyteam.app",
