@@ -39,7 +39,7 @@ export default function News() {
       <SectionHeader big title="News" subtitle="Partite, interviste e vita di società." />
       <SegmentedControl options={options} value={cat} onChange={setCat} />
       {cat === MEDIA ? null : (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14 }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14, justifyContent: 'center' }}>
           {list.map((n) => (
             <NewsCard key={n.id} item={n} width={cardW} onPress={() => router.push({ pathname: '/notizia/[id]', params: { id: n.id } })} />
           ))}

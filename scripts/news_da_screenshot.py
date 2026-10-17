@@ -12,9 +12,10 @@ Sottocomandi:
   crea <screenshot> --box x1,y1,x2,y2 --data AAAA-MM-GG --slug testo-breve
        --titolo "..." --categoria giovanili --corpo-file corpo.txt
        [--ora 10:00] [--autore "Arena Volley Team"] [--mantieni-sorgente]
-      1. salva la copertina in assets/news/<data>-<slug>.jpg
+      1. salva la copertina in supabase/notizie/<data>-<slug>.jpg (fuori dal bundle dell'app)
       2. scrive supabase/notizie/<data>-<slug>.sql (INSERT idempotente su public.notizie)
-      3. aggiunge la voce a NEWS_IMAGES in src/data/assets.ts
+      3. carica la copertina nel bucket "news" dello Storage Supabase (l'app la legge da lì);
+         serve SUPABASE_SERVICE_ROLE_KEY nell'ambiente, altrimenti il caricamento va fatto a mano
       4. elimina lo screenshot sorgente (salvo --mantieni-sorgente),
          solo dopo aver verificato che jpg e sql esistano e siano validi.
 
@@ -23,8 +24,12 @@ Richiede Pillow:  pip3 install pillow
 from __future__ import annotations
 
 import argparse
+import json
+import os
 import re
 import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 try:
@@ -33,9 +38,8 @@ except ImportError:  # pragma: no cover
     sys.exit("Serve Pillow: pip3 install pillow")
 
 ROOT = Path(__file__).resolve().parent.parent
-NEWS_DIR = ROOT / "assets" / "news"
 SQL_DIR = ROOT / "supabase" / "notizie"
-ASSETS_TS = ROOT / "src" / "data" / "assets.ts"
+BUCKET = "news"
 CATEGORIE = {"societa", "prima_squadra", "giovanili", "sponsor"}
 SLUG_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
@@ -63,20 +67,37 @@ def sql_str(s: str) -> str:
     return "E'" + s.replace("\\", "\\\\").replace("'", "''").replace("\n", "\\n") + "'"
 
 
-def aggiorna_assets_ts(nome: str) -> bool:
-    """Aggiunge la voce a NEWS_IMAGES (ordinata). Ritorna True se ha modificato il file."""
-    testo = ASSETS_TS.read_text(encoding="utf-8")
-    m = re.search(r"(export const NEWS_IMAGES[^{]*\{\n)(.*?)(\n\};)", testo, re.S)
-    if not m:
-        sys.exit("NEWS_IMAGES non trovato in src/data/assets.ts")
-    righe = [r for r in m.group(2).split("\n") if r.strip()]
-    if any(f"'{nome}'" in r for r in righe):
-        return False
-    righe.append(f"  '{nome}': require('../../assets/news/{nome}.jpg'),")
-    righe.sort()
-    nuovo = testo[: m.start(2)] + "\n".join(righe) + testo[m.end(2):]
-    ASSETS_TS.write_text(nuovo, encoding="utf-8")
-    return True
+def supabase_url() -> str | None:
+    """EXPO_PUBLIC_SUPABASE_URL dall'ambiente o dal file .env del progetto."""
+    if os.environ.get("EXPO_PUBLIC_SUPABASE_URL"):
+        return os.environ["EXPO_PUBLIC_SUPABASE_URL"].rstrip("/")
+    env = ROOT / ".env"
+    if env.is_file():
+        m = re.search(r"^EXPO_PUBLIC_SUPABASE_URL=(.+)$", env.read_text(encoding="utf-8"), re.M)
+        if m:
+            return m.group(1).strip().strip("'\"").rstrip("/")
+    return None
+
+
+def carica_storage(jpg: Path, nome_file: str) -> str:
+    """Carica la copertina nel bucket news (sovrascrive se esiste). Ritorna l'esito da stampare."""
+    url, chiave = supabase_url(), os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if not url or not chiave:
+        return "NON caricata (manca EXPO_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY): caricala a mano nel bucket news"
+    req = urllib.request.Request(
+        f"{url}/storage/v1/object/{BUCKET}/{nome_file}",
+        data=jpg.read_bytes(),
+        method="POST",
+        headers={"Authorization": f"Bearer {chiave}", "apikey": chiave, "Content-Type": "image/jpeg", "x-upsert": "true"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            json.load(r)
+    except urllib.error.HTTPError as e:
+        return f"NON caricata (HTTP {e.code}: {e.read().decode(errors='replace')[:200]})"
+    except urllib.error.URLError as e:
+        return f"NON caricata ({e.reason})"
+    return f"caricata in {BUCKET}/{nome_file}"
 
 
 def cmd_info(a):
@@ -107,16 +128,15 @@ def cmd_crea(a):
         sys.exit("Titolo e corpo non possono essere vuoti")
 
     nome = f"{a.data}-{a.slug}"
-    jpg = NEWS_DIR / f"{nome}.jpg"
+    jpg = SQL_DIR / f"{nome}.jpg"
     sql = SQL_DIR / f"{nome}.sql"
-    NEWS_DIR.mkdir(parents=True, exist_ok=True)
     SQL_DIR.mkdir(parents=True, exist_ok=True)
 
     # 1. copertina
     ritaglia(src, a.box).save(jpg, quality=90)
 
     # 2. query (idempotente: non reinserisce la stessa copertina)
-    url = f"news/{nome}.jpg"
+    url = f"{BUCKET}/{nome}.jpg"
     sql.write_text(
         "insert into public.notizie (titolo, categoria, corpo, url_immagine_copertina, autore, pubblicato_il, pubblicata)\n"
         f"select {sql_str(a.titolo.strip())}, '{a.categoria}', {sql_str(corpo)},\n"
@@ -125,12 +145,12 @@ def cmd_crea(a):
         encoding="utf-8",
     )
 
-    # 3. registrazione dell'immagine nell'app
-    modificato = aggiorna_assets_ts(nome)
-
-    # 4. verifica ed eliminazione sorgente
+    # 3. verifica e caricamento nello Storage (l'app legge la copertina da lì)
     with Image.open(jpg) as chk:
         chk.verify()
+    storage = carica_storage(jpg, f"{nome}.jpg")
+
+    # 4. eliminazione sorgente (la copertina resta comunque in supabase/notizie/)
     if sql.stat().st_size == 0:
         sys.exit("SQL vuoto: sorgente NON eliminata")
     if not a.mantieni_sorgente:
@@ -138,7 +158,7 @@ def cmd_crea(a):
 
     print(f"jpg:  {jpg.relative_to(ROOT)}")
     print(f"sql:  {sql.relative_to(ROOT)}")
-    print(f"assets.ts: {'aggiornato' if modificato else 'voce già presente'}")
+    print(f"storage: {storage}")
     print(f"sorgente: {'mantenuta' if a.mantieni_sorgente else 'eliminata'} ({src})")
 
 
