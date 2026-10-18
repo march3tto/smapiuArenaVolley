@@ -1,7 +1,7 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
 # dependencies
-node_modules/
+node_modules
 
 # Expo
 .expo/
@@ -46,3 +46,6 @@ news-inbox/*
 
 # Python
 __pycache__/
+
+# config locale della preview
+.claude/launch.json
