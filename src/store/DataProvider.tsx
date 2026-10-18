@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { demoData, emptyData, loadAll, subscribeMatches, type AppData } from '@/lib/api';
+import { demoData, emptyData, fetchStandings, loadAll, subscribeMatches, subscribeStandings, type AppData } from '@/lib/api';
 import { hasSupabase } from '@/lib/supabase';
 import * as mock from '@/data/mock';
 import { useApp } from './AppProvider';
@@ -41,6 +41,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
       refresh();
     });
   }, [refresh]);
+
+  // La classifica la ricalcola il database a ogni risultato: si ricarica solo lei
+  useEffect(
+    () =>
+      subscribeStandings(() => {
+        fetchStandings()
+          .then((standings) => {
+            if (standings) setData((d) => ({ ...d, standings }));
+          })
+          .catch((e) => console.warn('Classifica non aggiornata', e));
+      }),
+    [],
+  );
 
   const matches = useMemo(
     () => data.matches.map((m) => (m.demoLive ? { ...m, status: demoLive ? ('live' as const) : ('scheduled' as const) } : m)),

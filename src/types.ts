@@ -41,6 +41,28 @@ export interface Match {
   demoLive?: boolean;
 }
 
+/** Gara del calendario completo del girone (tabella partite, anche con nostra_partita = false) */
+export interface LeagueGame {
+  id: string;
+  /** Numero gara federale */
+  number: number;
+  giornata: number;
+  phase: Phase;
+  /** ISO 8601 */
+  date: string;
+  home: string;
+  away: string;
+  homeLogo?: ImgSrc | null;
+  awayLogo?: ImgSrc | null;
+  status: MatchStatus;
+  homeSets?: number | null;
+  awaySets?: number | null;
+  /** Parziali dal punto di vista della squadra di casa */
+  sets?: { home: number; away: number }[];
+  /** Id della partita se è una gara della nostra squadra, altrimenti null */
+  matchId?: string | null;
+}
+
 export interface Standing {
   team: string;
   position: number;
@@ -49,6 +71,21 @@ export interface Standing {
   lost: number;
   points: number;
   isUs: boolean;
+  /** Statistiche calcolate dal database (classifica automatica); assenti nei dati demo */
+  won30?: number;
+  won32?: number;
+  lost23?: number;
+  lost03?: number;
+  setsWon?: number;
+  setsLost?: number;
+  /** null se set persi = 0 */
+  setRatio?: number | null;
+  pointsFor?: number;
+  pointsAgainst?: number;
+  /** null se punti subiti = 0 */
+  pointRatio?: number | null;
+  /** Punti di penalizzazione, già tolti da points */
+  penalty?: number;
 }
 
 export type PlayerRole = 'palleggiatrice' | 'schiacciatrice' | 'centrale' | 'opposto' | 'libero';

@@ -75,6 +75,7 @@ function RootStack() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="login" options={{ animation: 'fade' }} />
         <Stack.Screen name="live" options={{ ...header, title: 'Partita in corso' }} />
+        <Stack.Screen name="giornata/[numero]" options={{ ...header, title: 'Giornata' }} />
         <Stack.Screen name="formazione-avversaria" options={{ ...header, title: 'Formazione avversaria' }} />
         <Stack.Screen name="player/[id]" options={{ presentation: 'modal' }} />
         <Stack.Screen name="notizia/[id]" options={{ presentation: 'modal' }} />

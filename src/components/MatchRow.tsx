@@ -15,10 +15,12 @@ interface Props {
   /** Punteggio set della diretta (se live) */
   liveSets?: { our: number; opp: number };
   onPress?: () => void;
+  /** Tocco sulla matrice con la giornata: apre tutte le gare di quella giornata */
+  onGiornataPress?: () => void;
 }
 
 /** Riga partita: giornata a sinistra (se presente), A/R, data e ora centrate, stemmi, risultato e parziali */
-export function MatchRow({ match: m, liveSets, onPress }: Props) {
+export function MatchRow({ match: m, liveSets, onPress, onGiornataPress }: Props) {
   const { c } = useTheme();
   const homeIsUs = m.homeAway === 'casa';
   const homeName = homeIsUs ? US : m.opponent;
@@ -41,13 +43,21 @@ export function MatchRow({ match: m, liveSets, onPress }: Props) {
   return (
     <Pressy onPress={onPress} disabled={!onPress} scaleTo={0.98} style={{ flexDirection: 'row', borderRadius: 22, overflow: 'hidden', backgroundColor: c.card, borderWidth: 1, borderColor: border }}>
       {m.giornata != null ? (
-        <View style={{ width: 60, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, backgroundColor: c.fill }} accessibilityLabel={`${m.giornata}ª giornata, ${ritorno ? 'ritorno' : 'andata'}`}>
+        <Pressy
+          onPress={onGiornataPress}
+          disabled={!onGiornataPress}
+          scaleTo={0.92}
+          accessibilityRole={onGiornataPress ? 'button' : undefined}
+          accessibilityLabel={`${m.giornata}ª giornata, ${ritorno ? 'ritorno' : 'andata'}`}
+          accessibilityHint={onGiornataPress ? 'Mostra tutte le partite della giornata' : undefined}
+          style={{ width: 60, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, backgroundColor: c.fill }}
+        >
           <Txt w={800} size={28} tnum style={{ letterSpacing: -1, lineHeight: 30 }}>{m.giornata}</Txt>
           <Txt w={600} size={10} color="muted">giornata</Txt>
           <View style={{ marginTop: 8, width: 24, height: 24, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: ritorno ? 'rgba(124,155,255,0.18)' : 'rgba(255,213,3,0.16)' }}>
             <Txt w={800} size={11.5} color={ritorno ? 'cobalt' : 'accent'}>{ritorno ? 'R' : 'A'}</Txt>
           </View>
-        </View>
+        </Pressy>
       ) : (
         <SeasonLabel label={label} />
       )}

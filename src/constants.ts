@@ -39,7 +39,7 @@ export const TEAM_BADGES: Record<string, [string, string]> = {
   'Azimut Giorgione': ['GIO', '#0E7C66'],
   'Tonno Callipo Calabria': ['TCC', '#C8102E'],
   'CO.GE. Vesuvio Oplonti': ['OPL', '#1F4E9C'],
-  'Banca Annia Aduna Padova': ['PAD', '#7B2CBF'],
+  'Banca Annia Aduna Women': ['PAD', '#7B2CBF'],
   'V&V Modena': ['MOD', '#D98E04'],
   'Zero5 Castellana Grotte': ['CAS', '#E85D04'],
   'Olimpia di Navigazione Ravenna': ['RAV', '#0077B6'],
