@@ -13,6 +13,8 @@ import { AppProvider, useApp } from '@/store/AppProvider';
 import { DataProvider } from '@/store/DataProvider';
 import { LiveProvider } from '@/store/LiveProvider';
 import { LineupProvider } from '@/store/LineupProvider';
+import { PlayerProvider } from '@/store/PlayerProvider';
+import { FloatingPlayer } from '@/components/FloatingPlayer';
 import { ConsentGate } from '@/components/ConsentGate';
 import { ToastProvider } from '@/components/Toast';
 import { FONT } from '@/theme/colors';
@@ -40,7 +42,9 @@ export default function RootLayout() {
             <LiveProvider>
               <LineupProvider>
                 <ToastProvider>
-                  <RootStack />
+                  <PlayerProvider>
+                    <RootStack />
+                  </PlayerProvider>
                 </ToastProvider>
               </LineupProvider>
             </LiveProvider>
@@ -82,6 +86,8 @@ function RootStack() {
         {/* ritorno dal login Facebook su Android: il codice lo gestisce già openAuthSessionAsync */}
         <Stack.Screen name="auth/callback" options={{ animation: 'none' }} />
       </Stack>
+      {/* diretta video: agganciata nella Live o in finestrella sopra qualsiasi schermata */}
+      <FloatingPlayer />
       {/* sopra tutto (navigazione compresa) finché mancano i consensi obbligatori */}
       {user && consentStatus === 'mancanti' ? <ConsentGate /> : null}
     </>

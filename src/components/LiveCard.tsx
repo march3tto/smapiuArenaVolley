@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Linking, View } from 'react-native';
+import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AnimatedNumber } from './AnimatedNumber';
@@ -11,8 +11,8 @@ import { TeamBadge } from './TeamBadge';
 import { Txt } from './Txt';
 import { YoutubeIcon } from './YoutubeIcon';
 import { US } from '@/constants';
-import { youtubeUrl } from '@/lib/api';
 import { useLive } from '@/store/LiveProvider';
+import { usePlayer } from '@/store/PlayerProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 
 /** Card "In diretta" della home: compare solo se esiste una partita live */
@@ -20,6 +20,7 @@ export function LiveCard() {
   const { c, mode } = useTheme();
   const router = useRouter();
   const live = useLive();
+  const player = usePlayer();
   // Larghezza della colonna del punteggio: la riga "set vinti" la replica, così i numeri cadono sotto le squadre
   const [centerW, setCenterW] = useState(0);
   const m = live.match;
@@ -78,11 +79,12 @@ export function LiveCard() {
 
         {m.youtubeLiveId ? (
           <Button
-            label="Guarda su YouTube"
+            label="Guarda la diretta"
             size="sm"
             icon={<YoutubeIcon size={22} />}
-            onPress={() => Linking.openURL(youtubeUrl(m.youtubeLiveId!))}
-            accessibilityLabel="Guarda la diretta su YouTube"
+            // il video si apre nella schermata Live, dentro l'app
+            onPress={() => { player.open(m.youtubeLiveId!, `${US} – ${m.opponent}`); router.push('/live'); }}
+            accessibilityLabel="Guarda la diretta video"
           />
         ) : null}
 
