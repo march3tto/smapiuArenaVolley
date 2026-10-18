@@ -48,7 +48,8 @@
           "color": "#FFD503"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "./modules/pip-diretta/app.plugin.js"
     ],
     "extra": {
       "router": {},
