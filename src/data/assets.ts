@@ -88,6 +88,8 @@ export const STAFF_PHOTOS: Record<string, number> = {
 export const OPPONENT_LOGOS: Record<string, number> = {
   'azimut-giorgione': require('../../assets/opponents/azimut-giorgione.jpg'),
   'banca-annia-aduna-padova': require('../../assets/opponents/banca-annia-aduna-padova.jpg'),
+  // nome ufficiale della squadra (tabella squadre), stesso logo
+  'banca-annia-aduna-women': require('../../assets/opponents/banca-annia-aduna-padova.jpg'),
   'co-ge-vesuvio-oplonti': require('../../assets/opponents/co-ge-vesuvio-oplonti.jpg'),
   'olimpia-di-navigazione-ravenna': require('../../assets/opponents/olimpia-di-navigazione-ravenna.jpg'),
   'tonno-callipo-calabria': require('../../assets/opponents/tonno-callipo-calabria.jpg'),

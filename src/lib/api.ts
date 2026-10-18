@@ -4,7 +4,7 @@ import { slugify } from './format';
 import * as mock from '@/data/mock';
 import { COMPETITION_LOGOS, OPPONENT_LOGOS, PLAYER_PHOTOS, SPONSOR_LOGOS, STAFF_PHOTOS } from '@/data/assets';
 import type {
-  Competition, ImgSrc, LineupPlayer, LiveEvent, Match, MatchStatus, MediaItem, NewsItem, Player, PlayerRole, PointAction, PointDetail, PointPhase, RegionalRoster, SetScore, Sponsor, SponsorTier, StaffMember, Standing, Venue, YouthTeam,
+  Competition, ImgSrc, LeagueGame, LineupPlayer, LiveEvent, Match, MatchStatus, MediaItem, NewsItem, Player, PlayerRole, PointAction, PointDetail, PointPhase, RegionalRoster, SetScore, Sponsor, SponsorTier, StaffMember, Standing, Venue, YouthTeam,
 } from '@/types';
 
 /** Tabelle dello schema Supabase (in italiano) */
@@ -134,6 +134,17 @@ function mapStanding(r: Row): Standing {
     lost: num(r.perse) ?? 0,
     points: num(r.punti) ?? 0,
     isUs: r.nostra_squadra === true,
+    won30: num(r.vinte_3_0_3_1) ?? 0,
+    won32: num(r.vinte_3_2) ?? 0,
+    lost23: num(r.perse_2_3) ?? 0,
+    lost03: num(r.perse_0_3_1_3) ?? 0,
+    setsWon: num(r.set_vinti) ?? 0,
+    setsLost: num(r.set_persi) ?? 0,
+    setRatio: num(r.quoziente_set),
+    pointsFor: num(r.punti_fatti) ?? 0,
+    pointsAgainst: num(r.punti_subiti) ?? 0,
+    pointRatio: num(r.quoziente_punti),
+    penalty: num(r.penalita) ?? 0,
   };
 }
 
@@ -276,7 +287,8 @@ export async function loadAll(): Promise<AppData> {
   if (!ids.length) throw new Error('Nessuna stagione con corrente = true in "stagioni".');
 
   const [partite, classifiche, giocatrici, regionali, notizie, sponsor, categorie, staff, media, campionati] = await Promise.all([
-    db.from(T.partite).select(`*, ${T.setPartita}(*)`).in('stagione_id', ids).order('data_partita'),
+    // solo le nostre partite: quelle tra avversarie (nostra_partita = false) servono a giornate e classifica
+    db.from(T.partite).select(`*, ${T.setPartita}(*)`).in('stagione_id', ids).eq('nostra_partita', true).order('data_partita'),
     db.from(T.classifiche).select('*').in('stagione_id', ids).order('posizione'),
     // la vista contiene anche le rose delle avversarie: solo le giocatrici della squadra con nostra_squadra = true
     db.from(T.giocatriciPubbliche).select('*').in('stagione_id', ids).eq('livello_squadra', 'prima_squadra').eq('attiva', true).eq('nostra_squadra', true).order('ordine'),
@@ -305,6 +317,83 @@ export async function loadAll(): Promise<AppData> {
     venues: mock.venues,
     media: (must(media, 'media') as Row[]).map(mapMedia),
     source: 'supabase',
+  };
+}
+
+// ---------- giornata del girone ----------
+
+function teamLogo(r: Row | null | undefined): ImgSrc | null {
+  if (!r) return null;
+  return image(r.logo_url, OPPONENT_LOGOS, slugify(str(r.nome))) || null;
+}
+
+function mapLeagueGame(r: Row): LeagueGame {
+  const home = (r.casa as Row | null) ?? null;
+  const away = (r.ospite as Row | null) ?? null;
+  // set_casa/set_ospite e parziali: per le nostre partite li allineano i trigger da nostri_set_vinti e set_partita
+  const parziali = Array.isArray(r.parziali) ? (r.parziali as Row[]) : [];
+  return {
+    id: str(r.id),
+    number: num(r.numero_gara) ?? 0,
+    giornata: num(r.giornata) ?? 0,
+    phase: str(r.fase).toLowerCase() === 'ritorno' ? 'ritorno' : 'andata',
+    date: str(r.data_partita),
+    home: str(home?.nome),
+    away: str(away?.nome),
+    homeLogo: teamLogo(home),
+    awayLogo: teamLogo(away),
+    status: STATO[str(r.stato)] ?? 'scheduled',
+    homeSets: num(r.set_casa),
+    awaySets: num(r.set_ospite),
+    sets: parziali
+      .sort((a, b) => (num(a.set) ?? 0) - (num(b.set) ?? 0))
+      .map((s) => ({ home: num(s.casa) ?? 0, away: num(s.ospite) ?? 0 })),
+    matchId: r.nostra_partita === true ? str(r.id) : null,
+  };
+}
+
+/** Tutte le gare di una giornata del girone (nostre e tra avversarie), per le stagioni correnti */
+export async function fetchGiornata(giornata: number, girone: string): Promise<LeagueGame[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from(T.partite)
+    .select(`id, numero_gara, giornata, fase, data_partita, stato, set_casa, set_ospite, parziali, nostra_partita,
+      casa:squadre!partite_squadra_casa_id_fkey(nome, logo_url),
+      ospite:squadre!partite_squadra_ospite_id_fkey(nome, logo_url),
+      stagione:stagioni!inner(corrente)`)
+    .eq('giornata', giornata)
+    .eq('girone', girone)
+    .eq('stagione.corrente', true)
+    .order('data_partita')
+    .order('numero_gara');
+  if (error) throw new Error(`partite: ${error.message}`);
+  return ((data as Row[] | null) ?? []).map(mapLeagueGame);
+}
+
+// ---------- classifica ----------
+
+/** Classifica delle stagioni correnti (calcolata dal database dai risultati, vedi calcola_classifica) */
+export async function fetchStandings(): Promise<Standing[] | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from(T.classifiche)
+    .select('*, stagione:stagioni!inner(corrente)')
+    .eq('stagione.corrente', true)
+    .order('posizione');
+  if (error) throw new Error(`classifiche: ${error.message}`);
+  return ((data as Row[] | null) ?? []).map(mapStanding);
+}
+
+/** Realtime: la classifica viene ricalcolata dal database a ogni risultato */
+export function subscribeStandings(onChange: () => void): () => void {
+  if (!supabase) return () => {};
+  const client = supabase;
+  const ch = client
+    .channel(`classifiche-${Math.random().toString(36).slice(2, 8)}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: T.classifiche }, onChange)
+    .subscribe();
+  return () => {
+    client.removeChannel(ch);
   };
 }
 

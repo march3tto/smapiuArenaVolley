@@ -71,6 +71,7 @@ export default function Risultati() {
                 match={m}
                 liveSets={m.status === 'live' ? { our: live.ourSets, opp: live.oppSets } : undefined}
                 onPress={m.status === 'live' ? () => router.push('/live') : undefined}
+                onGiornataPress={m.giornata != null && m.girone ? () => router.push({ pathname: '/giornata/[numero]', params: { numero: String(m.giornata), girone: m.girone ?? '' } }) : undefined}
               />
             ))
           ) : (
