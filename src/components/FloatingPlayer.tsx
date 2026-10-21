@@ -4,7 +4,7 @@ import { useFocusEffect, useNavigation, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as WebBrowser from 'expo-web-browser';
-import { ExternalLink, Maximize, Maximize2, Minimize, Minimize2, X } from 'lucide-react-native';
+import { ExternalLink, Headphones, Maximize, Maximize2, Minimize, Minimize2, X } from 'lucide-react-native';
 import { onPipChange, setPipEnabled } from '../../modules/pip-diretta';
 import { LiveDot } from './LiveDot';
 import { Pressy } from './Pressy';
@@ -19,8 +19,8 @@ const MINI_BAR = 30;
 const MARGIN = 10;
 
 /**
- * Player della diretta sopra tutta l'app. Agganciato allo spazio riservato nella schermata Live,
- * oppure ridotto a finestrella che si trascina dove si vuole e resta aperta cambiando schermata.
+ * Player sopra tutta l'app. La diretta si aggancia allo spazio riservato nella schermata Live; video e podcast
+ * si aprono grandi in basso nella schermata corrente. Entrambi si riducono a finestrella che si trascina dove si vuole e resta aperta cambiando schermata.
  * Si può mettere a tutto schermo e, su Android, resta visibile in Picture in Picture uscendo dall'app.
  * Il video è sempre lo stesso elemento: cambiando modalità non riparte.
  */
@@ -29,12 +29,16 @@ export function FloatingPlayer() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: W, height: H } = useWindowDimensions();
-  const { stream, title, minimized, dock, close, setMinimized } = usePlayer();
+  const { stream, title, source, minimized, dock, close, setMinimized } = usePlayer();
+  const media = source === 'media';
   const [full, setFull] = useState(false);
   // Android: l'app è ridotta nella finestrella di sistema, si vede solo il video
   const [pip, setPip] = useState(false);
-  const docked = !minimized && !!dock;
-  const mini = !full && !pip && !docked;
+  const docked = !minimized && !!dock && !media;
+  // video o podcast a grandezza piena: riquadro in basso, sopra la barra delle schede
+  const sheet = media && !minimized && !full && !pip;
+  const mini = !full && !pip && !docked && !sheet;
+  const large = docked || sheet;
 
   // finché la diretta è aperta, uscendo dall'app Android entra in Picture in Picture
   useEffect(() => {
@@ -89,9 +93,11 @@ export function FloatingPlayer() {
 
   const expand = () => {
     setMinimized(false);
-    // la schermata Live non è in primo piano: ci si torna e il player si aggancia lì
-    if (!dock) router.push('/live');
+    // diretta con la schermata Live non in primo piano: ci si torna e il player si aggancia lì
+    if (!media && !dock) router.push('/live');
   };
+  const sheetW = Math.min(W - 2 * MARGIN, 720);
+  const sheetH = Math.round((sheetW * 9) / 16) + BAR;
   const stop = () => { setFull(false); close(); };
 
   // l'app è solo in verticale: a tutto schermo col telefono dritto il video si ruota per riempire lo schermo
@@ -100,7 +106,9 @@ export function FloatingPlayer() {
     ? { left: 0, top: 0, width: W, height: H, borderRadius: 0, borderWidth: 0, backgroundColor: '#000' }
     : docked
       ? { left: dock.x, top: dock.y, width: dock.w, height: dock.h, borderRadius: 16 }
-      : { left: 0, top: 0, width: miniW, height: miniH, borderRadius: 14, transform: pan.getTranslateTransform() };
+      : sheet
+        ? { left: (W - sheetW) / 2, top: H - sheetH - insets.bottom - 80, width: sheetW, height: sheetH, borderRadius: 16 }
+        : { left: 0, top: 0, width: miniW, height: miniH, borderRadius: 14, transform: pan.getTranslateTransform() };
   const video = rotate
     ? { position: 'absolute' as const, width: H, height: W, left: (W - H) / 2, top: (H - W) / 2, transform: [{ rotate: '90deg' }] }
     : { flex: 1 };
@@ -109,7 +117,7 @@ export function FloatingPlayer() {
     <Animated.View
       {...(mini ? responder.panHandlers : {})}
       style={[{ position: 'absolute', overflow: 'hidden', backgroundColor: c.card, borderWidth: 1, borderColor: c.line },
-        mini && { shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 12 }, frame]}>
+        (mini || sheet) && { shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 12 }, frame]}>
       {full ? <StatusBar hidden /> : null}
       {/* in finestrella il video non prende i tocchi: si trascina tutta e un tocco la ingrandisce */}
       <View style={video} pointerEvents={mini ? 'none' : 'auto'}>
@@ -122,14 +130,14 @@ export function FloatingPlayer() {
         ) : null}
       </View>
       {mini ? (
-        <Pressy onPress={expand} accessibilityRole="button" accessibilityLabel="Ingrandisci la diretta"
+        <Pressy onPress={expand} accessibilityRole="button" accessibilityLabel={media ? 'Ingrandisci il player' : 'Ingrandisci la diretta'}
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: MINI_BAR }}>{null}</Pressy>
       ) : null}
       {!full && !pip ? (
-        <View style={{ height: docked ? BAR : MINI_BAR, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8 }}>
-          <LiveDot />
-          <Txt w={700} size={docked ? 13 : 11.5} numberOfLines={1} style={{ flex: 1, marginLeft: 4 }}>{title}</Txt>
-          {docked ? (
+        <View style={{ height: large ? BAR : MINI_BAR, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8 }}>
+          {media ? <Headphones size={large ? 15 : 13} color={c.accent} /> : <LiveDot />}
+          <Txt w={700} size={large ? 13 : 11.5} numberOfLines={1} style={{ flex: 1, marginLeft: 4 }}>{title}</Txt>
+          {large ? (
             <>
               <BarButton label="Apri nel browser" onPress={() => WebBrowser.openBrowserAsync(stream.url).catch(() => undefined)}>
                 <ExternalLink size={17} color={c.text} />
@@ -139,15 +147,15 @@ export function FloatingPlayer() {
               </BarButton>
             </>
           ) : (
-            <BarButton label="Ingrandisci la diretta" small onPress={expand}>
+            <BarButton label={media ? 'Ingrandisci il player' : 'Ingrandisci la diretta'} small onPress={expand}>
               <Maximize2 size={14} color={c.text} />
             </BarButton>
           )}
-          <BarButton label="Schermo intero" small={!docked} onPress={() => setFull(true)}>
-            <Maximize size={docked ? 17 : 14} color={c.text} />
+          <BarButton label="Schermo intero" small={!large} onPress={() => setFull(true)}>
+            <Maximize size={large ? 17 : 14} color={c.text} />
           </BarButton>
-          <BarButton label="Chiudi la diretta" small={!docked} onPress={stop}>
-            <X size={docked ? 18 : 15} color={c.text} />
+          <BarButton label={media ? 'Chiudi il player' : 'Chiudi la diretta'} small={!large} onPress={stop}>
+            <X size={large ? 18 : 15} color={c.text} />
           </BarButton>
         </View>
       ) : null}
@@ -171,7 +179,7 @@ function BarButton({ children, label, onPress, small }: { children: ReactNode; l
  * Lasciando la schermata (o aprendone un'altra sopra) il player diventa finestrella.
  */
 export function PlayerSlot() {
-  const { stream, minimized, setDock } = usePlayer();
+  const { stream, source, minimized, setDock } = usePlayer();
   const navigation = useNavigation();
   const ref = useRef<View>(null);
   const focused = useRef(false);
@@ -190,7 +198,8 @@ export function PlayerSlot() {
   // durante l'animazione d'ingresso la posizione non è ancora quella finale: si rimisura a fine transizione
   useEffect(() => navigation.addListener('transitionEnd' as never, measure), [navigation, measure]);
 
-  if (!stream || minimized) return null;
+  // video e podcast non si agganciano alla schermata Live
+  if (!stream || minimized || source !== 'live') return null;
   // su schermi larghi il video non deve coprire mezza pagina
   return (
     <View style={{ width: '100%', maxWidth: 720, alignSelf: 'center', paddingHorizontal: 14, paddingTop: 10 }}>

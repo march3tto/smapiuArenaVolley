@@ -13,6 +13,9 @@ import { Txt } from '@/components/Txt';
 import { UpcomingList } from '@/components/UpcomingList';
 import { useData } from '@/store/DataProvider';
 
+/** In home solo gli ultimi elementi: il resto è nella tab News */
+const HOME_MAX = 10;
+
 /** Ordine: diretta (solo se esiste) → news → prossime partite → banner sponsor → classifica → video e podcast */
 export default function Home() {
   const router = useRouter();
@@ -38,7 +41,7 @@ export default function Home() {
 
       <View style={{ gap: 12 }}>
         <SectionHeader title="Ultime notizie" action={{ label: 'Tutte', onPress: () => router.navigate('/news') }} />
-        <NewsSlider items={news} onPressItem={(n) => router.push({ pathname: '/notizia/[id]', params: { id: n.id } })} />
+        <NewsSlider items={news.slice(0, HOME_MAX)} onPressItem={(n) => router.push({ pathname: '/notizia/[id]', params: { id: n.id } })} />
       </View>
 
       <View style={{ flexDirection: twoCols ? 'row' : 'column', gap: 16, alignItems: twoCols ? 'stretch' : 'flex-start' }}>
@@ -57,7 +60,7 @@ export default function Home() {
       {media.length ? (
         <View style={{ gap: 12 }}>
           <SectionHeader title="Video e podcast" action={{ label: 'Tutti', onPress: () => router.navigate({ pathname: '/news', params: { filtro: 'media' } }) }} />
-          <MediaStrip items={media} />
+          <MediaStrip items={media.slice(0, HOME_MAX)} />
         </View>
       ) : null}
     </Screen>

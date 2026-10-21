@@ -12,7 +12,6 @@ import { newsDate } from '@/lib/format';
 import { PROVIDER_LABEL } from '@/lib/auth';
 import { apriInformativa, PRIVACY_POLICY_VERSION, type TipoConsenso } from '@/lib/privacy';
 import { useApp } from '@/store/AppProvider';
-import { useData } from '@/store/DataProvider';
 import { palette } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -30,11 +29,10 @@ export default function Account() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
-  const { user, consents, setMarketing, setYouthCategory } = useApp();
-  const { youth } = useData();
-  const [busy, setBusy] = useState<null | 'marketing' | 'categoria'>(null);
+  const { user, consents, setMarketing } = useApp();
+  const [busy, setBusy] = useState<null | 'marketing'>(null);
 
-  const run = async (k: 'marketing' | 'categoria', fn: () => Promise<void>, ok: string) => {
+  const run = async (k: 'marketing', fn: () => Promise<void>, ok: string) => {
     setBusy(k);
     try {
       await fn();
@@ -77,24 +75,6 @@ export default function Account() {
               <Info label="Email" value={user.email || '—'} />
               <Info label="Accesso con" value={(user.providers?.length ? user.providers : ['email' as const]).map((p) => PROVIDER_LABEL[p]).join(', ')} />
               <Info label="Profilo" value={RUOLO_LABEL[user.role ?? 'public']} />
-            </Section>
-
-            <Section title="Categoria giovanile di interesse">
-              <Txt size={13} color="muted" style={{ lineHeight: 18 }}>
-                Per i genitori: scegli la squadra di tua figlia. Il profilo “Genitore” lo attiva la società.
-              </Txt>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4, opacity: busy === 'categoria' ? 0.5 : 1 }}>
-                {[{ id: null as string | null, name: 'Nessuna' }, ...youth.map((y) => ({ id: y.id as string | null, name: y.name }))].map((y) => {
-                  const on = (user.youthCategoryId ?? null) === y.id;
-                  return (
-                    <Pressable key={y.id ?? 'nessuna'} disabled={busy !== null || on} accessibilityRole="radio" accessibilityState={{ selected: on }}
-                      onPress={() => run('categoria', () => setYouthCategory(y.id), y.id ? `Categoria: ${y.name}.` : 'Nessuna categoria selezionata.')}
-                      style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1, borderColor: on ? palette.gold : c.line, backgroundColor: on ? palette.gold : c.fill }}>
-                      <Txt w={600} size={13} color={on ? palette.onGold : 'text'}>{y.name}</Txt>
-                    </Pressable>
-                  );
-                })}
-              </View>
             </Section>
 
             <Section title="Privacy">

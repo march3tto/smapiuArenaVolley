@@ -37,6 +37,9 @@ const CATEGORY_COLORS: Record<string, { bg: string; fg: string }> = {
   Sponsor: { bg: '#10935B', fg: brand.bianco },
 };
 
+/** Sfondo dell'etichetta di una categoria (anche per il puntino del filtro nella tab News) */
+export const categoryColor = (category: string) => CATEGORY_COLORS[category]?.bg ?? 'rgba(6,26,58,0.6)';
+
 function CategoryBadge({ category, big }: { category: string; big?: boolean }) {
   const col = CATEGORY_COLORS[category];
   return (
@@ -57,8 +60,8 @@ export function NewsCard({ item, width, compact, onPress }: Props) {
         <LinearGradient colors={['transparent', 'rgba(6,26,58,0.6)', 'rgba(6,26,58,0.95)']} locations={[0.35, 0.6, 1]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
         <CategoryBadge category={item.category} />
         <View style={{ position: 'absolute', left: 10, right: 10, bottom: 10, gap: 2 }}>
-          <Txt size={11} color="rgba(255,255,255,0.75)">{newsDate(item.date)}</Txt>
           <Txt w={700} size={13.5} color="#fff" numberOfLines={3} style={{ letterSpacing: -0.2 }}>{item.title}</Txt>
+          <Txt size={11} color="rgba(255,255,255,0.75)">{newsDate(item.date)}</Txt>
         </View>
       </Pressy>
     );

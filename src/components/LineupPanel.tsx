@@ -3,11 +3,12 @@ import { useRouter } from 'expo-router';
 import { ClipboardList, X } from 'lucide-react-native';
 import { Button } from './Button';
 import { Pressy } from './Pressy';
+import { TeamBadge } from './TeamBadge';
 import { Txt } from './Txt';
 import { STARTERS, type Lineup } from '@/store/useLineup';
 import { brand, palette, radius } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
-import type { LineupPlayer, PlayerRole } from '@/types';
+import type { ImgSrc, LineupPlayer, PlayerRole } from '@/types';
 
 export const ROLE_LABEL: Record<PlayerRole, string> = { palleggiatrice: 'Palleggiatrice', schiacciatrice: 'Schiacciatrice', centrale: 'Centrale', opposto: 'Opposto', libero: 'Libero' };
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI'];
@@ -21,6 +22,8 @@ const surname = (name: string) => name.split(' ').slice(-1)[0] ?? name;
 interface TeamProps {
   players: LineupPlayer[];
   team: 'us' | 'opp';
+  name: string;
+  logo?: ImgSrc | null;
 }
 
 /** Formazioni delle due squadre affiancate, nello stesso ordine del tabellone: giocatrici a referto e Starting Six sul campo */
@@ -33,24 +36,32 @@ export function LineupPanel({ lineup, teams }: { lineup: Lineup; teams: TeamProp
         ))}
       </View>
       {lineup.error ? <Txt size={12.5} color="danger">{lineup.error}</Txt> : null}
+      <TagLegend />
       {lineup.canEdit ? (
-        <Txt size={12} color="muted">Tocca una giocatrice per metterla nello Starting Six: l'ordine dei tocchi dà le posizioni I-VI (I al servizio). Tocca L su una giocatrice con ruolo Libero per sceglierla come libero della partita.</Txt>
+        <Txt size={12} color="muted">Tocca una giocatrice per metterla nello Starting Six: l&apos;ordine dei tocchi dà le posizioni I-VI (I al servizio). Libero, capitana e giocatrici si cambiano da Modifica.</Txt>
       ) : null}
     </View>
   );
 }
 
-function TeamLineup({ players, team, lineup }: TeamProps & { lineup: Lineup }) {
+function TeamLineup({ players, team, name, logo, lineup }: TeamProps & { lineup: Lineup }) {
   const { c } = useTheme();
   const router = useRouter();
   const starters = players.filter((p) => p.zone != null).length;
-  const editOpp = team === 'opp' && lineup.canEdit;
+  // la scheda giocatrice c'è solo per la nostra rosa; chi modifica la formazione usa il tocco per lo Starting Six (libero e capitana da Modifica)
+  const open = (p: LineupPlayer) => (!lineup.canEdit && team === 'us' && p.playerId
+    ? () => router.push({ pathname: '/player/[id]', params: { id: p.playerId! } })
+    : undefined);
   return (
     <View style={{ flex: 1, minWidth: 0, gap: 10 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <TeamBadge name={name} logo={logo} size={28} />
+        <Txt w={700} size={13} numberOfLines={2} style={{ flex: 1 }}>{name}</Txt>
+      </View>
       {players.length ? (
         <View style={{ borderRadius: radius.md, borderWidth: 1, borderColor: c.line, overflow: 'hidden' }}>
           {players.map((p, i) => (
-            <PlayerRow key={p.id} p={p} first={i === 0} editable={lineup.canEdit} onToggle={() => lineup.toggleStarter(p)} onLibero={() => lineup.toggleLibero(p)} />
+            <PlayerRow key={p.id} p={p} first={i === 0} onPress={lineup.canEdit ? () => lineup.toggleStarter(p) : open(p)} pressRole={lineup.canEdit ? 'button' : 'link'} />
           ))}
         </View>
       ) : (
@@ -59,9 +70,9 @@ function TeamLineup({ players, team, lineup }: TeamProps & { lineup: Lineup }) {
         </Txt>
       )}
 
-      {editOpp ? (
+      {lineup.canEdit ? (
         <Button size="sm" label={players.length ? 'Modifica' : 'Inserisci formazione'} icon={<ClipboardList size={15} color={c.text} />}
-          onPress={() => router.push('/formazione-avversaria')} />
+          onPress={() => router.push({ pathname: '/formazione/[squadra]', params: { squadra: team === 'us' ? 'nostra' : 'avversaria' } })} />
       ) : null}
 
       <View style={{ gap: 6, marginTop: 4 }}>
@@ -128,7 +139,7 @@ function LiberoLine({ player }: { player?: LineupPlayer }) {
 }
 
 /** Numero di maglia: piastrina arrotondata con il numero nel font dei titoli */
-export function NumberTag({ value, variant, size = 26 }: { value: number | null; variant: 'court' | 'starter' | 'bench' | 'libero'; size?: number }) {
+export function NumberTag({ value, variant, size = 26 }: { value: number | null; variant: TagVariant; size?: number }) {
   const { c } = useTheme();
   const look = {
     court: { bg: brand.bluScuro, border: brand.bluScuro, fg: palette.gold },
@@ -136,6 +147,8 @@ export function NumberTag({ value, variant, size = 26 }: { value: number | null;
     bench: { bg: 'transparent', border: c.lineStrong, fg: c.text },
     // il libero ha la maglia di un altro colore
     libero: { bg: palette.blue, border: palette.blue, fg: palette.white },
+    // capitana: maglia blu notte con bordo e numero oro
+    captain: { bg: palette.navy, border: palette.gold, fg: palette.gold },
   }[variant];
   return (
     <View style={{ minWidth: size, height: size, paddingHorizontal: 3, borderRadius: Math.round(size * 0.3), borderWidth: 1.5, borderColor: look.border, backgroundColor: look.bg, alignItems: 'center', justifyContent: 'center' }}>
@@ -144,43 +157,60 @@ export function NumberTag({ value, variant, size = 26 }: { value: number | null;
   );
 }
 
-/** Capitana: lettera C cerchiata */
-function CaptainMark() {
-  const { c } = useTheme();
+type TagVariant = 'court' | 'starter' | 'bench' | 'libero' | 'captain';
+
+/** Colore del numero nell'elenco: libero e capitana hanno il loro, poi titolari e panchina */
+export const tagVariant = (p: LineupPlayer): TagVariant =>
+  (p.isLibero ? 'libero' : p.isCaptain ? 'captain' : p.zone != null ? 'starter' : 'bench');
+
+/** Legenda dei colori del numero di maglia */
+export function TagLegend() {
   return (
-    <View accessibilityLabel="Capitana" style={{ width: 15, height: 15, borderRadius: 8, borderWidth: 1.5, borderColor: c.accent, alignItems: 'center', justifyContent: 'center' }}>
-      <Txt w={800} size={8.5} color="accent" display={false} style={{ lineHeight: 10 }}>C</Txt>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+      {([['starter', 'Titolare'], ['captain', 'Capitana'], ['libero', 'Libero']] as const).map(([v, label]) => (
+        <View key={v} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+          <NumberTag value={null} variant={v} size={16} />
+          <Txt size={11.5} color="muted">{label}</Txt>
+        </View>
+      ))}
     </View>
   );
 }
 
-export function PlayerRow({ p, first, editable, onToggle, onLibero, onRemove }: { p: LineupPlayer; first: boolean; editable: boolean; onToggle: () => void; onLibero?: () => void; onRemove?: () => void }) {
+/**
+ * Riga giocatrice. onPress: tocco sulla riga (Starting Six, scheda giocatrice o selezione per la modifica).
+ * onLibero / onCaptain: pulsanti L e C (solo nella schermata Modifica); C su tutte finché la squadra non ha una capitana, poi solo su di lei.
+ */
+export function PlayerRow({ p, first, onPress, pressRole, selected, onLibero, onCaptain, captainSet, onRemove }: {
+  p: LineupPlayer; first: boolean; onPress?: () => void; pressRole?: 'button' | 'link'; selected?: boolean;
+  onLibero?: () => void; onCaptain?: () => void; captainSet?: boolean; onRemove?: () => void;
+}) {
   const { c } = useTheme();
   const starter = p.zone != null;
-  // i pulsanti L e X stanno accanto alla parte toccabile, non dentro (sul web un pulsante non può contenerne un altro)
+  const liberoButton = !!onLibero && !starter && (p.role === 'libero' || p.isLibero);
+  const captainButton = !!onCaptain && (p.isCaptain || !captainSet);
+  // i pulsanti C, L e X stanno accanto alla parte toccabile, non dentro (sul web un pulsante non può contenerne un altro)
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingRight: 8, borderTopWidth: first ? 0 : 1, borderTopColor: c.line, backgroundColor: starter ? c.fill : undefined }}>
-      <Pressable onPress={editable ? onToggle : undefined} disabled={!editable} accessibilityRole={editable ? 'button' : undefined}
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingRight: 8, borderTopWidth: first ? 0 : 1, borderTopColor: c.line,
+      backgroundColor: selected ? 'rgba(255,213,3,0.14)' : starter ? c.fill : undefined }}>
+      <Pressable onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? pressRole ?? 'button' : undefined} accessibilityState={selected != null ? { selected } : undefined}
         accessibilityLabel={`${p.name}${p.isCaptain ? ', capitana' : ''}${p.isLibero ? ', libero' : ''}${starter ? `, titolare in posizione ${ROMAN[p.zone ?? 0]}` : ''}`}
         style={({ pressed }) => ({ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 8, paddingVertical: 8, backgroundColor: pressed ? c.fill2 : undefined })}>
-        <NumberTag value={p.number} variant={starter ? 'starter' : p.isLibero ? 'libero' : 'bench'} />
+        <NumberTag value={p.number} variant={tagVariant(p)} />
         <View style={{ flex: 1, minWidth: 0 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <Txt w={600} size={13} numberOfLines={1} style={{ flexShrink: 1 }}>{p.name}</Txt>
-            {p.isCaptain ? <CaptainMark /> : null}
-          </View>
+          <Txt w={600} size={13} numberOfLines={1}>{p.name}</Txt>
           {/* la posizione si vede solo sul campo */}
           {p.role ? <Txt size={11} color="muted" numberOfLines={1}>{ROLE_LABEL[p.role]}</Txt> : null}
         </View>
       </Pressable>
+      {captainButton ? (
+        <RoundToggle label="C" on={p.isCaptain} color={palette.gold} fg={palette.onGold} onPress={onCaptain!}
+          a11y={p.isCaptain ? `Togli a ${p.name} la fascia di capitana` : `Scegli ${p.name} come capitana`} />
+      ) : null}
       {/* L solo per le giocatrici con ruolo Libero (o per togliere un libero già scelto) */}
-      {editable && onLibero && !starter && (p.role === 'libero' || p.isLibero) ? (
-        <Pressy onPress={onLibero} scaleTo={0.85} accessibilityRole="button" accessibilityState={{ selected: p.isLibero }}
-          accessibilityLabel={p.isLibero ? `Togli ${p.name} dal ruolo di libero` : `Scegli ${p.name} come libero`}
-          style={{ width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5,
-            borderColor: p.isLibero ? palette.blue : c.lineStrong, backgroundColor: p.isLibero ? palette.blue : undefined }}>
-          <Txt w={800} size={10.5} display={false} color={p.isLibero ? palette.white : 'muted'} style={{ lineHeight: 12 }}>L</Txt>
-        </Pressy>
+      {liberoButton ? (
+        <RoundToggle label="L" on={p.isLibero} color={palette.blue} fg={palette.white} onPress={onLibero!}
+          a11y={p.isLibero ? `Togli ${p.name} dal ruolo di libero` : `Scegli ${p.name} come libero`} />
       ) : null}
       {onRemove ? (
         <Pressy onPress={onRemove} scaleTo={0.85} accessibilityRole="button" accessibilityLabel={`Togli ${p.name}`} style={{ padding: 4 }}>
@@ -188,5 +218,17 @@ export function PlayerRow({ p, first, editable, onToggle, onLibero, onRemove }: 
         </Pressy>
       ) : null}
     </View>
+  );
+}
+
+/** Pulsante tondo con una lettera (C capitana, L libero): pieno quando attivo */
+function RoundToggle({ label, on, color, fg, onPress, a11y }: { label: string; on: boolean; color: string; fg: string; onPress: () => void; a11y: string }) {
+  const { c } = useTheme();
+  return (
+    <Pressy onPress={onPress} scaleTo={0.85} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={a11y}
+      style={{ width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5,
+        borderColor: on ? color : c.lineStrong, backgroundColor: on ? color : undefined }}>
+      <Txt w={800} size={10.5} display={false} color={on ? fg : 'muted'} style={{ lineHeight: 12 }}>{label}</Txt>
+    </Pressy>
   );
 }

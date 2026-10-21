@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MediaList } from '@/components/MediaList';
-import { NewsCard } from '@/components/NewsCard';
+import { NewsCard, categoryColor } from '@/components/NewsCard';
 import { Screen } from '@/components/Screen';
 import { SectionHeader } from '@/components/SectionHeader';
 import { SegmentedControl } from '@/components/SegmentedControl';
@@ -25,7 +25,8 @@ export default function News() {
   }, [filtro, router]);
   const options = useMemo(() => [
     { value: 'all', label: 'Tutte' },
-    ...[...new Set(news.map((n) => n.category))].map((c) => ({ value: c, label: c })),
+    // puntino dello stesso colore dell'etichetta sulle card
+    ...[...new Set(news.map((n) => n.category))].map((c) => ({ value: c, label: c, dot: categoryColor(c) })),
     ...(media.length ? [{ value: MEDIA, label: 'Video e podcast' }] : []),
   ], [news, media.length]);
   const list = cat === 'all' ? news : news.filter((n) => n.category === cat);

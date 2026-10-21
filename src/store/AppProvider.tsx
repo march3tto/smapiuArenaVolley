@@ -125,13 +125,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!supabase || !uid || hasRole) return;
     let active = true;
-    supabase.from('profili').select('ruolo, categoria_giovanile_id').eq('id', uid).maybeSingle().then(({ data }) => {
-      const role = RUOLO[String(data?.ruolo)] ?? 'public';
-      const youthCategoryId = (data?.categoria_giovanile_id as string | null) ?? null;
-      if (active) setUser((u) => (u && u.id === uid ? { ...u, role, youthCategoryId } : u));
-    });
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    // con un errore (rete, sessione non ancora pronta) non si scende a "pubblico": si riprova, altrimenti un admin
+    // perderebbe le funzioni della diretta fino al riavvio dell'app
+    const load = (attempt: number) => {
+      supabase!.from('profili').select('ruolo, categoria_giovanile_id').eq('id', uid).maybeSingle().then(({ data, error }) => {
+        if (!active) return;
+        if (error) {
+          console.warn('Profilo non caricato', error.message);
+          retry = setTimeout(() => load(attempt + 1), Math.min(30000, 2000 * 2 ** attempt));
+          return;
+        }
+        const role = RUOLO[String(data?.ruolo)] ?? 'public';
+        const youthCategoryId = (data?.categoria_giovanile_id as string | null) ?? null;
+        setUser((u) => (u && u.id === uid ? { ...u, role, youthCategoryId } : u));
+      });
+    };
+    load(0);
     return () => {
       active = false;
+      clearTimeout(retry);
     };
   }, [uid, hasRole]);
 

@@ -8,6 +8,10 @@ export const LOGO_BRAND_LIGHT: number = require('../../assets/brand/avt-smapiu-l
 export const COMPETITION_LOGOS: Record<string, number> = {
   'serie-a3-femminile': require('../../assets/competitions/serie-a3-femminile.png'),
 };
+/** Varianti per la modalità chiara (stesso slug); senza variante si usa il logo normale */
+export const COMPETITION_LOGOS_LIGHT: Record<string, number> = {
+  'serie-a3-femminile': require('../../assets/competitions/serie-a3-femminile-light.png'),
+};
 
 export const LOGO_SMAPIU: number = require('../../assets/brand/smapiu-white.png');
 /** Foto di squadra della pagina Organigramma */

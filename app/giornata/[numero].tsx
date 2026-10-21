@@ -124,11 +124,10 @@ function GameRow({ game: g, onPress }: { game: LeagueGame; onPress?: () => void 
 }
 
 function Team({ name, logo, won }: { name: string; logo?: LeagueGame['homeLogo']; won: boolean }) {
-  const us = name.startsWith('Smapiù');
   return (
     <View style={{ flex: 1, alignItems: 'center', gap: 6 }}>
       <TeamBadge name={name} logo={logo} size={44} />
-      <Txt w={won ? 800 : 700} size={11.5} center numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} color={us ? 'accent' : 'text'}>{name}</Txt>
+      <Txt w={won ? 800 : 700} size={11.5} center numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>{name}</Txt>
     </View>
   );
 }

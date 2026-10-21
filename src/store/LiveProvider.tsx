@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
-import { LIVE_EVENTS_MAX, fetchLive, newId, pushLivePoint, subscribeLive, withAction } from '@/lib/api';
+import { LIVE_EVENTS_MAX, fetchLive, newId, pushLivePoint, setFirstServe, subscribeLive, withAction } from '@/lib/api';
 import { demoLive as demoInitial } from '@/data/mock';
 import { isSideSwitch, matchWinner, setWinner, setsWon, standingPoints } from '@/lib/volley';
 import { useApp } from './AppProvider';
@@ -17,6 +17,8 @@ interface LiveState {
   serving: 'us' | 'opp';
   /** Partita chiusa: una squadra ha vinto 3 set (history contiene tutti i set) */
   finished: boolean;
+  /** Squadra al servizio sullo 0-0, per set, se scelta dall'admin toccando lo stemma */
+  firstServe: Record<number, 'us' | 'opp'>;
 }
 
 interface LiveCtx extends LiveState {
@@ -39,6 +41,10 @@ interface LiveCtx extends LiveState {
   addPoint: (side: 'us' | 'opp', detail?: PointDetail) => void;
   /** Riporta la partita demo allo stato iniziale */
   resetDemo: () => void;
+  /** Sullo 0-0 del set: si può scegliere chi serve per primo */
+  canChooseServe: boolean;
+  /** Sceglie la squadra al servizio sullo 0-0 del set in corso */
+  chooseServe: (side: 'us' | 'opp') => void;
 }
 
 const Ctx = createContext<LiveCtx | null>(null);
@@ -80,10 +86,10 @@ const US_LINES = [
   'Pallonetto di Aurora Piron, punto Smapiù!',
 ];
 
-const EMPTY: LiveState = { set: 1, our: 0, opp: 0, history: [], events: [], serving: 'us', finished: false };
+const EMPTY: LiveState = { set: 1, our: 0, opp: 0, history: [], events: [], serving: 'us', finished: false, firstServe: {} };
 
 const DEMO_START = (): LiveState => ({
-  set: demoInitial.set, our: demoInitial.our, opp: demoInitial.opp, history: demoInitial.history, events: demoInitial.events, serving: 'us', finished: false,
+  set: demoInitial.set, our: demoInitial.our, opp: demoInitial.opp, history: demoInitial.history, events: demoInitial.events, serving: 'us', finished: false, firstServe: {},
 });
 
 /**
@@ -118,11 +124,14 @@ function scorePoint(s: LiveState, side: 'us' | 'opp', real = false, detail?: Poi
 
 /**
  * Rotazioni del set in corso: si parte dallo Starting Six e la squadra che fa punto in ricezione (cambio palla)
- * ruota di una posizione. Al primo scambio serve chi ha chiuso il set precedente (1° set: noi), come nel tabellone.
+ * ruota di una posizione. Al primo scambio serve la squadra scelta sullo 0-0 (first), altrimenti chi ha chiuso il set precedente (1° set: noi).
  */
-function setRotations(events: LiveEvent[], set: number): { us: number; opp: number } {
+/** Al servizio sullo 0-0 se non scelto: chi ha chiuso il set precedente (1° set: noi) */
+const firstServer = (events: LiveEvent[], set: number): 'us' | 'opp' => events.find((e) => e.set === set - 1)?.side ?? 'us';
+
+function setRotations(events: LiveEvent[], set: number, first?: 'us' | 'opp'): { us: number; opp: number } {
   const rot = { us: 0, opp: 0 };
-  let server: 'us' | 'opp' = events.find((e) => e.set === set - 1)?.side ?? 'us';
+  let server: 'us' | 'opp' = first ?? firstServer(events, set);
   let total = 0;
   // dal più vecchio; cambio campo e fine set ripetono il punteggio del punto e si saltano
   for (const e of [...events].reverse()) {
@@ -179,6 +188,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
         events: snap.events,
         serving: last?.side ?? 'us',
         finished: matchWinner(setsWon(done)) !== null,
+        firstServe: snap.firstServe,
       });
     };
     reload.current = load;
@@ -250,10 +260,39 @@ export function LiveProvider({ children }: { children: ReactNode }) {
 
   const resetDemo = useCallback(() => setState(DEMO_START()), []);
 
+  const chooseServe = useCallback((side: 'us' | 'opp') => {
+    const s = stateRef.current;
+    if (s.finished || s.our + s.opp > 0 || !(isDemo || scoringLive)) return;
+    const next = { ...s, firstServe: { ...s.firstServe, [s.set]: side } };
+    stateRef.current = next;
+    setState(next);
+    if (!scoringLive || !liveMatch) return;
+    setSaveError(null);
+    pending.current += 1;
+    saveQueue.current = saveQueue.current
+      .then(() => setFirstServe(liveMatch.id, s.set, side))
+      .catch((err: unknown) => {
+        console.warn('Servizio non salvato', err);
+        failed.current = true;
+        setSaveError('Servizio non salvato: controlla la connessione e riprova.');
+      })
+      .finally(() => {
+        pending.current -= 1;
+        if (pending.current === 0 && failed.current) {
+          failed.current = false;
+          reload.current();
+        }
+      });
+  }, [isDemo, scoringLive, liveMatch]);
+
   const value = useMemo<LiveCtx>(() => {
     const won = setsWon(state.history);
+    const first = state.firstServe[state.set];
+    // sullo 0-0 serve la squadra scelta; senza scelta la regola predefinita (dal 2° set chi ha chiuso il precedente)
+    const atStart = state.our + state.opp === 0 && !state.finished;
     return {
       ...state,
+      serving: atStart ? first ?? firstServer(state.events, state.set) : state.serving,
       match: liveMatch,
       ourSets: won.our,
       oppSets: won.opp,
@@ -262,11 +301,13 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       canScore: (isDemo || scoringLive) && !state.finished,
       scoringLive,
       saveError,
-      rotation: setRotations(state.events, state.set),
+      rotation: setRotations(state.events, state.set, first),
       addPoint,
       resetDemo,
+      canChooseServe: (isDemo || scoringLive) && atStart,
+      chooseServe,
     };
-  }, [state, liveMatch, lastPoint, isDemo, scoringLive, saveError, addPoint, resetDemo]);
+  }, [state, liveMatch, lastPoint, isDemo, scoringLive, saveError, addPoint, resetDemo, chooseServe]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -9,7 +9,6 @@ import { Settings } from 'lucide-react-native';
 import { IconButton } from './IconButton';
 import { SocialMenu } from './SocialMenu';
 import { LOGO_BRAND, LOGO_BRAND_LIGHT } from '@/data/assets';
-import { useApp } from '@/store/AppProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 
 const LOGO_RATIO = 428 / 166;
@@ -35,7 +34,6 @@ export function useTopBarHeight() {
 export function TopBar() {
   const insets = useSafeAreaInsets();
   const { c, mode } = useTheme();
-  const { prefs } = useApp();
   const router = useRouter();
   const logo = useLogoSize();
   const [social, setSocial] = useState(false);
@@ -67,7 +65,7 @@ export function TopBar() {
           <SocialMenu progress={progress} open={social} onOpenChange={setSocial} />
         </BlurView>
         <BlurView intensity={blur} tint={tint} style={capsule}>
-          <IconButton label="Impostazioni notifiche" onPress={() => router.push('/settings')} dot={prefs.enabled} style={flat}>
+          <IconButton label="Impostazioni" onPress={() => router.push('/settings')} style={flat}>
             <Settings size={18} color={c.text} />
           </IconButton>
         </BlurView>

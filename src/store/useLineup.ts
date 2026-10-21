@@ -1,11 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { deleteLineupPlayer, fetchLineup, insertLineup, newId, setLineupLibero, setLineupZone, subscribeLineup } from '@/lib/api';
+import { deleteLineupPlayer, fetchLineup, fetchTeamRoster, insertLineup, newId, setLineupCaptain, setLineupLibero, setLineupZone, subscribeLineup, updateLineupPlayer } from '@/lib/api';
 import { demoOpponentLineup } from '@/data/mock';
 import { useApp } from './AppProvider';
 import { useData } from './DataProvider';
 import type { LineupPlayer, Match, Player, PlayerRole } from '@/types';
 
 export const STARTERS = 6;
+
+export interface NewPlayer {
+  number: number | null;
+  name: string;
+  role: PlayerRole | null;
+  playerId?: string | null;
+  isCaptain?: boolean;
+}
 
 export interface Lineup {
   us: LineupPlayer[];
@@ -18,16 +26,21 @@ export interface Lineup {
   toggleStarter: (p: LineupPlayer) => void;
   /** Libero ↔ panchina: solo dalla panchina e con ruolo Libero, il nuovo libero sostituisce il precedente */
   toggleLibero: (p: LineupPlayer) => void;
-  addOpponent: (p: { number: number | null; name: string; role: PlayerRole | null }) => void;
+  /** Capitana ↔ nessuna: una per squadra, la nuova sostituisce la precedente */
+  toggleCaptain: (p: LineupPlayer) => void;
+  /** Una o più giocatrici a referto per una squadra; playerId: giocatrice della rosa (tabella giocatrici), senza è inserita a mano */
+  addPlayers: (team: 'us' | 'opp', p: NewPlayer | NewPlayer[]) => void;
+  /** Corregge numero, nome e ruolo di una giocatrice a referto; false se non salvabile (errore in error) */
+  update: (p: LineupPlayer, f: { number: number | null; name: string; role: PlayerRole | null }) => boolean;
   remove: (p: LineupPlayer) => void;
 }
 
-/** Nostra formazione dalla rosa della prima squadra, ordinata per numero di maglia */
-function fromRoster(players: Player[]): LineupPlayer[] {
+/** Formazione dalla rosa di una squadra (la nostra prima squadra o l'avversaria), ordinata per numero di maglia */
+function fromRoster(players: Player[], team: 'us' | 'opp'): LineupPlayer[] {
   return [...players]
     .sort((a, b) => (a.number ?? 99) - (b.number ?? 99))
     .map((p, i) => ({
-      id: newId(), team: 'us', playerId: p.id, number: p.number ?? null, name: `${p.firstName} ${p.lastName}`.trim(),
+      id: newId(), team, playerId: p.id, number: p.number ?? null, name: `${p.firstName} ${p.lastName}`.trim(),
       role: p.role, isCaptain: !!p.isCaptain, zone: null, isLibero: false, order: i,
     }));
 }
@@ -51,7 +64,8 @@ export function useLineup(match: Match | null): Lineup {
   const queue = useRef<Promise<void>>(Promise.resolve());
   const pending = useRef(0);
   const reload = useRef<() => void>(() => {});
-  const seeded = useRef<string | null>(null);
+  // squadre già salvate in automatico dalla rosa, per partita: `${matchId}:us` / `${matchId}:opp`
+  const seeded = useRef(new Set<string>());
 
   const matchId = match?.id;
   useEffect(() => {
@@ -102,20 +116,45 @@ export function useLineup(match: Match | null): Lineup {
       });
   }, [live]);
 
+  // Rosa della squadra avversaria (tabella giocatrici), legata alla squadra della partita
+  const oppTeamId = live ? match?.opponentTeamId ?? null : null;
+  const [oppPlayers, setOppPlayers] = useState<{ teamId: string; players: Player[] } | null>(null);
+  useEffect(() => {
+    if (!oppTeamId) return;
+    let active = true;
+    fetchTeamRoster(oppTeamId)
+      .then((p) => active && setOppPlayers({ teamId: oppTeamId, players: p }))
+      .catch((err: unknown) => console.warn('Rosa avversaria non caricata', err));
+    return () => {
+      active = false;
+    };
+  }, [oppTeamId]);
+
   const savedUs = rows.some((p) => p.team === 'us');
-  // Nostra squadra in automatico: finché non è salvata si mostra la rosa; l'admin la salva alla prima apertura
-  const roster = useMemo(() => fromRoster(players), [players]);
+  const savedOpp = rows.some((p) => p.team === 'opp');
+  // Squadre in automatico: finché non sono salvate si mostra la rosa; l'admin le salva alla prima apertura
+  const roster = useMemo(() => fromRoster(players, 'us'), [players]);
+  const oppRoster = useMemo(
+    () => (oppPlayers && oppPlayers.teamId === oppTeamId ? fromRoster(oppPlayers.players, 'opp') : []),
+    [oppPlayers, oppTeamId],
+  );
   const [demoUs, setDemoUs] = useState<LineupPlayer[] | null>(null);
   useEffect(() => setDemoUs(null), [matchId]);
   const us = live ? (savedUs ? rows.filter((p) => p.team === 'us').sort(byOrder) : roster) : (demoUs ?? roster);
-  const opp = rows.filter((p) => p.team === 'opp').sort(byOrder);
+  const opp = live && !savedOpp ? oppRoster : rows.filter((p) => p.team === 'opp').sort(byOrder);
 
   useEffect(() => {
-    if (!live || !canEdit || loading || savedUs || !roster.length || !matchId || seeded.current === matchId) return;
-    seeded.current = matchId;
-    setRows((r) => [...r, ...roster]);
-    save(() => insertLineup(matchId, roster));
-  }, [live, canEdit, loading, savedUs, roster, matchId, save]);
+    if (!live || !canEdit || loading || !matchId) return;
+    const seed = ([['us', savedUs, roster], ['opp', savedOpp, oppRoster]] as const)
+      .filter(([team, saved, list]) => !saved && list.length && !seeded.current.has(`${matchId}:${team}`));
+    if (!seed.length) return;
+    const add = seed.flatMap(([team, , list]) => {
+      seeded.current.add(`${matchId}:${team}`);
+      return list;
+    });
+    setRows((r) => [...r, ...add]);
+    save(() => insertLineup(matchId, add));
+  }, [live, canEdit, loading, savedUs, savedOpp, roster, oppRoster, matchId, save]);
 
   // modifica locale: nella demo la nostra squadra vive in demoUs, il resto in rows
   const patch = useCallback((team: 'us' | 'opp', fn: (list: LineupPlayer[]) => LineupPlayer[]) => {
@@ -163,22 +202,62 @@ export function useLineup(match: Match | null): Lineup {
     save(() => setLineupLibero(matchId, p.team, on ? p.id : null));
   }, [canEdit, matchId, patch, save]);
 
-  const addOpponent = useCallback((n: { number: number | null; name: string; role: PlayerRole | null }) => {
+  const toggleCaptain = useCallback((p: LineupPlayer) => {
     if (!canEdit || !matchId) return;
-    const name = n.name.trim();
-    if (!name) return;
-    if (n.number != null && opp.some((x) => x.number === n.number)) {
-      setError(`Il numero ${n.number} è già in formazione.`);
-      return;
-    }
-    const p: LineupPlayer = {
-      id: newId(), team: 'opp', playerId: null, number: n.number, name, role: n.role, isCaptain: false, zone: null, isLibero: false,
-      order: opp.reduce((m, x) => Math.max(m, x.order + 1), 0),
-    };
+    const on = !p.isCaptain;
     setError(null);
-    patch('opp', (list) => [...list, p]);
-    save(() => insertLineup(matchId, [p]));
-  }, [canEdit, matchId, opp, patch, save]);
+    patch(p.team, (list) => list.map((x) => ({ ...x, isCaptain: on && x.id === p.id })));
+    save(() => setLineupCaptain(matchId, p.team, on ? p.id : null));
+  }, [canEdit, matchId, patch, save]);
+
+  const addPlayers = useCallback((team: 'us' | 'opp', input: NewPlayer | NewPlayer[]) => {
+    if (!canEdit || !matchId) return;
+    const list = [...(team === 'us' ? us : opp)];
+    const added: LineupPlayer[] = [];
+    let err: string | null = null;
+    for (const n of Array.isArray(input) ? input : [input]) {
+      const name = n.name.trim();
+      if (!name || (n.playerId && list.some((x) => x.playerId === n.playerId))) continue;
+      if (n.number != null && list.some((x) => x.number === n.number)) {
+        err = `Il numero ${n.number} è già in formazione.`;
+        continue;
+      }
+      const p: LineupPlayer = {
+        id: newId(), team, playerId: n.playerId ?? null, number: n.number, name, role: n.role, isCaptain: !!n.isCaptain, zone: null, isLibero: false,
+        order: list.reduce((m, x) => Math.max(m, x.order + 1), 0),
+      };
+      list.push(p);
+      added.push(p);
+    }
+    setError(err);
+    if (!added.length) return;
+    patch(team, (l) => [...l, ...added]);
+    save(() => insertLineup(matchId, added));
+  }, [canEdit, matchId, us, opp, patch, save]);
+
+  const update = useCallback((p: LineupPlayer, f: { number: number | null; name: string; role: PlayerRole | null }) => {
+    if (!canEdit) return false;
+    const name = f.name.trim();
+    if (!name) return false;
+    const team = p.team === 'us' ? us : opp;
+    if (f.number != null && team.some((x) => x.id !== p.id && x.number === f.number)) {
+      setError(`Il numero ${f.number} è già in formazione.`);
+      return false;
+    }
+    if (f.role === 'libero' && p.zone != null) {
+      setError('Una giocatrice nello Starting Six non può avere ruolo Libero: toglila prima dal campo.');
+      return false;
+    }
+    // cambiando ruolo il libero scelto resta tale solo se è ancora Libero
+    const isLibero = p.isLibero && f.role === 'libero';
+    setError(null);
+    patch(p.team, (list) => list.map((x) => (x.id === p.id ? { ...x, number: f.number, name, role: f.role, isLibero } : x)));
+    save(async () => {
+      if (p.isLibero && !isLibero && matchId) await setLineupLibero(matchId, p.team, null);
+      await updateLineupPlayer(p.id, { number: f.number, name, role: f.role });
+    });
+    return true;
+  }, [canEdit, matchId, us, opp, patch, save]);
 
   const remove = useCallback((p: LineupPlayer) => {
     if (!canEdit) return;
@@ -186,5 +265,5 @@ export function useLineup(match: Match | null): Lineup {
     save(() => deleteLineupPlayer(p.id));
   }, [canEdit, patch, save]);
 
-  return { us, opp, loading, canEdit, error, toggleStarter, toggleLibero, addOpponent, remove };
+  return { us, opp, loading, canEdit, error, toggleStarter, toggleLibero, toggleCaptain, addPlayers, update, remove };
 }

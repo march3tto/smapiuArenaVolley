@@ -7,6 +7,9 @@ import { TIER_LABEL, TIER_ORDER } from '@/constants';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { Sponsor, SponsorTier } from '@/types';
 
+/** Corpo dei titoli delle categorie sponsor */
+const SPONSOR_TITLE_SIZE = 24;
+
 const COLS: Record<SponsorTier, [number, number]> = { title: [1, 3], main: [2, 2], sponsor: [2, 4], charity: [2, 2] };
 
 /** Sponsor raggruppati per categoria, loghi su riquadro bianco */
@@ -26,13 +29,9 @@ export function SponsorGrid({ sponsors }: { sponsors: Sponsor[] }) {
         const tileW = (contentW - gap * (cols - 1)) / cols;
         const big = tier === 'title' || tier === 'main';
         return (
-          <View key={tier} style={{ gap: 10 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Txt w={700} size={13} color="muted">{TIER_LABEL[tier]}</Txt>
-              <View style={{ paddingHorizontal: 8, paddingVertical: 1, borderRadius: 999, backgroundColor: c.fill2 }}>
-                <Txt w={700} size={11}>{list.length}</Txt>
-              </View>
-            </View>
+          <View key={tier} style={{ gap: 12 }}>
+            {/* titolo della categoria come sul sito: corsivo maiuscolo blu */}
+            <Txt w={900} size={SPONSOR_TITLE_SIZE} display color="cobalt">{TIER_LABEL[tier]}</Txt>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap }}>
               {list.map((s) => (
                 <Pressy key={s.id} onPress={s.url ? () => Linking.openURL(s.url!) : undefined} disabled={!s.url} scaleTo={0.97}

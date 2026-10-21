@@ -36,9 +36,9 @@ export default function Live() {
   const player = usePlayer();
   // la funzione cronaca-ai accetta solo staff e admin
   const ai = hasSupabase && (user?.role === 'admin' || user?.role === 'staff');
-  const [panel, setPanel] = useState<'cronaca' | 'formazioni' | 'mvp' | 'statistiche'>('cronaca');
-  // quattro schede: a larghezza piena solo se le etichette ci stanno, altrimenti scorrono
-  const wide = useWindowDimensions().width >= 480;
+  const [panel, setPanel] = useState<'formazioni' | 'mvp' | 'statistiche'>('formazioni');
+  // tre schede: a larghezza piena solo se le etichette ci stanno, altrimenti scorrono
+  const wide = useWindowDimensions().width >= 380;
   // riquadro del punto aperto dal pulsante + di una squadra
   const [picker, setPicker] = useState<{ side: 'us' | 'opp'; name: string; anchor: Anchor } | null>(null);
 
@@ -84,6 +84,7 @@ export default function Live() {
           </Txt>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
             <Side {...L} flash={live.lastPoint?.side === L.side ? live.lastPoint.key : 0} serving={L.serving && !live.finished} server={serverOf(L.side)}
+              onServe={live.canChooseServe ? () => live.chooseServe(L.side) : undefined}
               onPlus={live.canScore ? (anchor) => setPicker({ side: L.side, name: L.name, anchor }) : undefined} />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, paddingTop: 8 }}>
               <AnimatedNumber value={live.finished ? L.sets : L.pts} size={48} />
@@ -91,6 +92,7 @@ export default function Live() {
               <AnimatedNumber value={live.finished ? R.sets : R.pts} size={48} />
             </View>
             <Side {...R} flash={live.lastPoint?.side === R.side ? live.lastPoint.key : 0} serving={R.serving && !live.finished} server={serverOf(R.side)}
+              onServe={live.canChooseServe ? () => live.chooseServe(R.side) : undefined}
               onPlus={live.canScore ? (anchor) => setPicker({ side: R.side, name: R.name, anchor }) : undefined} />
           </View>
   
@@ -129,6 +131,9 @@ export default function Live() {
               <Button label={player.stream ? 'Diretta aperta' : 'Guarda la diretta'} variant="gold" icon={<MonitorPlay size={18} color={palette.onGold} />}
                 onPress={() => player.open(m.youtubeLiveId!, `${US} – ${m.opponent}`)} />
             ) : null}
+            {live.canChooseServe ? (
+              <Txt size={12} color="muted" center>Inizio set: tocca lo stemma della squadra che va al servizio.</Txt>
+            ) : null}
             {live.canScore ? (
               <Txt size={12} color="muted" center>
                 {live.scoringLive ? 'Admin: tocca + per assegnare il punto e scegliere l\'azione, lo vedono tutti in diretta.' : 'Partita dimostrativa: tocca + per assegnare il punto e scegliere l\'azione.'}
@@ -141,26 +146,36 @@ export default function Live() {
           </View>
         </Card>
   
+        {/* cronaca in un pannello compatto tra il punteggio e le schede: scorre al suo interno, l'ultima azione è in alto */}
         <Card style={{ gap: 4 }}>
-          <View style={{ marginBottom: 10 }}>
-            <SegmentedControl stretch={wide} value={panel} onChange={setPanel}
-              options={[{ value: 'cronaca', label: 'Cronaca' }, { value: 'formazioni', label: 'Formazioni' }, { value: 'mvp', label: 'Vota MVP' }, { value: 'statistiche', label: 'Statistiche' }]} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <Txt w={800} size={15}>Cronaca</Txt>
+            <Txt size={13} color="muted">{live.events.length} azioni</Txt>
           </View>
-          {panel === 'cronaca' ? (
-            <>
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 6 }}>
-                <Txt size={13} color="muted">{live.events.length} azioni</Txt>
-              </View>
+          {live.events.length ? (
+            <ScrollView style={{ maxHeight: 230 }} nestedScrollEnabled showsVerticalScrollIndicator>
               {live.events.map((e, i) => (
                 <FeedItem key={e.id} first={i === 0} last={i === live.events.length - 1} us={e.side === 'us'} meta={`${e.set}° set, ${e.our}–${e.opp}`} text={e.text} detail={e.detail} />
               ))}
-            </>
-          ) : panel === 'formazioni' ? (
-            <LineupPanel lineup={lineup} teams={[L, R].map((t) => ({ team: t.side, players: t.side === 'us' ? lineup.us : lineup.opp }))} />
-          ) : panel === 'mvp' ? (
-            <MvpPanel key={m.id} match={m} players={lineup.us} events={live.events} totalPoints={totals.us} finished={live.finished} />
+            </ScrollView>
           ) : (
-            <StatsPanel events={live.events} names={{ us: US, opp: m.opponent }} totals={totals}
+            <Txt size={13} color="muted">Nessuna azione ancora.</Txt>
+          )}
+        </Card>
+
+        {/* in ogni scheda i dati stanno sotto la loro squadra: casa a sinistra, ospite a destra */}
+        <Card style={{ gap: 4 }}>
+          <View style={{ marginBottom: 10 }}>
+            <SegmentedControl stretch={wide} value={panel} onChange={setPanel}
+              options={[{ value: 'formazioni', label: 'Formazioni' }, { value: 'mvp', label: 'Vota MVP' }, { value: 'statistiche', label: 'Statistiche' }]} />
+          </View>
+          {panel === 'formazioni' ? (
+            <LineupPanel lineup={lineup} teams={[L, R].map((t) => ({ team: t.side, name: t.name, logo: t.logo, players: t.side === 'us' ? lineup.us : lineup.opp }))} />
+          ) : panel === 'mvp' ? (
+            <MvpPanel key={m.id} match={m} awayMatch={!home} events={live.events} finished={live.finished}
+              teams={[L, R].map((t) => ({ side: t.side, name: t.name, logo: t.logo, players: t.side === 'us' ? lineup.us : lineup.opp }))} />
+          ) : (
+            <StatsPanel events={live.events} names={{ us: US, opp: m.opponent }} logos={{ us: null, opp: m.opponentLogo }} totals={totals} home={home ? 'us' : 'opp'}
               sets={rowsSets.length} current={live.finished ? live.history.length : live.set} />
           )}
         </Card>
@@ -175,7 +190,8 @@ export default function Live() {
   );
 }
 
-function Side({ name, logo, serving, server, flash, onPlus }: { name: string; logo?: string | number | null; serving: boolean; server: LineupPlayer | null; flash: number; onPlus?: (anchor: Anchor) => void }) {
+/** onServe: sullo 0-0 del set (admin) il tocco sullo stemma mette la squadra al servizio */
+function Side({ name, logo, serving, server, flash, onPlus, onServe }: { name: string; logo?: string | number | null; serving: boolean; server: LineupPlayer | null; flash: number; onPlus?: (anchor: Anchor) => void; onServe?: () => void }) {
   const { c } = useTheme();
   const plusRef = useRef<View>(null);
   const plus = useRef(new Animated.Value(0)).current;
@@ -193,7 +209,11 @@ function Side({ name, logo, serving, server, flash, onPlus }: { name: string; lo
   return (
     <View style={{ flex: 1, alignItems: 'center', gap: 6 }}>
       <Animated.View style={{ transform: [{ scale: pop }] }}>
-        <TeamBadge name={name} logo={logo} size={52} />
+        <Pressy onPress={onServe} disabled={!onServe} scaleTo={0.9} accessibilityRole={onServe ? 'button' : undefined}
+          accessibilityLabel={onServe ? `${name} al servizio` : undefined} accessibilityState={onServe ? { selected: serving } : undefined}
+          style={{ borderRadius: 30, padding: 3, borderWidth: 2, borderColor: onServe && serving ? palette.gold : 'transparent' }}>
+          <TeamBadge name={name} logo={logo} size={52} />
+        </Pressy>
       </Animated.View>
       <Animated.Text style={{ position: 'absolute', top: -6, fontSize: 26, fontWeight: '900', color: palette.gold, opacity: plus.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0, 1, 0] }), transform: [{ translateY: plus.interpolate({ inputRange: [0, 1], outputRange: [10, -40] }) }] }}>
         +1
@@ -203,7 +223,7 @@ function Side({ name, logo, serving, server, flash, onPlus }: { name: string; lo
       <View style={{ alignItems: 'center', opacity: serving ? 1 : 0 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
           <Volleyball size={13} color={c.accent} />
-          <Txt w={600} size={12} color="accent">Al servizio</Txt>
+          <Txt w={600} size={12}>Al servizio</Txt>
         </View>
         {/* riga sempre presente (anche vuota): i pulsanti + restano allineati tra le due squadre */}
         <Txt size={11.5} color="muted" center numberOfLines={1} style={{ paddingHorizontal: 2 }}>
