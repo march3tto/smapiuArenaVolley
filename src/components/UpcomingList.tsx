@@ -11,7 +11,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import type { Match } from '@/types';
 
 export function UpcomingList({ matches, onPress }: { matches: Match[]; onPress?: (m: Match) => void }) {
-  const { c } = useTheme();
+  const { c, mode } = useTheme();
   if (!matches.length) return <Txt color="muted" size={14}>Nessuna partita in programma.</Txt>;
   return (
     <View style={{ gap: 8 }}>
@@ -28,7 +28,7 @@ export function UpcomingList({ matches, onPress }: { matches: Match[]; onPress?:
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }} accessibilityLabel={`${home ? 'In casa' : 'Trasferta'}${m.venue ? `, ${m.venue}` : ''}`}>
                 <View style={{ width: 28, alignItems: 'center' }}>
-                  {home ? <House size={16} color={c.accent} /> : <Plane size={16} color={c.cobalt} />}
+                  {home ? <House size={16} color={c.accent} fill={c.accent} /> : <Plane size={16} color={c.cobalt} />}
                 </View>
                 <Txt size={12.5} color="muted" numberOfLines={1} style={{ flex: 1 }}>
                   {m.venue || (home ? 'In casa' : 'Trasferta')}
@@ -37,7 +37,7 @@ export function UpcomingList({ matches, onPress }: { matches: Match[]; onPress?:
               {first ? <CountdownPill date={m.date} /> : null}
             </View>
             {m.competition?.logo ? (
-              <Image source={m.competition.logo} style={{ width: 32, height: 40 }} contentFit="contain" accessibilityLabel={m.competition.name} />
+              <Image source={(mode === 'light' && m.competition.logoLight) || m.competition.logo} style={{ width: 32, height: 40 }} contentFit="contain" accessibilityLabel={m.competition.name} />
             ) : null}
           </Pressy>
         );

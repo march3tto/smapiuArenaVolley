@@ -5,6 +5,8 @@ import { Pressy } from './Pressy';
 import { Txt } from './Txt';
 import { youtubeThumb, youtubeUrl } from '@/lib/api';
 import { newsDate } from '@/lib/format';
+import { parseStream } from '@/lib/stream';
+import { usePlayer } from '@/store/PlayerProvider';
 import { palette } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { MediaItem } from '@/types';
@@ -16,19 +18,30 @@ export function mediaLinks(m: MediaItem) {
   return {
     video,
     cover: m.cover ?? (video && !isUrl ? youtubeThumb(m.ref) : null),
-    open: () => Linking.openURL(isUrl ? m.ref : youtubeUrl(m.ref)),
+    url: isUrl ? m.ref : youtubeUrl(m.ref),
   };
 }
 
-/** Video (YouTube) e podcast della tabella "media": si aprono nell'app esterna */
+/** Apertura di un video o podcast: su YouTube nel player interno (come le dirette), gli altri link nell'app esterna */
+export function useOpenMedia() {
+  const player = usePlayer();
+  return (m: MediaItem) => {
+    const { url } = mediaLinks(m);
+    if (parseStream(m.ref)?.kind === 'youtube') player.open(m.ref, m.title, 'media');
+    else Linking.openURL(url);
+  };
+}
+
+/** Video e podcast della tabella "media": quelli su YouTube si aprono nel player interno */
 export function MediaList({ items }: { items: MediaItem[] }) {
   const { c } = useTheme();
+  const openMedia = useOpenMedia();
   return (
     <View style={{ gap: 10 }}>
       {items.map((m) => {
-        const { video, cover, open } = mediaLinks(m);
+        const { video, cover } = mediaLinks(m);
         return (
-          <Pressy key={m.id} onPress={open} scaleTo={0.98} accessibilityRole="link" accessibilityLabel={m.title}
+          <Pressy key={m.id} onPress={() => openMedia(m)} scaleTo={0.98} accessibilityRole="button" accessibilityLabel={m.title}
             style={{ flexDirection: 'row', gap: 12, padding: 10, borderRadius: 18, backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
             <View style={{ width: 112, aspectRatio: 16 / 9, borderRadius: 12, overflow: 'hidden', backgroundColor: c.fill, alignItems: 'center', justifyContent: 'center' }}>
               {cover ? <Image source={cover} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} contentFit="cover" /> : null}

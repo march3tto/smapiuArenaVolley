@@ -2,7 +2,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { storageUrl, supabase } from './supabase';
 import { slugify } from './format';
 import * as mock from '@/data/mock';
-import { COMPETITION_LOGOS, OPPONENT_LOGOS, PLAYER_PHOTOS, SPONSOR_LOGOS, STAFF_PHOTOS } from '@/data/assets';
+import { COMPETITION_LOGOS, COMPETITION_LOGOS_LIGHT, OPPONENT_LOGOS, PLAYER_PHOTOS, SPONSOR_LOGOS, STAFF_PHOTOS } from '@/data/assets';
 import type {
   Competition, ImgSrc, LeagueGame, LineupPlayer, LiveEvent, Match, MatchStatus, MediaItem, NewsItem, Player, PlayerRole, PointAction, PointDetail, PointPhase, RegionalRoster, SetScore, Sponsor, SponsorTier, StaffMember, Standing, Venue, YouthTeam,
 } from '@/types';
@@ -97,11 +97,14 @@ function mapSets(r: Row): SetScore[] | undefined {
 }
 
 /** Campionato usato per le partite con girone quando la tabella campionati non c'è o la partita non è collegata */
-const SERIE_A3: Competition = { name: 'Serie A3 Femminile', federation: 'FIPAV', logo: COMPETITION_LOGOS['serie-a3-femminile'] };
+const SERIE_A3: Competition = { name: 'Serie A3 Femminile', federation: 'FIPAV', logo: COMPETITION_LOGOS['serie-a3-femminile'], logoLight: COMPETITION_LOGOS_LIGHT['serie-a3-femminile'] };
 
 function mapCompetition(r: Row): Competition {
   const name = str(r.nome);
-  return { name, federation: (r.federazione as string | null) ?? null, logo: image(r.logo_url, COMPETITION_LOGOS, slugify(name)) };
+  const logo = image(r.logo_url, COMPETITION_LOGOS, slugify(name));
+  // la variante chiara inclusa nell'app vale solo se il logo non arriva dallo storage
+  const logoLight = typeof logo === 'number' ? COMPETITION_LOGOS_LIGHT[slugify(name)] ?? null : null;
+  return { name, federation: (r.federazione as string | null) ?? null, logo, logoLight };
 }
 
 function mapMatch(r: Row, competitions: Map<string, Competition> = new Map(), seasons: Map<string, string> = new Map()): Match {
@@ -113,6 +116,7 @@ function mapMatch(r: Row, competitions: Map<string, Competition> = new Map(), se
     date: str(r.data_partita),
     homeAway: r.casa_trasferta === 'trasferta' ? 'trasferta' : 'casa',
     opponent: str(r.avversario),
+    opponentTeamId: (r.squadra_avversaria_id as string | null) ?? null,
     opponentLogo: image(r.logo_avversario_url ?? r.opponent_logo_url, OPPONENT_LOGOS, slugify(str(r.avversario))) || null,
     venue: str(r.sede),
     season: seasons.get(str(r.stagione_id)) || null,
@@ -476,6 +480,8 @@ export interface LiveSnapshot {
   events: LiveEvent[];
   sets: SetScore[];
   completed: boolean[];
+  /** Squadra al servizio sullo 0-0, per numero di set (solo i set in cui l'admin l'ha scelta) */
+  firstServe: Record<number, 'us' | 'opp'>;
 }
 
 export async function fetchLive(matchId: string): Promise<LiveSnapshot | null> {
@@ -492,7 +498,20 @@ export async function fetchLive(matchId: string): Promise<LiveSnapshot | null> {
     events: withSides((ev.data as Row[] | null) ?? []).map((e) => withAction(e, actions.get(e.id))),
     sets: sets.map((s) => ({ our: num(s.punti_nostri) ?? 0, opp: num(s.punti_avversario) ?? 0 })),
     completed: sets.map((s) => s.completato === true),
+    firstServe: Object.fromEntries(sets
+      .filter((s) => s.primo_servizio === 'nostra' || s.primo_servizio === 'avversaria')
+      .map((s) => [num(s.numero_set) ?? 0, s.primo_servizio === 'nostra' ? 'us' : 'opp'])),
   };
+}
+
+/** Squadra al servizio sullo 0-0 del set: crea la riga del set se non c'è ancora (punti 0-0), altrimenti cambia solo questo dato */
+export async function setFirstServe(matchId: string, set: number, side: 'us' | 'opp'): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from(T.setPartita).upsert(
+    { partita_id: matchId, numero_set: set, primo_servizio: side === 'us' ? 'nostra' : 'avversaria' },
+    { onConflict: 'partita_id,numero_set' },
+  );
+  if (error) throw error;
 }
 
 /** Realtime: nuovi eventi di cronaca e aggiornamenti dei set (tabelle nella pubblicazione supabase_realtime) */
@@ -618,6 +637,15 @@ const lineupRow = (matchId: string, p: LineupPlayer) => ({
   ...(p.isLibero ? { libero: true } : {}),
 });
 
+/** Rosa di una squadra del girone (anche avversaria), per numero di maglia: si sceglie da qui la formazione */
+export async function fetchTeamRoster(teamId: string): Promise<Player[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.from(T.giocatriciPubbliche).select('*').eq('squadra_id', teamId).eq('attiva', true)
+    .order('numero_maglia', { nullsFirst: false });
+  if (error) throw error;
+  return ((data as Row[] | null) ?? []).map(mapPlayer);
+}
+
 /** Formazioni della partita; null se la tabella non è raggiungibile (es. migrazione non ancora eseguita) */
 export async function fetchLineup(matchId: string): Promise<LineupPlayer[] | null> {
   if (!supabase) return null;
@@ -635,6 +663,13 @@ export async function insertLineup(matchId: string, players: LineupPlayer[]): Pr
   if (error) throw error;
 }
 
+/** Numero, nome e ruolo di una giocatrice a referto (il collegamento alla sua scheda resta) */
+export async function updateLineupPlayer(id: string, f: { number: number | null; name: string; role: PlayerRole | null }): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from(T.formazioni).update({ numero_maglia: f.number, nome: f.name, ruolo: f.role }).eq('id', id);
+  if (error) throw error;
+}
+
 export async function setLineupZone(id: string, zone: number | null): Promise<void> {
   if (!supabase) return;
   const { error } = await supabase.from(T.formazioni).update({ zona: zone }).eq('id', id);
@@ -649,6 +684,17 @@ export async function setLineupLibero(matchId: string, team: 'us' | 'opp', id: s
   if (off.error) throw off.error;
   if (!id) return;
   const on = await supabase.from(T.formazioni).update({ libero: true }).eq('id', id);
+  if (on.error) throw on.error;
+}
+
+/** Sceglie la capitana della squadra nella partita (id null = nessuna): come per il libero, una sola per squadra */
+export async function setLineupCaptain(matchId: string, team: 'us' | 'opp', id: string | null): Promise<void> {
+  if (!supabase) return;
+  const squadra = team === 'opp' ? 'avversaria' : 'nostra';
+  const off = await supabase.from(T.formazioni).update({ capitana: false }).eq('partita_id', matchId).eq('squadra', squadra).eq('capitana', true);
+  if (off.error) throw off.error;
+  if (!id) return;
+  const on = await supabase.from(T.formazioni).update({ capitana: true }).eq('id', id);
   if (on.error) throw on.error;
 }
 

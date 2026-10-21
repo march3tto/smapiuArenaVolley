@@ -29,10 +29,10 @@ export function SectionHeader({ title, subtitle, action, right, big }: Props) {
       {right}
       {action ? (
         <Pressable onPress={action.onPress} hitSlop={8} accessibilityRole="link" style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-          <Txt w={700} size={13} color="accent">
+          <Txt w={700} size={13}>
             {action.label}
           </Txt>
-          <ChevronRight size={15} color={c.accent} />
+          <ChevronRight size={15} color={c.text} />
         </Pressable>
       ) : null}
     </View>

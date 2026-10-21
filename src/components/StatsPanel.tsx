@@ -2,11 +2,12 @@ import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { ScoreChart } from './ScoreChart';
 import { SegmentedControl } from './SegmentedControl';
+import { TeamBadge } from './TeamBadge';
 import { Txt } from './Txt';
 import { setTarget } from '@/lib/volley';
 import { radius } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
-import type { LineupPlayer, LiveEvent, PointAction, SetScore } from '@/types';
+import type { ImgSrc, LineupPlayer, LiveEvent, PointAction, SetScore } from '@/types';
 
 const ATTACKS: PointAction[] = ['schiacciata', 'pipe', 'primo_tempo', 'pallonetto'];
 
@@ -20,12 +21,12 @@ export interface PlayerStats {
   blocks: number;
 }
 
-/** Statistiche della sola partita (mostrate nel voto MVP), contate dalle azioni registrate nella cronaca (non i totali di stagione) */
-export function matchPlayerStats(events: LiveEvent[], lineup: LineupPlayer[]): PlayerStats[] {
+/** Statistiche della sola partita di una squadra (mostrate nel voto MVP), contate dalle azioni registrate nella cronaca (non i totali di stagione) */
+export function matchPlayerStats(events: LiveEvent[], lineup: LineupPlayer[], side: 'us' | 'opp' = 'us'): PlayerStats[] {
   const by = new Map<string, PlayerStats>();
   for (const e of events) {
     const p = e.detail?.player;
-    if (e.side !== 'us' || !e.detail || !p) continue;
+    if (e.side !== side || !e.detail || !p) continue;
     const row = lineup.find((l) => l.id === p.lineupId || (!!p.playerId && l.playerId === p.playerId));
     const key = p.playerId || p.lineupId || p.name;
     const s = by.get(key) ?? { key, name: row?.name ?? p.name, number: row?.number ?? p.number, points: 0, attacks: 0, aces: 0, blocks: 0 };
@@ -67,45 +68,35 @@ function teamBreakdown(events: LiveEvent[], side: 'us' | 'opp') {
 interface Props {
   events: LiveEvent[];
   names: { us: string; opp: string };
+  logos?: { us?: ImgSrc | null; opp?: ImgSrc | null };
   /** Set giocati o in corso */
   sets: number;
   current: number;
   totals: { us: number; opp: number };
+  /** Squadra di casa: a sinistra nelle statistiche, come nel tabellone */
+  home: 'us' | 'opp';
 }
 
-export function StatsPanel({ events, names, sets, current, totals }: Props) {
+/** Andamento del set in alto, sotto i punti per fondamentale: casa a sinistra, voce al centro, ospite a destra */
+export function StatsPanel({ events, names, logos, sets, current, totals, home }: Props) {
   const { c } = useTheme();
   // set scelto a mano; a ogni nuovo set il grafico torna al set in corso
   const [pick, setPick] = useState<{ set: number; at: number } | null>(null);
   const set = pick && pick.at === current ? pick.set : current;
   const progress = useMemo(() => setProgress(events, set), [events, set]);
   const team = { us: teamBreakdown(events, 'us'), opp: teamBreakdown(events, 'opp') };
+  const left = home;
+  const right = home === 'us' ? 'opp' : 'us';
+  const rows: [string, Record<'us' | 'opp', number>][] = [
+    ['Punti totali', totals],
+    ['Attacco', { us: team.us.attacks, opp: team.opp.attacks }],
+    ['Ace', { us: team.us.aces, opp: team.opp.aces }],
+    ['Muro', { us: team.us.blocks, opp: team.opp.blocks }],
+    ['Errori avversari', { us: team.us.errors, opp: team.opp.errors }],
+  ];
 
   return (
     <View style={{ gap: 18 }}>
-      <View style={{ gap: 8 }}>
-        <Txt w={800} size={15}>Squadre</Txt>
-        <View style={{ borderRadius: radius.md, borderWidth: 1, borderColor: c.line, overflow: 'hidden' }}>
-          <View style={{ flexDirection: 'row', paddingHorizontal: 8, paddingVertical: 6, backgroundColor: c.fill }}>
-            <Txt size={11} style={{ flex: 1 }}> </Txt>
-            {(['us', 'opp'] as const).map((s) => <Txt key={s} w={600} size={11} color="muted" center numberOfLines={1} style={{ width: 96 }}>{names[s]}</Txt>)}
-          </View>
-          {([
-            ['Punti totali', totals.us, totals.opp],
-            ['Attacco', team.us.attacks, team.opp.attacks],
-            ['Ace', team.us.aces, team.opp.aces],
-            ['Muro', team.us.blocks, team.opp.blocks],
-            ['Errori avversari', team.us.errors, team.opp.errors],
-          ] as const).map(([label, a, b], i) => (
-            <View key={label} style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 8, borderTopWidth: 1, borderTopColor: c.line }}>
-              <Txt w={i === 0 ? 700 : 400} size={13} style={{ flex: 1 }}>{label}</Txt>
-              <Txt w={i === 0 ? 800 : 600} size={13} center tnum display={false} style={{ width: 96 }}>{a}</Txt>
-              <Txt w={i === 0 ? 800 : 600} size={13} center tnum display={false} style={{ width: 96 }}>{b}</Txt>
-            </View>
-          ))}
-        </View>
-      </View>
-
       <View style={{ gap: 10, padding: 12, borderRadius: radius.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.fill }}>
         <Txt w={800} size={15}>Andamento della partita</Txt>
         {sets > 1 ? (
@@ -114,6 +105,28 @@ export function StatsPanel({ events, names, sets, current, totals }: Props) {
             options={Array.from({ length: sets }, (_, i) => ({ value: String(i + 1), label: i === 4 ? 'Tie-break' : `${i + 1}° set` }))} />
         ) : null}
         <ScoreChart points={progress} names={names} target={setTarget(set)} />
+      </View>
+      <View style={{ gap: 4 }}>
+        <Txt w={800} size={15}>Punti</Txt>
+        {/* ogni squadra sopra la sua colonna di dati, come nelle formazioni */}
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 6, gap: 8 }}>
+          <View style={{ flex: 1, gap: 4, alignItems: 'flex-start' }}>
+            <TeamBadge name={names[left]} logo={logos?.[left]} size={28} />
+            <Txt w={700} size={12} numberOfLines={2}>{names[left]}</Txt>
+          </View>
+          <View style={{ flex: 1.2 }} />
+          <View style={{ flex: 1, gap: 4, alignItems: 'flex-end' }}>
+            <TeamBadge name={names[right]} logo={logos?.[right]} size={28} />
+            <Txt w={700} size={12} numberOfLines={2} style={{ textAlign: 'right' }}>{names[right]}</Txt>
+          </View>
+        </View>
+        {rows.map(([label, v], i) => (
+          <View key={label} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 7, gap: 8 }}>
+            <Txt w={i === 0 ? 800 : 600} size={i === 0 ? 17 : 15} tnum display={false} style={{ flex: 1 }}>{v[left]}</Txt>
+            <Txt w={i === 0 ? 700 : 500} size={13} color={i === 0 ? 'text' : 'muted'} center style={{ flex: 1.2 }}>{label}</Txt>
+            <Txt w={i === 0 ? 800 : 600} size={i === 0 ? 17 : 15} tnum display={false} style={{ flex: 1, textAlign: 'right' }}>{v[right]}</Txt>
+          </View>
+        ))}
       </View>
     </View>
   );

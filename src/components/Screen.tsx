@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 import { RefreshControl, ScrollView, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTopBarHeight } from './TopBar';
@@ -9,15 +9,18 @@ interface Props {
   onRefresh?: () => void;
   refreshing?: boolean;
   contentStyle?: StyleProp<ViewStyle>;
+  /** Per scorrere da codice (es. banner che portano a una sezione) */
+  scrollRef?: Ref<ScrollView>;
 }
 
 /** Contenitore scorrevole delle tab, con spazio per la barra inferiore */
-export function Screen({ children, onRefresh, refreshing, contentStyle }: Props) {
+export function Screen({ children, onRefresh, refreshing, contentStyle, scrollRef }: Props) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const top = useTopBarHeight();
   return (
     <ScrollView
+      ref={scrollRef}
       style={{ flex: 1, backgroundColor: c.bg }}
       contentContainerStyle={[{ padding: 14, paddingTop: top + 8, paddingBottom: insets.bottom + 110, gap: 16, width: '100%', maxWidth: 1120, alignSelf: 'center' }, contentStyle]}
       showsVerticalScrollIndicator={false}

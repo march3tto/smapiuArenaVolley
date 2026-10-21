@@ -5,7 +5,8 @@ import { palette, radius } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
 interface Props<T extends string> {
-  options: { value: T; label: string }[];
+  /** dot: colore di un puntino prima dell'etichetta */
+  options: { value: T; label: string; dot?: string }[];
   /** null: nessuna opzione selezionata (indicatore nascosto) */
   value: T | null;
   onChange: (v: T) => void;
@@ -52,8 +53,10 @@ export function SegmentedControl<T extends string>({ options, value, onChange, s
             onPress={() => onChange(o.value)}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
-            style={{ paddingHorizontal: 14, height: 34, alignItems: 'center', justifyContent: 'center', flex: stretch ? 1 : undefined }}
+            style={{ paddingHorizontal: 14, height: 34, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', flex: stretch ? 1 : undefined }}
           >
+            {/* bordo sottile: i colori chiari (es. bianco) restano visibili anche sulla pillola */}
+            {o.dot ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: o.dot, borderWidth: 1, borderColor: c.lineStrong }} /> : null}
             <Txt w={600} size={13} color={active ? palette.onGold : 'muted'}>
               {o.label}
             </Txt>

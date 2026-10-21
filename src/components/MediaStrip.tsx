@@ -1,7 +1,7 @@
 import { ScrollView, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Play } from 'lucide-react-native';
-import { mediaLinks } from './MediaList';
+import { mediaLinks, useOpenMedia } from './MediaList';
 import { Pressy } from './Pressy';
 import { Txt } from './Txt';
 import { palette } from '@/theme/colors';
@@ -11,12 +11,13 @@ import type { MediaItem } from '@/types';
 /** Banner orizzontale basso per la home: video e podcast che scorrono di lato */
 export function MediaStrip({ items }: { items: MediaItem[] }) {
   const { c } = useTheme();
+  const openMedia = useOpenMedia();
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
       {items.map((m) => {
-        const { video, cover, open } = mediaLinks(m);
+        const { video, cover } = mediaLinks(m);
         return (
-          <Pressy key={m.id} onPress={open} scaleTo={0.97} accessibilityRole="link" accessibilityLabel={`${video ? 'Video' : 'Podcast'}: ${m.title}`}
+          <Pressy key={m.id} onPress={() => openMedia(m)} scaleTo={0.97} accessibilityRole="button" accessibilityLabel={`${video ? 'Video' : 'Podcast'}: ${m.title}`}
             style={{ width: 270, height: 72, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, borderRadius: 16, backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
             <View style={{ width: 96, height: 54, borderRadius: 10, overflow: 'hidden', backgroundColor: c.fill, alignItems: 'center', justifyContent: 'center' }}>
               {cover ? <Image source={cover} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} contentFit="cover" /> : null}

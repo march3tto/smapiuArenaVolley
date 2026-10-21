@@ -58,7 +58,7 @@ export default function RootLayout() {
 function RootStack() {
   const { c, mode } = useTheme();
   const { ready, user, prefs, consentStatus } = useApp();
-  useNotifichePush({ ready, userId: user?.id ?? null, enabled: prefs.enabled });
+  useNotifichePush({ ready, userId: user?.id ?? null, prefs });
   const header = {
     headerShown: true,
     // solo la freccia "<", senza il nome della schermata precedente
@@ -76,7 +76,9 @@ function RootStack() {
         <Stack.Screen name="login" options={{ animation: 'fade' }} />
         <Stack.Screen name="live" options={{ ...header, title: 'Partita in corso' }} />
         <Stack.Screen name="giornata/[numero]" options={{ ...header, title: 'Giornata' }} />
-        <Stack.Screen name="formazione-avversaria" options={{ ...header, title: 'Formazione avversaria' }} />
+        <Stack.Screen name="formazione/[squadra]" options={({ route }) => ({
+          ...header, title: (route.params as { squadra?: string } | undefined)?.squadra === 'nostra' ? 'Formazione Smapiù' : 'Formazione avversaria',
+        })} />
         <Stack.Screen name="player/[id]" options={{ presentation: 'modal' }} />
         <Stack.Screen name="notizia/[id]" options={{ presentation: 'modal' }} />
         {/* riquadro in basso sopra la schermata corrente, non a tutto schermo */}

@@ -1,6 +1,7 @@
 // Notifiche push (Expo Push API) per: promemoria pre-partita, inizio partita, fine set (con il risultato finale sul set decisivo),
 // nuove notizie, video e podcast. La chiamano i trigger e il cron del database (migration 20261015_notifiche_push.sql).
 // Riceve { tipo, id }: prepartita / inizio → id partita; fine_set → id della riga di set_partita; notizia/video/podcast → id del contenuto.
+// Ogni messaggio va solo ai dispositivi con la notifica attiva in Impostazioni (colonne di push_token, migration 20261021000200).
 // Accetta solo richieste con l'header x-notifiche-segreto uguale a NOTIFICHE_SEGRETO (lo stesso valore salvato nel Vault).
 //   supabase secrets set NOTIFICHE_SEGRETO=...
 //   supabase functions deploy invia-notifica --no-verify-jwt
@@ -18,6 +19,8 @@ const BLOCCO = 100;
 const CATEGORIA_NOTIZIA: Record<string, string> = { societa: 'Società', prima_squadra: 'Serie A3', giovanili: 'Giovanili', sponsor: 'Sponsor' };
 
 type Tipo = 'prepartita' | 'inizio' | 'fine_set' | 'notizia' | 'video' | 'podcast';
+/** Colonna di push_token con la scelta del dispositivo per questo messaggio */
+type Preferenza = 'inizio_partita' | 'fine_set' | 'risultato_finale' | 'contenuti';
 const TIPI: Tipo[] = ['prepartita', 'inizio', 'fine_set', 'notizia', 'video', 'podcast'];
 
 interface Messaggio {
@@ -31,6 +34,7 @@ interface Messaggio {
   threadId?: string;
   /** null = tutti i token attivi */
   categoriaId: string | null;
+  preferenza: Preferenza;
 }
 
 interface Partita {
@@ -90,7 +94,7 @@ async function componi(tipo: Tipo, id: string): Promise<Messaggio | null> {
     return {
       chiave: `notizia:${n.id}`, riferimentoId: n.id,
       title: categoria ? `📰 Nuova notizia · ${categoria}` : '📰 Nuova notizia', body: n.titolo,
-      data: { tipo: 'notizia', id: n.id }, categoriaId: null,
+      data: { tipo: 'notizia', id: n.id }, categoriaId: null, preferenza: 'contenuti',
     };
   }
   const { data: md } = await db.from('media').select('id, tipo, titolo, etichetta_durata, pubblicato').eq('id', id).maybeSingle();
@@ -103,6 +107,7 @@ async function componi(tipo: Tipo, id: string): Promise<Messaggio | null> {
     body: md.titolo,
     data: { tipo: md.tipo, id: md.id },
     categoriaId: null,
+    preferenza: 'contenuti',
   };
 }
 
@@ -151,6 +156,7 @@ async function prepartita(id: string): Promise<Messaggio | null> {
     data: { tipo: 'partita', id: p.id },
     threadId: `partita-${p.id}`,
     categoriaId: p.categoria_giovanile_id,
+    preferenza: 'inizio_partita',
   };
 }
 
@@ -166,6 +172,7 @@ async function inizio(id: string): Promise<Messaggio | null> {
     data: { tipo: 'partita', id: p.id },
     threadId: `partita-${p.id}`,
     categoriaId: p.categoria_giovanile_id,
+    preferenza: 'inizio_partita',
   };
 }
 
@@ -199,7 +206,7 @@ async function fineSet(setId: string): Promise<Messaggio | null> {
   };
 
   if (!decisivo) {
-    return { ...base, title: `🏐 ${nomeSet(s.numero_set)} : ${s.punti_nostri}-${s.punti_avversario}`, body: parziale };
+    return { ...base, title: `🏐 ${nomeSet(s.numero_set)} : ${s.punti_nostri}-${s.punti_avversario}`, body: parziale, preferenza: 'fine_set' };
   }
 
   // risultato finale: riempie i set vinti solo se mancano (di solito li scrive già il trigger aggiorna_risultato_partita)
@@ -208,7 +215,7 @@ async function fineSet(setId: string): Promise<Messaggio | null> {
     console.log(`partita ${p.id}: set vinti aggiornati a ${nostri}-${loro}`);
   }
   const esito = nostri > loro ? 'Vittoria' : nostri < loro ? 'Sconfitta' : 'Pareggio';
-  return { ...base, title: `🏁 Finale: ${esito} ${nostri}-${loro}`, body: parziale };
+  return { ...base, title: `🏁 Finale: ${esito} ${nostri}-${loro}`, body: parziale, preferenza: 'risultato_finale' };
 }
 
 // ---------- invio ----------
@@ -224,8 +231,9 @@ async function invia(tipo: Tipo, m: Messaggio) {
   let inviati = 0;
 
   try {
-    // partite giovanili: solo i dispositivi di quella categoria; prima squadra e contenuti: tutti i dispositivi attivi
-    let q = db.from('push_token').select('token').eq('attivo', true);
+    // solo i dispositivi con le notifiche accese e questo tipo scelto in Impostazioni;
+    // partite giovanili: solo i dispositivi di quella categoria; prima squadra e contenuti: tutti
+    let q = db.from('push_token').select('token').eq('attivo', true).eq('notifiche_attive', true).eq(m.preferenza, true);
     if (m.categoriaId) q = q.eq('categoria_giovanile_id', m.categoriaId);
     const { data: righe, error: e } = await q;
     if (e) throw e;

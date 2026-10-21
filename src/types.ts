@@ -14,6 +14,8 @@ export interface Competition {
   name: string;
   federation?: string | null;
   logo: ImgSrc;
+  /** Logo per la modalità chiara, se diverso */
+  logoLight?: ImgSrc | null;
 }
 
 export interface Match {
@@ -27,6 +29,8 @@ export interface Match {
   homeAway: HomeAway;
   opponent: string;
   opponentLogo?: ImgSrc | null;
+  /** Squadra avversaria (tabella squadre): la sua rosa serve per la formazione in diretta */
+  opponentTeamId?: string | null;
   /** Campionato (tabella campionati); null per le amichevoli */
   competition?: Competition | null;
   /** Etichetta della stagione (tabella stagioni), es. "Pre-season" */

@@ -93,18 +93,22 @@ export function MatchRow({ match: m, liveSets, onPress, onGiornataPress }: Props
 
         <View style={{ alignItems: 'center', gap: 8 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            {homeIsUs ? <House size={12} color={c.accent} accessibilityLabel="In casa" /> : <Bus size={12} color={c.accent} accessibilityLabel="In trasferta" />}
+            {homeIsUs ? <House size={12} color={c.accent} fill={c.accent} accessibilityLabel="In casa" /> : <Bus size={12} color={c.accent} accessibilityLabel="In trasferta" />}
             <Txt size={12.5} color="muted">{m.venue}</Txt>
           </View>
           {m.sets && m.sets.length && played ? (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 5 }}>
               {m.sets.map((s, i) => {
+                // set vinto: in grassetto i punti di Smapiù, la casella resta uguale per tutti i set
                 const w = s.our > s.opp;
-                const h = homeIsUs ? s.our : s.opp;
-                const a = homeIsUs ? s.opp : s.our;
+                const ours = <Txt w={w ? 800 : 500} size={12} tnum>{s.our}</Txt>;
+                const theirs = <Txt w={500} size={12} tnum>{s.opp}</Txt>;
                 return (
-                  <View key={i} style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: w ? 'rgba(255,213,3,0.13)' : c.fill }}>
-                    <Txt w={600} size={12} color={w ? 'accent' : 'text'} tnum>{h}–{a}</Txt>
+                  <View key={i} accessibilityLabel={`Set ${i + 1}: ${homeIsUs ? s.our : s.opp}–${homeIsUs ? s.opp : s.our}${w ? ', vinto' : ', perso'}`}
+                    style={{ flexDirection: 'row', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: c.fill }}>
+                    {homeIsUs ? ours : theirs}
+                    <Txt w={500} size={12}>–</Txt>
+                    {homeIsUs ? theirs : ours}
                   </View>
                 );
               })}
@@ -189,11 +193,10 @@ function SeasonLabel({ label }: { label: string }) {
 }
 
 function Team({ name, logo }: { name: string; logo?: string | number | null }) {
-  const us = name === US;
   return (
     <View style={{ flex: 1, alignItems: 'center', gap: 6 }}>
       <TeamBadge name={name} logo={logo} size={44} />
-      <Txt w={700} size={11.5} center numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} color={us ? 'accent' : 'text'}>{name}</Txt>
+      <Txt w={700} size={11.5} center numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>{name}</Txt>
     </View>
   );
 }
