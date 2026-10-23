@@ -16,6 +16,10 @@ interface AppCtx {
   guest: boolean;
   prefs: NotifPrefs;
   demoLive: boolean;
+  /** Pubblicità eliminata: vale solo con un utente registrato (vedi adsHidden) */
+  noAds: boolean;
+  /** true se la pubblicità non va mostrata: utente registrato che l'ha eliminata */
+  adsHidden: boolean;
   /** Ultima scelta per tipo di consenso */
   consents: Consensi;
   consentStatus: StatoConsensi;
@@ -39,11 +43,12 @@ interface AppCtx {
   /** Ritorna true se ora la categoria è seguita */
   toggleYouth: (id: string) => boolean;
   setDemoLive: (on: boolean) => void;
+  setNoAds: (on: boolean) => void;
 }
 
 const Ctx = createContext<AppCtx | null>(null);
 
-const K = { user: 'av-user', guest: 'av-guest', prefs: 'av-notif', demo: 'av-demo-live' };
+const K = { user: 'av-user', guest: 'av-guest', prefs: 'av-notif', demo: 'av-demo-live', noAds: 'av-no-ads' };
 const DEFAULT_PREFS: NotifPrefs = { enabled: true, start: true, sets: true, final: true, news: true, youth: [] };
 
 /** profili.ruolo (enum ruolo_utente) → ruolo nell'app */
@@ -89,13 +94,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     supabase ? process.env.EXPO_PUBLIC_DEMO_LIVE === '1' : process.env.EXPO_PUBLIC_DEMO_LIVE !== '0',
   );
 
+  const [noAds, setNoAdsState] = useState(false);
+
   // Ripristino sessione e preferenze
   useEffect(() => {
     (async () => {
-      const [g, p, d] = await Promise.all([loadJSON<boolean>(K.guest), loadJSON<NotifPrefs>(K.prefs), loadJSON<boolean>(K.demo)]);
+      const [g, p, d, na] = await Promise.all([loadJSON<boolean>(K.guest), loadJSON<NotifPrefs>(K.prefs), loadJSON<boolean>(K.demo), loadJSON<boolean>(K.noAds)]);
       if (g) setGuest(true);
       if (p) setPrefs({ ...DEFAULT_PREFS, ...p });
       if (d !== null) setDemoLiveState(d);
+      if (na) setNoAdsState(true);
       if (supabase) {
         const { data } = await supabase.auth.getSession();
         const u = data.session?.user;
@@ -317,12 +325,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     saveJSON(K.demo, on);
   }, []);
 
+  const setNoAds = useCallback((on: boolean) => {
+    setNoAdsState(on);
+    saveJSON(K.noAds, on);
+  }, []);
+
+  // la scelta resta salvata sul dispositivo, ma senza account (ospite o dopo l'uscita) la pubblicità torna
+  const adsHidden = !!user && noAds;
+
   const value = useMemo<AppCtx>(() => ({
-    ready, user, guest, prefs, demoLive, consents, consentStatus,
+    ready, user, guest, prefs, demoLive, noAds, adsHidden, consents, consentStatus,
     signIn, signUp, signInWithProvider, resetPassword, continueAsGuest, signOut,
     acceptConsents, setMarketing, setYouthCategory, deleteAccount,
-    updatePrefs, toggleYouth, setDemoLive,
-  }), [ready, user, guest, prefs, demoLive, consents, consentStatus, signIn, signUp, signInWithProvider, resetPassword, continueAsGuest, signOut, acceptConsents, setMarketing, setYouthCategory, deleteAccount, updatePrefs, toggleYouth, setDemoLive]);
+    updatePrefs, toggleYouth, setDemoLive, setNoAds,
+  }), [ready, user, guest, prefs, demoLive, noAds, adsHidden, consents, consentStatus, signIn, signUp, signInWithProvider, resetPassword, continueAsGuest, signOut, acceptConsents, setMarketing, setYouthCategory, deleteAccount, updatePrefs, toggleYouth, setDemoLive, setNoAds]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

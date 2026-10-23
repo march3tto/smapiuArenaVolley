@@ -4,7 +4,7 @@ import { slugify } from './format';
 import * as mock from '@/data/mock';
 import { COMPETITION_LOGOS, COMPETITION_LOGOS_LIGHT, OPPONENT_LOGOS, PLAYER_PHOTOS, SPONSOR_LOGOS, STAFF_PHOTOS } from '@/data/assets';
 import type {
-  Competition, Convenzione, ImgSrc, LeagueGame, LineupPlayer, LiveEvent, Match, MatchStatus, MediaItem, NewsItem, Player, PlayerRole, PointAction, PointDetail, PointPhase, RegionalRoster, SetScore, Sponsor, SponsorTier, StaffMember, Standing, Venue, YouthTeam,
+  Ad, Competition, Convenzione, ImgSrc, LeagueGame, LineupPlayer, LiveEvent, Match, MatchStatus, MediaItem, NewsItem, Player, PlayerRole, PointAction, PointDetail, PointPhase, RegionalRoster, SetScore, Sponsor, SponsorTier, StaffMember, Standing, Venue, YouthTeam,
 } from '@/types';
 
 /** Tabelle dello schema Supabase (in italiano) */
@@ -27,6 +27,8 @@ export const T = {
   sponsor: 'sponsor',
   /** Convenzioni dell'Arena Volley Card (migrazione 20261023000100_convenzioni_arena_card) */
   convenzioni: 'convenzioni',
+  /** Pubblicità al centro dello schermo (migrazione 20261023000300_pubblicita) */
+  pubblicita: 'pubblicita',
   media: 'media',
 } as const;
 
@@ -37,6 +39,7 @@ export interface AppData {
   news: NewsItem[];
   sponsors: Sponsor[];
   convenzioni: Convenzione[];
+  ads: Ad[];
   youth: YouthTeam[];
   /** Squadre regionali per nome della categoria giovanile (es. "Serie B2") */
   rosters: Record<string, RegionalRoster>;
@@ -52,7 +55,7 @@ const str = (v: unknown, d = ''): string => (typeof v === 'string' ? v : v == nu
 const num = (v: unknown): number | null => (typeof v === 'number' ? v : v == null || v === '' ? null : Number(v));
 
 export function emptyData(): AppData {
-  return { matches: [], standings: [], players: [], news: [], sponsors: [], convenzioni: [], youth: [], rosters: {}, staff: [], venues: mock.venues, media: [], source: 'supabase' };
+  return { matches: [], standings: [], players: [], news: [], sponsors: [], convenzioni: [], ads: [], youth: [], rosters: {}, staff: [], venues: mock.venues, media: [], source: 'supabase' };
 }
 
 export function demoData(): AppData {
@@ -63,6 +66,7 @@ export function demoData(): AppData {
     news: mock.news,
     sponsors: mock.sponsors,
     convenzioni: [],
+    ads: [],
     youth: mock.youth,
     rosters: {},
     staff: [],
@@ -106,8 +110,10 @@ const SERIE_A3: Competition = { name: 'Serie A3 Femminile', federation: 'FIPAV',
 function mapCompetition(r: Row): Competition {
   const name = str(r.nome);
   const logo = image(r.logo_url, COMPETITION_LOGOS, slugify(name));
-  // la variante chiara inclusa nell'app vale solo se il logo non arriva dallo storage
-  const logoLight = typeof logo === 'number' ? COMPETITION_LOGOS_LIGHT[slugify(name)] ?? null : null;
+  // variante chiara dallo storage (logo_chiaro_url); quella inclusa nell'app vale solo se nemmeno il logo arriva dallo storage
+  const logoLight = typeof r.logo_chiaro_url === 'string' && r.logo_chiaro_url
+    ? storageUrl(r.logo_chiaro_url)
+    : typeof logo === 'number' ? COMPETITION_LOGOS_LIGHT[slugify(name)] ?? null : null;
   return { name, federation: (r.federazione as string | null) ?? null, logo, logoLight };
 }
 
@@ -216,6 +222,20 @@ function mapConvenzione(r: Row): Convenzione {
   };
 }
 
+function mapAd(r: Row): Ad {
+  return {
+    id: str(r.id),
+    title: str(r.titolo),
+    subtitle: (r.sottotitolo as string | null) || null,
+    text: (r.testo as string | null) || null,
+    // immagine sempre dallo Storage Supabase (bucket "pubblicita")
+    image: image(r.url_immagine, {}),
+    url: (r.url_link as string | null) || null,
+    linkLabel: (r.etichetta_link as string | null) || null,
+    everyMinutes: Math.max(1, num(r.frequenza_minuti) ?? 30),
+  };
+}
+
 const RUOLO_STAFF: Record<string, string> = { allenatore: 'Allenatore', dirigente: 'Dirigente', staff_sanitario: 'Staff sanitario' };
 
 function mapStaff(r: Row): StaffMember {
@@ -305,7 +325,7 @@ export async function loadAll(): Promise<AppData> {
   const seasons = new Map(stagioni.map((s) => [str(s.id), str(s.etichetta)]));
   if (!ids.length) throw new Error('Nessuna stagione con corrente = true in "stagioni".');
 
-  const [partite, classifiche, giocatrici, regionali, notizie, sponsor, categorie, staff, media, campionati, convenzioni] = await Promise.all([
+  const [partite, classifiche, giocatrici, regionali, notizie, sponsor, categorie, staff, media, campionati, convenzioni, pubblicita] = await Promise.all([
     // solo le nostre partite: quelle tra avversarie (nostra_partita = false) servono a giornate e classifica
     db.from(T.partite).select(`*, ${T.setPartita}(*)`).in('stagione_id', ids).eq('nostra_partita', true).order('data_partita'),
     db.from(T.classifiche).select('*').in('stagione_id', ids).order('posizione'),
@@ -319,6 +339,7 @@ export async function loadAll(): Promise<AppData> {
     db.from(T.media).select('*').eq('pubblicato', true).order('pubblicato_il', { ascending: false }),
     db.from(T.campionati).select('*'),
     db.from(T.convenzioni).select('*').eq('attiva', true).order('ordine'),
+    db.from(T.pubblicita).select('*').eq('attiva', true).order('ordine'),
   ]);
 
   const p = must(partite, 'partite') as Row[];
@@ -332,6 +353,7 @@ export async function loadAll(): Promise<AppData> {
     sponsors: (must(sponsor, 'sponsor') as Row[]).map(mapSponsor),
     // tabella facoltativa finché la migrazione non è applicata: senza, la pagina della card non mostra promozioni
     convenzioni: ((convenzioni.data ?? []) as Row[]).map(mapConvenzione),
+    ads: ((pubblicita.data ?? []) as Row[]).map(mapAd),
     youth: buildYouth(must(categorie, 'categorie_giovanili') as Row[], must(staff, 'staff') as Row[], p),
     rosters: buildRosters(must(categorie, 'categorie_giovanili') as Row[], must(regionali, 'giocatrici') as Row[], must(staff, 'staff') as Row[]),
     // staff della prima squadra: le righe con categoria giovanile appartengono alle giovanili

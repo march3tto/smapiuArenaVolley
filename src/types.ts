@@ -143,6 +143,19 @@ export interface Convenzione {
   url: string | null;
 }
 
+/** Pubblicità mostrata al centro dello schermo (tabella pubblicita) */
+export interface Ad {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  text: string | null;
+  image: ImgSrc;
+  url: string | null;
+  linkLabel: string | null;
+  /** Ogni quanti minuti può ricomparire */
+  everyMinutes: number;
+}
+
 export interface YouthTeam {
   id: string;
   name: string;

@@ -3,7 +3,7 @@ import { Animated, Platform, Pressable, ScrollView, Switch, View, useWindowDimen
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
-import { Bell, ChevronRight, Moon, Settings as SettingsIcon, ShieldCheck, Volleyball, X } from 'lucide-react-native';
+import { Bell, ChevronRight, Megaphone, Moon, Settings as SettingsIcon, ShieldCheck, Volleyball, X } from 'lucide-react-native';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { ThemeSwitch } from '@/components/ThemeSwitch';
@@ -23,7 +23,7 @@ export default function Settings() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
-  const { prefs, updatePrefs, demoLive, setDemoLive, user, signOut } = useApp();
+  const { prefs, updatePrefs, demoLive, setDemoLive, noAds, setNoAds, user, signOut } = useApp();
   const { height } = useWindowDimensions();
   // il riquadro sale dal basso mentre lo sfondo si scurisce (dissolvenza della schermata)
   const [rise] = useState(() => new Animated.Value(60));
@@ -93,6 +93,14 @@ export default function Settings() {
                   right={<ChevronRight size={17} color={c.muted} />} />
               </Pressable>
             </Block>
+
+            {/* solo per gli utenti registrati */}
+            {user ? (
+              <Block icon={<Megaphone size={16} color={c.accent} />} title="Pubblicità">
+                <Item title="Elimina pubblicità" sub="Non mostrare più gli annunci al centro dello schermo." first
+                  right={toggleSwitch(noAds, setNoAds)} />
+              </Block>
+            ) : null}
 
             <Block icon={<Volleyball size={16} color={c.accent} />} title="Partita demo">
               <Item title="Partita in diretta (demo)" sub="Mostra in home una partita dimostrativa, se non ce n'è una vera in corso." first

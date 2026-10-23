@@ -15,6 +15,7 @@ import { LiveProvider } from '@/store/LiveProvider';
 import { LineupProvider } from '@/store/LineupProvider';
 import { PlayerProvider } from '@/store/PlayerProvider';
 import { FloatingPlayer } from '@/components/FloatingPlayer';
+import { AdPopup } from '@/components/AdPopup';
 import { ConsentGate } from '@/components/ConsentGate';
 import { ToastProvider } from '@/components/Toast';
 import { FONT } from '@/theme/colors';
@@ -91,6 +92,8 @@ function RootStack() {
       </Stack>
       {/* diretta video: agganciata nella Live o in finestrella sopra qualsiasi schermata */}
       <FloatingPlayer />
+      {/* pubblicità al centro dello schermo, con la frequenza indicata nella tabella pubblicita */}
+      {ready && !(user && consentStatus === 'mancanti') ? <AdPopup /> : null}
       {/* sopra tutto (navigazione compresa) finché mancano i consensi obbligatori */}
       {user && consentStatus === 'mancanti' ? <ConsentGate /> : null}
     </>
