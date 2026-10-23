@@ -23,6 +23,8 @@ export const ALBO_PHOTO: number = require('../../assets/brand/albo-oro.jpg');
 export const PALESTRE_PHOTO: number = require('../../assets/brand/palestre.jpg');
 /** Foto della pagina Safeguarding */
 export const SAFEGUARDING_PHOTO: number = require('../../assets/brand/safeguarding.jpg');
+/** Foto della pagina Arena Volley Card */
+export const CARD_PHOTO: number = require('../../assets/brand/arena-card.jpg');
 export const ORGANIGRAMMA_PHOTO: number = require('../../assets/brand/organigramma.jpg');
 /** Immagine della schermata di caricamento all'avvio */
 export const LOADING_IMAGE: number = require('../../assets/brand/caricamento.jpg');

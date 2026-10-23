@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Image } from 'expo-image';
 import { Animated, Linking, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Building2, ChevronRight, Dumbbell, Mail, MapPin, MessageCircle, Minus, Phone, Navigation, Plus, Trophy, User, Volleyball, X, type LucideIcon } from 'lucide-react-native';
@@ -8,7 +9,7 @@ import { Pressy } from './Pressy';
 import { SponsorGrid } from './SponsorGrid';
 import { Txt } from './Txt';
 import { CONTACTS } from '@/constants';
-import { ALBO_ORO, INFO, ORGANIGRAMMA, SAFEGUARDING, type InfoKey } from '@/data/altro';
+import { ALBO_ORO, ARENA_CARD, INFO, ORGANIGRAMMA, SAFEGUARDING, type InfoKey } from '@/data/altro';
 import { ORGANIGRAMMA_PHOTO } from '@/data/assets';
 import { useData } from '@/store/DataProvider';
 import { palette } from '@/theme/colors';
@@ -113,6 +114,8 @@ export function InfoBody({ section }: { section: InfoKey }) {
         </>
       ) : info.key === 'sponsor' ? (
         <SponsorGrid sponsors={sponsors} />
+      ) : info.key === 'card' ? (
+        <ArenaCard />
       ) : info.key === 'galleria' ? (
         // contenuti rimossi: la pagina resta vuota finché non si caricano le nuove foto
         null
@@ -138,6 +141,79 @@ export function InfoBody({ section }: { section: InfoKey }) {
         </>
       )}
     </View>
+  );
+}
+
+/** Pagina Arena Volley Card: presentazione, vantaggi, promozioni dei partner, come ottenerla e invito alle aziende */
+function ArenaCard() {
+  const { c } = useTheme();
+  const { convenzioni } = useData();
+  const info = INFO.card;
+  const label = { letterSpacing: 1.2, textTransform: 'uppercase' } as const;
+  return (
+    <>
+      {info.image ? <CoverImage source={info.image} style={{ aspectRatio: 4 / 3, borderRadius: 24, backgroundColor: c.fill }} /> : null}
+      <Card style={{ gap: 14 }}>
+        <Txt w={800} size={12} color="accent" style={label}>Partner conventions</Txt>
+        <Txt display w={900} size={28} color="cobalt">{info.headline}</Txt>
+        {(info.body ?? '').split(/\n\s*\n/).map((p, i) => (
+          // il primo paragrafo è l'introduzione, in evidenza
+          <Txt key={i} w={i ? undefined : 700} size={i ? 15 : 17} color={i ? 'muted' : undefined} style={{ lineHeight: i ? 23 : 25 }}>{p.trim()}</Txt>
+        ))}
+      </Card>
+
+      <Txt display w={900} size={24} color="cobalt" style={{ paddingHorizontal: 4, marginTop: 4 }}>Perché Arena Volley Card?</Txt>
+      {ARENA_CARD.perks.map(({ Icon, title, text }) => (
+        <Card key={title} style={{ flexDirection: 'row', gap: 14 }}>
+          <View style={{ width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.navy }}>
+            <Icon size={20} color={palette.gold} />
+          </View>
+          <View style={{ flex: 1, gap: 3 }}>
+            <Txt w={800} size={16}>{title}</Txt>
+            <Txt size={14} color="muted" style={{ lineHeight: 20 }}>{text}</Txt>
+          </View>
+        </Card>
+      ))}
+
+      {convenzioni.length ? (
+        <Txt display w={900} size={24} color="cobalt" style={{ paddingHorizontal: 4, marginTop: 4 }}>Promozioni sponsor</Txt>
+      ) : null}
+      {convenzioni.map((p) => (
+        <Pressy key={p.id} scaleTo={0.98} disabled={!p.url} accessibilityRole={p.url ? 'link' : undefined} accessibilityLabel={`${p.name}: ${p.promo}`}
+          onPress={() => p.url && Linking.openURL(p.url)}
+          style={{ flexDirection: 'row', gap: 14, padding: 12, borderRadius: 20, backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
+          <View style={{ width: 76, height: 76, borderRadius: 14, backgroundColor: '#fff', padding: 4, overflow: 'hidden' }}>
+            <Image source={p.logo} style={{ flex: 1 }} contentFit="contain" />
+          </View>
+          <View style={{ flex: 1, gap: 4 }}>
+            <Txt w={800} size={16}>{p.name}</Txt>
+            <Txt size={14} color="muted" style={{ lineHeight: 20 }}>{p.promo}</Txt>
+            {p.url ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 2 }}>
+                <Txt w={700} size={13} color="accent">Scopri la promozione</Txt>
+                <ChevronRight size={15} color={c.accent} />
+              </View>
+            ) : null}
+          </View>
+        </Pressy>
+      ))}
+
+      <Card style={{ gap: 10, backgroundColor: palette.navy, borderColor: palette.navy }}>
+        <Txt display w={900} size={22} color={palette.gold}>Come fare per ottenere l’Arena Volley Card?</Txt>
+        <Txt size={15} color={palette.white} style={{ lineHeight: 23 }}>{ARENA_CARD.howTo}</Txt>
+      </Card>
+
+      <Card style={{ gap: 12 }}>
+        <Txt display w={900} size={22} color="cobalt">Sei un’azienda? Diventa partner!</Txt>
+        <Txt size={15} color="muted" style={{ lineHeight: 23 }}>{ARENA_CARD.partnerInvite} {ARENA_CARD.email}</Txt>
+        <Pressy scaleTo={0.97} accessibilityRole="link" accessibilityLabel={`Scrivi a ${ARENA_CARD.email}`}
+          onPress={() => Linking.openURL(`mailto:${ARENA_CARD.email}`)}
+          style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 18, paddingVertical: 11, borderRadius: 999, backgroundColor: palette.gold }}>
+          <Mail size={17} color={palette.onGold} />
+          <Txt w={800} size={15} color={palette.onGold}>Scrivici</Txt>
+        </Pressy>
+      </Card>
+    </>
   );
 }
 

@@ -1,7 +1,7 @@
-import { ALBO_PHOTO, PALESTRE_PHOTO, SAFEGUARDING_PHOTO, STORIA_PHOTO } from './assets';
-import { Book, Image, MapPin, Network, Phone, ShieldCheck, Star, Trophy, type LucideIcon } from 'lucide-react-native';
+import { ALBO_PHOTO, CARD_PHOTO, PALESTRE_PHOTO, SAFEGUARDING_PHOTO, STORIA_PHOTO } from './assets';
+import { BadgeCheck, Book, CreditCard, HeartHandshake, Store, Image, MapPin, Network, Phone, ShieldCheck, Star, Trophy, type LucideIcon } from 'lucide-react-native';
 
-export type InfoKey = 'storia' | 'organigramma' | 'albo' | 'palestre' | 'safeguarding' | 'contatti' | 'sponsor' | 'galleria';
+export type InfoKey = 'storia' | 'organigramma' | 'albo' | 'palestre' | 'safeguarding' | 'contatti' | 'sponsor' | 'galleria' | 'card';
 
 export interface InfoSection {
   key: InfoKey;
@@ -53,6 +53,14 @@ export const INFO: Record<InfoKey, InfoSection> = {
   contatti: { key: 'contatti', title: 'Contatti', subtitle: 'Segreteria, uffici e recapiti', Icon: Phone },
   sponsor: { key: 'sponsor', title: 'Sponsor', subtitle: 'Chi ci sostiene', Icon: Star },
   galleria: { key: 'galleria', title: 'Galleria foto', subtitle: 'Album delle partite', Icon: Image },
+  card: {
+    key: 'card', title: 'Arena Volley Card', subtitle: 'Convenzioni e sconti dai partner', Icon: CreditCard, image: CARD_PHOTO,
+    headline: 'Entra nel cuore della community!',
+    body: [
+      'Benvenuto nella sezione dedicata all’Arena Volley Card, lo strumento esclusivo pensato per stringere ancora di più il legame tra la nostra società, atlete, famiglie e il territorio.',
+      'Grazie al supporto dei nostri partner e sostenitori, la card offre convenzioni, sconti e vantaggi esclusivi presso negozi, locali e servizi del territorio. Un modo per sentirsi parte della community Arena Volley e, allo stesso tempo, per sostenere la nostra società insieme a chi crede e lavora con noi.',
+    ].join('\n\n'),
+  },
 };
 
 export const SOCIETA: InfoKey[] = ['storia', 'organigramma', 'albo', 'palestre', 'safeguarding', 'contatti'];
@@ -126,4 +134,16 @@ export const SAFEGUARDING = {
     { club: 'Sangio Volley ASD', email: 'safeguarding.sangio@gmail.com' },
     { club: 'Gaiga ASD', email: 'safeguarding.gaiga@gmail.com' },
   ],
+};
+
+/** Pagina Arena Volley Card (fonte: sito ufficiale). Le promozioni dei partner sono nella tabella convenzioni */
+export const ARENA_CARD = {
+  perks: [
+    { Icon: Store, title: 'Vantaggi a km 0', text: 'Accedi a sconti speciali e promozioni dedicate in una rete selezionata di attività commerciali locali.' },
+    { Icon: HeartHandshake, title: 'Sostegno al Team', text: 'Utilizzando la card, valorizzi gli sponsor che investono nello sport e nel futuro del nostro settore giovanile e della prima squadra.' },
+    { Icon: BadgeCheck, title: 'Identità GialloBlu', text: 'È il tuo segno di appartenenza ufficiale all’universo Arena Volley Team.' },
+  ] satisfies { Icon: LucideIcon; title: string; text: string }[],
+  howTo: 'Iscrivendoti in segreteria come atleta o fan ricevi la card dedicata che ti premia con sconti riservati.',
+  partnerInvite: 'Vuoi inserire la tua attività nel circuito Arena Volley Card ed entrare in contatto con la nostra community di atleti, famiglie e tifosi? Contatta l’ufficio marketing:',
+  email: 'marketing@arenavolleyteam.it',
 };

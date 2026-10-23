@@ -2,7 +2,8 @@ import { useState, type ReactNode } from 'react';
 import { LayoutAnimation, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronDown } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { ChevronDown, ChevronRight } from 'lucide-react-native';
 import { Card } from '@/components/Card';
 import { InfoBody, SponsorPopup } from '@/components/InfoContent';
 import { Pressy } from '@/components/Pressy';
@@ -36,6 +37,7 @@ const WALLET: [string, string][] = [
 
 export default function Altro() {
   const { c } = useTheme();
+  const router = useRouter();
   // card aperta: il contenuto si espande sul posto, una alla volta; toccarla di nuovo la chiude
   const [openKey, setOpenKey] = useState<InfoKey | null>(null);
   const toggle = (k: InfoKey) => {
@@ -87,6 +89,10 @@ export default function Altro() {
           </View>
           {/* contenuto della card aperta, sotto la riga (sponsor o galleria) */}
           {mediaOpen ? <InfoBody section={mediaOpen} /> : null}
+        </Group>
+
+        <Group title="Arena Volley Card">
+          <CardPanel />
         </Group>
 
         <Group title="La società">
@@ -152,6 +158,30 @@ export default function Altro() {
           </View>
         ))}
       </View>
+    );
+  }
+
+  /** Pannello dell'Arena Volley Card: richiama la tessera (blu notte e oro) con la foto a destra; apre la pagina dedicata */
+  function CardPanel() {
+    const { title, subtitle, image } = INFO.card;
+    return (
+      <Pressy onPress={() => router.push('/info/card')} scaleTo={0.98} accessibilityRole="link" accessibilityLabel={`${title}, ${subtitle}`}
+        style={{ borderRadius: 22, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)' }}>
+        <LinearGradient colors={[brand.bluNotte, brand.bluScuro]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16 }}>
+          <View style={{ flex: 1, gap: 6 }}>
+            <View style={{ alignSelf: 'flex-start', backgroundColor: palette.gold, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
+              <Txt w={800} size={10.5} color={palette.onGold} style={{ letterSpacing: 1.2, textTransform: 'uppercase' }}>Partner conventions</Txt>
+            </View>
+            <Txt display w={900} size={22} color={palette.white}>{title}</Txt>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Txt size={13} color="rgba(255,255,255,0.72)" style={{ flex: 1 }}>{subtitle}</Txt>
+              <ChevronRight size={18} color={palette.gold} />
+            </View>
+          </View>
+          {image ? <Image source={image} style={{ width: 112, aspectRatio: 4 / 3, borderRadius: 14 }} contentFit="cover" /> : null}
+        </LinearGradient>
+      </Pressy>
     );
   }
 

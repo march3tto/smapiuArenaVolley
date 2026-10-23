@@ -134,6 +134,15 @@ export interface Sponsor {
   url?: string | null;
 }
 
+/** Convenzione dell'Arena Volley Card: partner e promozione riservata ai possessori */
+export interface Convenzione {
+  id: string;
+  name: string;
+  promo: string;
+  logo: ImgSrc;
+  url: string | null;
+}
+
 export interface YouthTeam {
   id: string;
   name: string;
