@@ -86,6 +86,7 @@ function RootStack() {
         <Stack.Screen name="settings" options={{ presentation: 'transparentModal', animation: 'fade', contentStyle: { backgroundColor: 'transparent' } }} />
         <Stack.Screen name="info/[section]" options={{ presentation: 'modal' }} />
         <Stack.Screen name="account" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="assistente" options={{ presentation: 'modal' }} />
         <Stack.Screen name="elimina-account" options={{ presentation: 'modal' }} />
         {/* ritorno dal login Facebook su Android: il codice lo gestisce già openAuthSessionAsync */}
         <Stack.Screen name="auth/callback" options={{ animation: 'none' }} />

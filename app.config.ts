@@ -7,7 +7,7 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
 
 /** Informativa privacy: cambiando la versione, al login successivo l'app chiede di nuovo i consensi */
 const PRIVACY_POLICY_URL = 'https://march3tto.github.io/smapiuArenaVolley/privacy/';
-const PRIVACY_POLICY_VERSION = '2026-10-v1';
+const PRIVACY_POLICY_VERSION = '2026-10-v2';
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   // Client ID OAuth di Google Cloud (identificativi pubblici, non segreti): vedi .env.example

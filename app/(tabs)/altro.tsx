@@ -3,7 +3,7 @@ import { LayoutAnimation, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { ChevronDown, ChevronRight } from 'lucide-react-native';
+import { ChevronDown, ChevronRight, Sparkles } from 'lucide-react-native';
 import { Card } from '@/components/Card';
 import { InfoBody, SponsorPopup } from '@/components/InfoContent';
 import { Pressy } from '@/components/Pressy';
@@ -54,6 +54,19 @@ export default function Altro() {
     <View style={{ flex: 1 }}>
       <Screen>
         <SectionHeader big title="Altro" subtitle="Sponsor, società, palestre e contatti." />
+
+        <Pressy onPress={() => router.push('/assistente')} scaleTo={0.98} accessibilityRole="button" accessibilityLabel="Assistente, chiedi di partite, squadra e pallavolo">
+          <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14 }}>
+            <View style={{ width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.gold }}>
+              <Sparkles size={22} color={palette.onGold} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Txt w={700} size={16}>Assistente</Txt>
+              <Txt size={13} color="muted">Chiedi di partite, squadra e pallavolo</Txt>
+            </View>
+            <ChevronRight size={18} color={c.muted} />
+          </Card>
+        </Pressy>
 
         <Group title="Sostenitori e media">
           <View style={{ flexDirection: 'row', gap: 12 }}>

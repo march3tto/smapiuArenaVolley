@@ -94,6 +94,8 @@ già, quindi attivarli non richiede di cambiarne la versione.
 - [ ] **Data di nascita completa** delle atlete delle squadre regionali (molte minorenni) visibile nella vista pubblica
   e nell'app: valutare con il consulente se mostrare solo l'anno.
 - [ ] **Groq** (USA) riceve i nomi delle atlete per le frasi di cronaca: verificare DPA e garanzie per il trasferimento.
+- [ ] **Assistente AI** (Edge Function `assistente`): Groq riceve anche le domande degli utenti. Informativa aggiornata
+  (punti 6, 7, 8, versione `2026-10-v2`): aggiungere il trattamento al registro.
 - [ ] **Expo**: verificare il DPA per le notifiche push.
 - [ ] Decidere una regola per gli **account inattivi** (oggi restano finché l'utente non li elimina, come dichiarato
   nell'informativa) e la pulizia dei **token push** non più usati.

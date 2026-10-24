@@ -332,7 +332,10 @@ export async function loadAll(): Promise<AppData> {
     // la vista contiene anche le rose delle avversarie: solo le giocatrici della squadra con nostra_squadra = true
     db.from(T.giocatriciPubbliche).select('*').in('stagione_id', ids).eq('livello_squadra', 'prima_squadra').eq('attiva', true).eq('nostra_squadra', true).order('ordine'),
     db.from(T.giocatriciPubbliche).select('*').in('stagione_id', ids).in('livello_squadra', ['serie_b2', 'serie_d']).eq('attiva', true).order('ordine'),
-    db.from(T.notizie).select('*').eq('pubblicata', true).order('pubblicato_il', { ascending: false }).limit(30),
+    db.from(T.notizie).select('*').eq('pubblicata', true)
+      // le news delle giovanili per ora non si mostrano (né in Home né in News)
+      .or('categoria.is.null,categoria.neq.giovanili')
+      .order('pubblicato_il', { ascending: false }).limit(30),
     db.from(T.sponsor).select('*').eq('attivo', true).order('ordine'),
     db.from(T.categorie).select('*').order('ordine'),
     db.from(T.staff).select('*').eq('attivo', true).order('ordine'),
@@ -648,6 +651,23 @@ export async function suggestCommentary(req: CommentaryRequest): Promise<string[
   if (error) throw error;
   const frasi = (data as { frasi?: unknown } | null)?.frasi;
   return Array.isArray(frasi) ? frasi.filter((f): f is string => typeof f === 'string') : [];
+}
+
+// ---------- assistente ----------
+
+export interface AssistantMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+/** Risposta dell'assistente in chat (Edge Function assistente con Groq, solo utenti autenticati, limite giornaliero) */
+export async function askAssistant(history: AssistantMessage[]): Promise<{ reply: string; limitReached: boolean }> {
+  if (!supabase) throw new Error('Supabase non configurato');
+  const { data, error } = await supabase.functions.invoke('assistente', { body: { messages: history.slice(-10) }, timeout: 30000 });
+  if (error) throw error;
+  const d = data as { reply?: unknown; limite_raggiunto?: unknown } | null;
+  if (typeof d?.reply !== 'string' || !d.reply) throw new Error('Risposta non valida');
+  return { reply: d.reply, limitReached: d.limite_raggiunto === true };
 }
 
 // ---------- formazioni ----------

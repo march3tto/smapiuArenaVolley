@@ -4,9 +4,8 @@ import { Globe, Share2, X } from 'lucide-react-native';
 import { FacebookIcon } from './FacebookIcon';
 import { IconButton } from './IconButton';
 import { InstagramIcon } from './InstagramIcon';
-import { Txt } from './Txt';
 import { YoutubeIcon } from './YoutubeIcon';
-import { FACEBOOK_URL, INSTAGRAM_HANDLE, INSTAGRAM_URL, INSTAGRAM_YOUNG_HANDLE, INSTAGRAM_YOUNG_URL, WEBSITE_URL, YOUTUBE_URL } from '@/constants';
+import { FACEBOOK_URL, INSTAGRAM_HANDLE, INSTAGRAM_URL, WEBSITE_URL, YOUTUBE_URL } from '@/constants';
 import { palette } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -16,7 +15,8 @@ const GAP = 5;
 
 const LINKS = [
   { key: 'ig', label: `Instagram ${INSTAGRAM_HANDLE}`, url: INSTAGRAM_URL },
-  { key: 'ig-young', label: `Instagram ${INSTAGRAM_YOUNG_HANDLE}`, url: INSTAGRAM_YOUNG_URL },
+  // Instagram @arenavolleyteamyoung disattivato per ora
+  // { key: 'ig-young', label: `Instagram ${INSTAGRAM_YOUNG_HANDLE}`, url: INSTAGRAM_YOUNG_URL },
   { key: 'fb', label: 'Facebook', url: FACEBOOK_URL },
   { key: 'yt', label: 'YouTube', url: YOUTUBE_URL },
   { key: 'web', label: 'Sito arenavolleyteam.it', url: WEBSITE_URL },
@@ -52,7 +52,7 @@ export function SocialMenu({ progress, open, onOpenChange }: Props) {
         <View style={{ flexDirection: 'row', gap: GAP, width: SOCIAL_MENU_W, paddingRight: GAP }}>
           {LINKS.map((l) => (
             <IconButton key={l.key} label={l.label} size={SIZE} onPress={() => go(l.url)} style={{ borderWidth: 0, overflow: 'hidden' }}>
-              {l.key === 'ig' || l.key === 'ig-young' ? (
+              {l.key === 'ig' ? (
                 <LinearGradient colors={IG} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
               ) : (
                 <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: BRAND_BG[l.key] }} />
@@ -66,11 +66,6 @@ export function SocialMenu({ progress, open, onOpenChange }: Props) {
               ) : (
                 <InstagramIcon size={17} />
               )}
-              {l.key === 'ig-young' ? (
-                <View style={{ position: 'absolute', bottom: 1, right: 1, minWidth: 14, height: 14, borderRadius: 7, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.gold }}>
-                  <Txt w={900} size={8.5} color={palette.onGold} style={{ lineHeight: 11 }}>Y</Txt>
-                </View>
-              ) : null}
             </IconButton>
           ))}
         </View>

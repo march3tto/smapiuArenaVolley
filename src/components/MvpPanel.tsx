@@ -29,8 +29,9 @@ export interface MvpTeam {
  * Voto MVP tra le giocatrici di entrambe le squadre, ognuna sotto la sua squadra (casa a sinistra), con i punti della partita.
  * Un voto per utente registrato, modificabile; nella partita demo resta solo sul dispositivo.
  * awayMatch: in trasferta il pannello si vede (giocatrici e punti) ma il voto è disattivato.
+ * onLeave: chiude il contenitore (es. il pannello dal basso della diretta) prima di andare all'accesso.
  */
-export function MvpPanel({ match, awayMatch, teams, events, finished }: { match: Match; awayMatch?: boolean; teams: MvpTeam[]; events: LiveEvent[]; finished: boolean }) {
+export function MvpPanel({ match, awayMatch, teams, events, finished, onLeave }: { match: Match; awayMatch?: boolean; teams: MvpTeam[]; events: LiveEvent[]; finished: boolean; onLeave?: () => void }) {
   const { c } = useTheme();
   const router = useRouter();
   const { user } = useApp();
@@ -124,7 +125,7 @@ export function MvpPanel({ match, awayMatch, teams, events, finished }: { match:
           <Info size={16} color={c.muted} />
           <Txt size={12.5} color="muted" style={{ flex: 1 }}>Il voto MVP è attivo solo nelle partite in casa.</Txt>
         </View>
-      ) : !canVote ? <Button size="sm" variant="gold" label="Accedi per votare" onPress={() => router.push('/login')} /> : null}
+      ) : !canVote ? <Button size="sm" variant="gold" label="Accedi per votare" onPress={() => { onLeave?.(); router.push('/login'); }} /> : null}
 
       {/* in trasferta gli elenchi restano visibili (punti della partita) ma attenuati: non si vota */}
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, opacity: awayMatch ? 0.55 : 1 }}>
@@ -169,7 +170,8 @@ function VoteRow({ p, st, first, votes, best, selected, canVote, busy, onPress }
       <NumberTag value={p.number} variant={selected ? 'starter' : 'bench'} size={22} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <Txt w={600} size={12.5} numberOfLines={1} style={{ flexShrink: 1 }}>{p.name}</Txt>
+          {/* nomi lunghi: vanno su due righe e, se non bastano, il carattere si riduce */}
+          <Txt w={600} size={12.5} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75} style={{ flexShrink: 1 }}>{p.name}</Txt>
           {leader ? <Trophy size={12} color={c.accent} accessibilityLabel="In testa" /> : null}
         </View>
         <Txt size={11} color="muted" tnum numberOfLines={1}>

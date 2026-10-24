@@ -2,15 +2,19 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Award } from 'lucide-react-native';
 import { AnimatedNumber } from './AnimatedNumber';
 import { Button } from './Button';
 import { LiveSignal } from './LiveDot';
 import { LiveTicker } from './LiveTicker';
+import { type MvpTeam } from './MvpPanel';
+import { MvpSheet } from './MvpSheet';
 import { Pressy } from './Pressy';
 import { TeamBadge } from './TeamBadge';
 import { Txt } from './Txt';
 import { YoutubeIcon } from './YoutubeIcon';
 import { US } from '@/constants';
+import { useLiveLineup } from '@/store/LineupProvider';
 import { useLive } from '@/store/LiveProvider';
 import { usePlayer } from '@/store/PlayerProvider';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -21,6 +25,9 @@ export function LiveCard() {
   const router = useRouter();
   const live = useLive();
   const player = usePlayer();
+  const lineup = useLiveLineup();
+  // voto MVP aperto dal pulsante della card, sopra la Home
+  const [mvpOpen, setMvpOpen] = useState(false);
   // Larghezza della colonna del punteggio: la riga "set vinti" la replica, così i numeri cadono sotto le squadre
   const [centerW, setCenterW] = useState(0);
   const m = live.match;
@@ -28,12 +35,16 @@ export function LiveCard() {
   const home = m.homeAway === 'casa';
   const left = { name: home ? US : m.opponent, logo: home ? null : m.opponentLogo, sets: home ? live.ourSets : live.oppSets, pts: home ? live.our : live.opp };
   const right = { name: home ? m.opponent : US, logo: home ? m.opponentLogo : null, sets: home ? live.oppSets : live.ourSets, pts: home ? live.opp : live.our };
+  // come nella scheda "Vota MVP" della diretta: casa a sinistra, ospite a destra
+  const mvpTeams: MvpTeam[] = [{ t: left, side: home ? 'us' : 'opp' } as const, { t: right, side: home ? 'opp' : 'us' } as const]
+    .map(({ t, side }) => ({ side, name: t.name, logo: t.logo, players: side === 'us' ? lineup.us : lineup.opp }));
 
   const season = m.season || m.competition?.name || 'Campionato';
   // la cronaca è dalla più recente
   const last = live.events[0];
 
   return (
+    <>
     <Pressy onPress={() => router.push('/live')} scaleTo={0.98} accessibilityRole="link" accessibilityLabel="Segui la diretta">
       <LinearGradient
         colors={mode === 'dark' ? ['#115BAB', '#0B3166'] : ['#FFFFFF', '#F2F5FA']}
@@ -77,20 +88,26 @@ export function LiveCard() {
           </View>
         </View>
 
-        {m.youtubeLiveId ? (
-          <Button
-            label="Guarda la diretta"
-            size="sm"
-            icon={<YoutubeIcon size={22} />}
-            // il video si apre nella schermata Live, dentro l'app
-            onPress={() => { player.open(m.youtubeLiveId!, `${US} – ${m.opponent}`); router.push('/live'); }}
-            accessibilityLabel="Guarda la diretta video"
-          />
-        ) : null}
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {m.youtubeLiveId ? (
+            <Button
+              label="Guarda la diretta"
+              size="sm"
+              icon={<YoutubeIcon size={22} />}
+              // il video si apre nella schermata Live, dentro l'app
+              onPress={() => { player.open(m.youtubeLiveId!, `${US} – ${m.opponent}`); router.push('/live'); }}
+              accessibilityLabel="Guarda la diretta video"
+              style={{ flex: 1, paddingHorizontal: 8 }}
+            />
+          ) : null}
+          <Button label="Vota la tua MVP" size="sm" icon={<Award size={18} color={c.text} />} onPress={() => setMvpOpen(true)} style={{ flex: 1, paddingHorizontal: 8 }} />
+        </View>
 
         {last ? <LiveTicker text={`${last.set}° set ${home ? `${last.our}–${last.opp}` : `${last.opp}–${last.our}`} · ${last.text}`} /> : null}
       </LinearGradient>
     </Pressy>
+    <MvpSheet open={mvpOpen} onClose={() => setMvpOpen(false)} match={m} awayMatch={!home} events={live.events} finished={live.finished} teams={mvpTeams} />
+    </>
   );
 }
 
