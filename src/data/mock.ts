@@ -118,49 +118,60 @@ export const venues: Venue[] = [
   { name: 'Palalupatotina Gas e Luce', address: 'Via Monte Ortigara, 37057 San Giovanni Lupatoto VR', city: 'San Giovanni Lupatoto', kind: 'palasport' },
 ];
 
-/** Partita della diretta demo (fuori calendario): Olimpia Ravenna in casa contro Oplonti */
+/** Partita della diretta demo (fuori calendario): V&V Modena in casa contro Aduna */
 export const demoMatch: Match = {
   id: 'f0c1d2e3-a4b5-5c6d-8e7f-90a1b2c3d4e5', giornata: null, phase: 'andata', date: '2026-10-25T17:00:00+01:00', homeAway: 'casa',
-  usName: 'Olimpia di Navigazione Ravenna', opponent: 'CO.GE. Vesuvio Oplonti', venue: 'Ravenna', status: 'scheduled', demoLive: true, youtubeLiveId: 'hdAwCmQj-98',
+  usName: 'V&V Modena', opponent: 'Banca Annia Aduna Women', opponentTeamId: '5c657f81-9314-4fc9-bd97-d534ecee6a95',
+  venue: 'Modena', status: 'scheduled', demoLive: true, youtubeLiveId: 'hdAwCmQj-98',
 };
 
-/** Stato iniziale della diretta demo (1° set, 8-10 per Oplonti) */
+/** Stato iniziale della diretta demo (1° set, 8-10 per Aduna) */
 export const demoLive: { set: number; our: number; opp: number; history: SetScore[]; events: LiveEvent[] } = {
   set: 1,
   our: 8,
   opp: 10,
   history: [],
   events: [
-    { id: 'e3', set: 1, our: 8, opp: 10, side: 'opp', text: 'Ace in battuta di Sofia Caruso, Oplonti allunga!' },
-    { id: 'e2', set: 1, our: 8, opp: 9, side: 'opp', text: 'Muro vincente di Martina Greco per Oplonti.' },
-    { id: 'e1', set: 1, our: 8, opp: 8, side: 'us', text: 'Attacco in diagonale di Camilla Bertoni, punto Ravenna.' },
+    { id: 'e3', set: 1, our: 8, opp: 10, side: 'opp', text: 'Ace in battuta di Irene Gomiero, Aduna allunga!' },
+    { id: 'e2', set: 1, our: 8, opp: 9, side: 'opp', text: 'Muro vincente di Ludovica Marinucci per Aduna.' },
+    { id: 'e1', set: 1, our: 8, opp: 8, side: 'us', text: 'Attacco in diagonale di Linda Cabassa, punto Modena.' },
   ],
 };
 
-/** Formazione di casa (Ravenna) della diretta demo: nomi di fantasia, Starting Six già schierato (zone I-VI) */
+/**
+ * Formazioni della diretta demo, dalle rose in giocatrici (Starting Six già schierato, zone I-VI).
+ * Aduna non ha i numeri di maglia e nessuna delle due ha la capitana segnata.
+ */
 export const demoHomeLineup: Pick<LineupPlayer, 'number' | 'name' | 'role' | 'isCaptain' | 'zone'>[] = [
-  { number: 2, name: 'Laura Benedetti', role: 'palleggiatrice', isCaptain: false, zone: 1 },
-  { number: 5, name: 'Camilla Bertoni', role: 'schiacciatrice', isCaptain: true, zone: 2 },
-  { number: 8, name: 'Serena Montanari', role: 'centrale', isCaptain: false, zone: 3 },
-  { number: 10, name: 'Beatrice Rinaldi', role: 'opposto', isCaptain: false, zone: 4 },
-  { number: 13, name: 'Giada Pellegrini', role: 'schiacciatrice', isCaptain: false, zone: 5 },
-  { number: 15, name: 'Arianna Ricci', role: 'centrale', isCaptain: false, zone: 6 },
-  { number: 1, name: 'Marta Zanetti', role: 'libero', isCaptain: false, zone: null },
-  { number: 7, name: 'Irene Valli', role: 'palleggiatrice', isCaptain: false, zone: null },
-  { number: 11, name: 'Elena Fabbri', role: 'schiacciatrice', isCaptain: false, zone: null },
-  { number: 18, name: 'Sara Guidi', role: 'centrale', isCaptain: false, zone: null },
+  { number: 4, name: 'Theresa Barner', role: 'palleggiatrice', isCaptain: false, zone: 1 },
+  { number: 10, name: 'Linda Cabassa', role: 'schiacciatrice', isCaptain: false, zone: 2 },
+  { number: 9, name: 'Sofia Migliorini', role: 'centrale', isCaptain: false, zone: 3 },
+  { number: 6, name: 'Amelia Pasini', role: 'opposto', isCaptain: false, zone: 4 },
+  { number: 12, name: 'Chiara Martinato', role: 'schiacciatrice', isCaptain: false, zone: 5 },
+  { number: 15, name: 'Anna Pettiti', role: 'centrale', isCaptain: false, zone: 6 },
+  { number: 1, name: 'Lia Righi', role: 'libero', isCaptain: false, zone: null },
+  { number: 7, name: 'Victoria Cavallieri', role: 'libero', isCaptain: false, zone: null },
+  { number: 2, name: 'Monica Tirisegu Oke', role: 'centrale', isCaptain: false, zone: null },
+  { number: 8, name: 'Beatrice Balconati', role: 'palleggiatrice', isCaptain: false, zone: null },
+  { number: 13, name: 'Marta Semprini Cesari', role: 'centrale', isCaptain: false, zone: null },
+  { number: 14, name: 'Anja Nella', role: 'schiacciatrice', isCaptain: false, zone: null },
+  { number: 17, name: 'Valentina Adani', role: 'schiacciatrice', isCaptain: false, zone: null },
+  { number: 18, name: 'Sonia Ratti', role: 'opposto', isCaptain: false, zone: null },
 ];
 
-/** Formazione ospite (Oplonti) della diretta demo: nomi di fantasia, Starting Six già schierato (zone I-VI) */
 export const demoOpponentLineup: Pick<LineupPlayer, 'number' | 'name' | 'role' | 'isCaptain' | 'zone'>[] = [
-  { number: 1, name: 'Giulia Marchetti', role: 'palleggiatrice', isCaptain: true, zone: 1 },
-  { number: 4, name: 'Sofia Caruso', role: 'schiacciatrice', isCaptain: false, zone: 2 },
-  { number: 7, name: 'Martina Greco', role: 'centrale', isCaptain: false, zone: 3 },
-  { number: 9, name: 'Alessia Ferraro', role: 'opposto', isCaptain: false, zone: 4 },
-  { number: 11, name: 'Elisa Romano', role: 'schiacciatrice', isCaptain: false, zone: 5 },
-  { number: 14, name: 'Chiara Lombardi', role: 'centrale', isCaptain: false, zone: 6 },
-  { number: 3, name: 'Federica Gallo', role: 'libero', isCaptain: false, zone: null },
-  { number: 6, name: 'Noemi Costa', role: 'palleggiatrice', isCaptain: false, zone: null },
-  { number: 12, name: 'Ilaria Fontana', role: 'schiacciatrice', isCaptain: false, zone: null },
-  { number: 17, name: 'Valentina Rizzo', role: 'centrale', isCaptain: false, zone: null },
+  { number: null, name: 'Emma Venturi', role: 'palleggiatrice', isCaptain: false, zone: 1 },
+  { number: null, name: 'Elisa Vecerina', role: 'schiacciatrice', isCaptain: false, zone: 2 },
+  { number: null, name: 'Ludovica Marinucci', role: 'centrale', isCaptain: false, zone: 3 },
+  { number: null, name: 'Chiara Wabersich', role: 'opposto', isCaptain: false, zone: 4 },
+  { number: null, name: 'Irene Gomiero', role: 'schiacciatrice', isCaptain: false, zone: 5 },
+  { number: null, name: 'Sofia Fenzio', role: 'centrale', isCaptain: false, zone: 6 },
+  { number: null, name: 'Linda Callegaro', role: 'libero', isCaptain: false, zone: null },
+  { number: null, name: 'Marta Masiero', role: 'libero', isCaptain: false, zone: null },
+  { number: null, name: 'Marianna Giay', role: 'palleggiatrice', isCaptain: false, zone: null },
+  { number: null, name: 'Linda Damian', role: 'centrale', isCaptain: false, zone: null },
+  { number: null, name: 'Francesca Volpin', role: 'centrale', isCaptain: false, zone: null },
+  { number: null, name: 'Alessia Pasa', role: 'schiacciatrice', isCaptain: false, zone: null },
+  { number: null, name: 'Aurora Marchesini', role: 'schiacciatrice', isCaptain: false, zone: null },
+  { number: null, name: 'Martina Simoncelli', role: 'opposto', isCaptain: false, zone: null },
 ];

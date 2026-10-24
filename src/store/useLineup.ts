@@ -45,9 +45,11 @@ function fromRoster(players: Player[], team: 'us' | 'opp'): LineupPlayer[] {
     }));
 }
 
-/** Squadre della partita demo, ogni volta con id nuovi */
-const demoTeam = (list: typeof demoOpponentLineup, team: 'us' | 'opp'): LineupPlayer[] =>
-  list.map((p, i) => ({ ...p, id: newId(), team, playerId: null, isLibero: p.role === 'libero', order: i }));
+/** Squadre della partita demo, ogni volta con id nuovi; il libero è uno solo, il primo della lista */
+const demoTeam = (list: typeof demoOpponentLineup, team: 'us' | 'opp'): LineupPlayer[] => {
+  const libero = list.findIndex((p) => p.role === 'libero');
+  return list.map((p, i) => ({ ...p, id: newId(), team, playerId: null, isLibero: i === libero, order: i }));
+};
 
 const byOrder = (a: LineupPlayer, b: LineupPlayer) => a.order - b.order || (a.number ?? 99) - (b.number ?? 99);
 
