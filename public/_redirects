@@ -1,0 +1,7 @@
+# Cloudflare Pages: le rotte con parametri sono esportate come un'unica pagina "[param].html",
+# che expo-router completa nel browser leggendo l'indirizzo
+/player/:id            /player/[id]            200
+/notizia/:id           /notizia/[id]           200
+/giornata/:numero      /giornata/[numero]      200
+/formazione/:squadra   /formazione/[squadra]   200
+/info/:section         /info/[section]         200

@@ -17,6 +17,7 @@ import { PlayerProvider } from '@/store/PlayerProvider';
 import { FloatingPlayer } from '@/components/FloatingPlayer';
 import { AdPopup } from '@/components/AdPopup';
 import { ConsentGate } from '@/components/ConsentGate';
+import { PwaUpdater } from '@/components/PwaUpdater';
 import { ToastProvider } from '@/components/Toast';
 import { FONT } from '@/theme/colors';
 import { useNotifichePush } from '@/notifications';
@@ -97,6 +98,8 @@ function RootStack() {
       {ready && !(user && consentStatus === 'mancanti') ? <AdPopup /> : null}
       {/* sopra tutto (navigazione compresa) finché mancano i consensi obbligatori */}
       {user && consentStatus === 'mancanti' ? <ConsentGate /> : null}
+      {/* solo PWA: avviso "Nuova versione disponibile" (sul nativo non mostra nulla) */}
+      <PwaUpdater />
     </>
   );
 }

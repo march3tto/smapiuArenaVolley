@@ -49,3 +49,6 @@ __pycache__/
 
 # config locale della preview
 .claude/launch.json
+
+# wrangler pages dev (prova locale della PWA)
+.wrangler/

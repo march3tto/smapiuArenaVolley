@@ -1,0 +1,25 @@
+# Cloudflare Pages: header HTTP della PWA (vedi DEPLOY_PWA.md)
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+
+# HTML, service worker e manifest: sempre ricontrollati, così gli aggiornamenti arrivano subito
+/*.html
+  Cache-Control: no-cache
+/
+  Cache-Control: no-cache
+/sw.js
+  Cache-Control: no-cache
+/manifest.json
+  Cache-Control: no-cache
+  Content-Type: application/manifest+json
+
+# file con hash nel nome generati da Metro: non cambiano mai
+/_expo/static/*
+  Cache-Control: public, max-age=31536000, immutable
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

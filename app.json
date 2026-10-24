@@ -28,7 +28,17 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "name": "Smapiù Arena Volley",
+      "shortName": "Arena Volley",
+      "description": "L'app ufficiale di Arena Volley Team: risultati, dirette, classifica, rosa e news.",
+      "lang": "it",
+      "themeColor": "#061A3A",
+      "backgroundColor": "#061A3A",
+      "display": "standalone",
+      "orientation": "portrait",
+      "startUrl": "/",
+      "scope": "/"
     },
     "plugins": [
       "expo-router",
