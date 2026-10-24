@@ -34,9 +34,13 @@ Variabili d'ambiente (Settings → Variables and Secrets, sia Production sia Pre
 
 | Variabile | Valore |
 |---|---|
-| `NODE_VERSION` | `22` |
+| `NODE_VERSION` | `24` (serve npm 11: con Node 22/npm 10 `npm ci` fallisce, vedi sotto) |
 | `EXPO_PUBLIC_SUPABASE_URL` | `https://<ref-progetto>.supabase.co` |
 | `EXPO_PUBLIC_SUPABASE_ANON_KEY` | chiave **publishable/anon** di Supabase |
+
+Node 24 è indicato anche in `.nvmrc`. Con Node 22 Cloudflare usa npm 10, che legge il `package-lock.json`
+in modo diverso da npm 11 (quello con cui è generato) e si ferma con
+`Missing: react-native-worklets@0.10.4 from lock file`.
 
 Solo valori pubblici: tutto ciò che inizia con `EXPO_PUBLIC_` finisce nel JavaScript scaricato dal browser.
 **Mai** la service role key di Supabase né la chiave Groq: quella dell'assistente resta un secret della
