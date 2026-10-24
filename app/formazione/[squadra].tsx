@@ -135,8 +135,13 @@ function OpponentRoster({ teamId, name, lineup }: { teamId: string; name: string
 /** Giocatrici della rosa non ancora a referto: le aggiunte restano collegate alla loro scheda */
 function TeamRoster({ name, roster, error, team, lineup }: { name: string; roster: Player[] | null; error?: string | null; team: 'us' | 'opp'; lineup: Lineup }) {
   const { c } = useTheme();
-  const added = new Set((team === 'us' ? lineup.us : lineup.opp).map((p) => p.playerId).filter(Boolean));
-  const free = (roster ?? []).filter((p) => !added.has(p.id)).sort((a, b) => (a.number ?? 99) - (b.number ?? 99));
+  const onSheet = team === 'us' ? lineup.us : lineup.opp;
+  const added = new Set(onSheet.map((p) => p.playerId).filter(Boolean));
+  // anche per nome: le giocatrici inserite a mano (o della demo) non sono collegate alla scheda, e non vanno riproposte
+  const key = (name: string) => name.trim().toLowerCase().replace(/\s+/g, ' ');
+  const names = new Set(onSheet.map((p) => key(p.name)));
+  const free = (roster ?? []).filter((p) => !added.has(p.id) && !names.has(key(`${p.firstName} ${p.lastName}`)))
+    .sort((a, b) => (a.number ?? 99) - (b.number ?? 99));
   const add = (list: Player[]) => lineup.addPlayers(team, list.map((p) => ({
     number: p.number ?? null, name: `${p.firstName} ${p.lastName}`.trim(), role: p.role, playerId: p.id, isCaptain: !!p.isCaptain,
   })));

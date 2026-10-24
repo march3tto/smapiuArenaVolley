@@ -15,6 +15,7 @@ interface AppCtx {
   user: AppUser | null;
   guest: boolean;
   prefs: NotifPrefs;
+  /** Partita demo attiva: con Supabase vale solo per un admin collegato (solo lui la vede in Impostazioni) */
   demoLive: boolean;
   /** Pubblicità eliminata: vale solo con un utente registrato (vedi adsHidden) */
   noAds: boolean;
@@ -332,13 +333,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // la scelta resta salvata sul dispositivo, ma senza account (ospite o dopo l'uscita) la pubblicità torna
   const adsHidden = !!user && noAds;
+  // anche la demo resta salvata sul dispositivo, ma con Supabase si vede solo da admin: chi non lo è non può spegnerla da Impostazioni
+  const demoOn = demoLive && (!supabase || user?.role === 'admin');
 
   const value = useMemo<AppCtx>(() => ({
-    ready, user, guest, prefs, demoLive, noAds, adsHidden, consents, consentStatus,
+    ready, user, guest, prefs, demoLive: demoOn, noAds, adsHidden, consents, consentStatus,
     signIn, signUp, signInWithProvider, resetPassword, continueAsGuest, signOut,
     acceptConsents, setMarketing, setYouthCategory, deleteAccount,
     updatePrefs, toggleYouth, setDemoLive, setNoAds,
-  }), [ready, user, guest, prefs, demoLive, noAds, adsHidden, consents, consentStatus, signIn, signUp, signInWithProvider, resetPassword, continueAsGuest, signOut, acceptConsents, setMarketing, setYouthCategory, deleteAccount, updatePrefs, toggleYouth, setDemoLive, setNoAds]);
+  }), [ready, user, guest, prefs, demoOn, noAds, adsHidden, consents, consentStatus, signIn, signUp, signInWithProvider, resetPassword, continueAsGuest, signOut, acceptConsents, setMarketing, setYouthCategory, deleteAccount, updatePrefs, toggleYouth, setDemoLive, setNoAds]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { deleteLineupPlayer, fetchLineup, fetchTeamRoster, insertLineup, newId, setLineupCaptain, setLineupLibero, setLineupZone, subscribeLineup, updateLineupPlayer } from '@/lib/api';
+import { deleteLineupPlayer, fetchLineup, fetchTeamRoster, insertLineup, newId, setLineupCaptain, setLineupLibero, setLineupZone, demoRevision, subscribeDemo, subscribeLineup, updateLineupPlayer, type DemoChannel } from '@/lib/api';
 import { demoHomeLineup, demoOpponentLineup } from '@/data/mock';
+import { hasSupabase } from '@/lib/supabase';
 import { useApp } from './AppProvider';
 import { useData } from './DataProvider';
 import type { LineupPlayer, Match, Player, PlayerRole } from '@/types';
@@ -19,11 +20,16 @@ export interface Lineup {
   us: LineupPlayer[];
   opp: LineupPlayer[];
   loading: boolean;
-  /** Admin nella diretta vera, o chiunque nella partita demo (solo in locale) */
+  /** Admin; nella partita demo senza Supabase chiunque (le modifiche restano in locale) */
   canEdit: boolean;
   error: string | null;
   /** Titolare ↔ panchina; la titolare prende la prima zona libera (I-VI) */
   toggleStarter: (p: LineupPlayer) => void;
+  /**
+   * Porta p nella zona: se è occupata le due giocatrici si scambiano (titolare ↔ titolare),
+   * oppure, se p viene dalla panchina, quella in campo va in panchina
+   */
+  moveToZone: (p: LineupPlayer, zone: number) => void;
   /** Libero ↔ panchina: solo dalla panchina e con ruolo Libero, il nuovo libero sostituisce il precedente */
   toggleLibero: (p: LineupPlayer) => void;
   /** Capitana ↔ nessuna: una per squadra, la nuova sostituisce la precedente */
@@ -45,10 +51,13 @@ function fromRoster(players: Player[], team: 'us' | 'opp'): LineupPlayer[] {
     }));
 }
 
-/** Squadre della partita demo, ogni volta con id nuovi; il libero è uno solo, il primo della lista */
+/**
+ * Squadre della partita demo; il libero è uno solo, il primo della lista.
+ * Id fissi: sono uguali su tutti i dispositivi, così cronaca e voti MVP della demo condivisa puntano alle stesse giocatrici.
+ */
 const demoTeam = (list: typeof demoOpponentLineup, team: 'us' | 'opp'): LineupPlayer[] => {
   const libero = list.findIndex((p) => p.role === 'libero');
-  return list.map((p, i) => ({ ...p, id: newId(), team, playerId: null, isLibero: i === libero, order: i }));
+  return list.map((p, i) => ({ ...p, id: `demo-${team}-${i}`, team, playerId: null, isLibero: i === libero, order: i }));
 };
 
 const byOrder = (a: LineupPlayer, b: LineupPlayer) => a.order - b.order || (a.number ?? 99) - (b.number ?? 99);
@@ -58,7 +67,8 @@ export function useLineup(match: Match | null): Lineup {
   const { players } = useData();
   const isDemo = !!match?.demoLive;
   const live = !!match && !isDemo;
-  const canEdit = !!match && (isDemo || user?.role === 'admin');
+  // con Supabase la demo è condivisa: le formazioni, come il punteggio, le tocca solo l'admin
+  const canEdit = !!match && ((isDemo && !hasSupabase) || user?.role === 'admin');
 
   const [rows, setRows] = useState<LineupPlayer[]>([]);
   const [loading, setLoading] = useState(false);
@@ -150,6 +160,46 @@ export function useLineup(match: Match | null): Lineup {
   const us = live ? (savedUs ? rows.filter((p) => p.team === 'us').sort(byOrder) : roster) : (demoUs ?? demoBase);
   const opp = live && !savedOpp ? oppRoster : rows.filter((p) => p.team === 'opp').sort(byOrder);
 
+  // Demo condivisa (con Supabase): le formazioni passano tra i dispositivi sul canale broadcast, come il punteggio
+  const shared = isDemo && hasSupabase;
+  const demoRev = useRef(0);
+  const demoChannel = useRef<DemoChannel<{ us: LineupPlayer[]; opp: LineupPlayer[] }> | null>(null);
+  // modifica fatta su questo dispositivo, da mandare agli altri quando lo stato è aggiornato
+  const demoDirty = useRef(false);
+  const current = useRef({ us, opp });
+  useEffect(() => {
+    current.current = { us, opp };
+  }, [us, opp]);
+  useEffect(() => {
+    if (!shared || !matchId) return;
+    demoRev.current = 0;
+    const ch = subscribeDemo<{ us: LineupPlayer[]; opp: LineupPlayer[] }>(
+      'formazioni',
+      matchId,
+      (rev, next) => {
+        if (rev <= demoRev.current) return;
+        demoRev.current = rev;
+        setDemoUs(next.us);
+        setRows(next.opp);
+      },
+      // chi entra chiede le formazioni: risponde chi ne ha già una condivisa
+      () => {
+        if (demoRev.current > 0) ch.send(demoRev.current, current.current);
+      },
+    );
+    demoChannel.current = ch;
+    return () => {
+      ch.close();
+      demoChannel.current = null;
+    };
+  }, [shared, matchId]);
+  useEffect(() => {
+    if (!demoDirty.current || !demoChannel.current) return;
+    demoDirty.current = false;
+    demoRev.current = demoRevision(demoRev.current);
+    demoChannel.current.send(demoRev.current, { us, opp });
+  }, [us, opp]);
+
   useEffect(() => {
     if (!live || !canEdit || loading || !matchId) return;
     const seed = ([['us', savedUs, roster], ['opp', savedOpp, oppRoster]] as const)
@@ -165,6 +215,7 @@ export function useLineup(match: Match | null): Lineup {
 
   // modifica locale: nella demo la nostra squadra vive in demoUs, il resto in rows
   const patch = useCallback((team: 'us' | 'opp', fn: (list: LineupPlayer[]) => LineupPlayer[]) => {
+    if (!live) demoDirty.current = true;
     if (!live && team === 'us') {
       setDemoUs((d) => fn(d ?? demoBase));
       return;
@@ -191,6 +242,24 @@ export function useLineup(match: Match | null): Lineup {
     setError(null);
     patch(p.team, (list) => list.map((x) => (x.id === p.id ? { ...x, zone } : x)));
     save(() => setLineupZone(p.id, zone));
+  }, [canEdit, matchId, us, opp, patch, save]);
+
+  const moveToZone = useCallback((p: LineupPlayer, zone: number) => {
+    if (!canEdit || !matchId || p.zone === zone) return;
+    if (p.zone == null && (p.role === 'libero' || p.isLibero)) {
+      setError('Il libero non può far parte dello Starting Six.');
+      return;
+    }
+    const other = (p.team === 'us' ? us : opp).find((x) => x.zone === zone && x.id !== p.id);
+    const from = p.zone;
+    setError(null);
+    patch(p.team, (list) => list.map((x) => (x.id === p.id ? { ...x, zone } : other && x.id === other.id ? { ...x, zone: from } : x)));
+    // una zona per giocatrice nel database: prima si libera quella di arrivo, poi si sposta p, infine l'altra prende la zona di p
+    save(async () => {
+      if (other) await setLineupZone(other.id, null);
+      await setLineupZone(p.id, zone);
+      if (other && from != null) await setLineupZone(other.id, from);
+    });
   }, [canEdit, matchId, us, opp, patch, save]);
 
   const toggleLibero = useCallback((p: LineupPlayer) => {
@@ -272,5 +341,5 @@ export function useLineup(match: Match | null): Lineup {
     save(() => deleteLineupPlayer(p.id));
   }, [canEdit, patch, save]);
 
-  return { us, opp, loading, canEdit, error, toggleStarter, toggleLibero, toggleCaptain, addPlayers, update, remove };
+  return { us, opp, loading, canEdit, error, toggleStarter, moveToZone, toggleLibero, toggleCaptain, addPlayers, update, remove };
 }

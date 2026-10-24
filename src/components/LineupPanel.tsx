@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ClipboardList, X } from 'lucide-react-native';
@@ -38,7 +39,7 @@ export function LineupPanel({ lineup, teams }: { lineup: Lineup; teams: TeamProp
       {lineup.error ? <Txt size={12.5} color="danger">{lineup.error}</Txt> : null}
       <TagLegend />
       {lineup.canEdit ? (
-        <Txt size={12} color="muted">Tocca una giocatrice per metterla nello Starting Six: l&apos;ordine dei tocchi dà le posizioni I-VI (I al servizio). Libero, capitana e giocatrici si cambiano da Modifica.</Txt>
+        <Txt size={12} color="muted">Tocca una giocatrice dell&apos;elenco per metterla nello Starting Six (prima zona libera, I al servizio). Per sistemare le posizioni tocca una giocatrice in campo e poi un&apos;altra zona: si scambiano. Con una giocatrice in campo selezionata, toccane una in panchina per farla entrare al suo posto. Libero, capitana e giocatrici si cambiano da Modifica.</Txt>
       ) : null}
     </View>
   );
@@ -48,6 +49,22 @@ function TeamLineup({ players, team, name, logo, lineup }: TeamProps & { lineup:
   const { c } = useTheme();
   const router = useRouter();
   const starters = players.filter((p) => p.zone != null).length;
+  // tap-tap: primo tocco su una giocatrice in campo, secondo su un'altra zona (o su una giocatrice in panchina) e si scambiano
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = players.find((p) => p.id === selectedId && p.zone != null) ?? null;
+  const tapZone = (zone: number, p?: LineupPlayer) => {
+    if (!selected) {
+      setSelectedId(p?.id ?? null);
+      return;
+    }
+    if (selected.id !== p?.id) lineup.moveToZone(selected, zone);
+    setSelectedId(null);
+  };
+  const tapRow = (p: LineupPlayer) => {
+    if (selected && p.id !== selected.id) lineup.moveToZone(p, selected.zone!);
+    else if (!selected) lineup.toggleStarter(p);
+    setSelectedId(null);
+  };
   // la scheda giocatrice c'è solo per la nostra rosa; chi modifica la formazione usa il tocco per lo Starting Six (libero e capitana da Modifica)
   const open = (p: LineupPlayer) => (!lineup.canEdit && team === 'us' && p.playerId
     ? () => router.push({ pathname: '/player/[id]', params: { id: p.playerId! } })
@@ -61,7 +78,8 @@ function TeamLineup({ players, team, name, logo, lineup }: TeamProps & { lineup:
       {players.length ? (
         <View style={{ borderRadius: radius.md, borderWidth: 1, borderColor: c.line, overflow: 'hidden' }}>
           {players.map((p, i) => (
-            <PlayerRow key={p.id} p={p} first={i === 0} onPress={lineup.canEdit ? () => lineup.toggleStarter(p) : open(p)} pressRole={lineup.canEdit ? 'button' : 'link'} />
+            <PlayerRow key={p.id} p={p} first={i === 0} onPress={lineup.canEdit ? () => tapRow(p) : open(p)} pressRole={lineup.canEdit ? 'button' : 'link'}
+              selected={lineup.canEdit ? p.id === selected?.id : undefined} />
           ))}
         </View>
       ) : (
@@ -77,15 +95,21 @@ function TeamLineup({ players, team, name, logo, lineup }: TeamProps & { lineup:
 
       <View style={{ gap: 6, marginTop: 4 }}>
         <Txt w={700} size={11.5} center color={starters === STARTERS ? 'accent' : 'muted'} tnum>Starting Six {starters}/{STARTERS}</Txt>
-        <Court players={players} />
+        <Court players={players} selectedId={selected?.id} onZone={lineup.canEdit ? tapZone : undefined} />
+        {selected ? (
+          <Txt size={11} color="accent" center numberOfLines={2}>{surname(selected.name)} selezionata: tocca la zona o la giocatrice con cui scambiarla</Txt>
+        ) : null}
         <LiberoLine player={players.find((p) => p.isLibero)} />
       </View>
     </View>
   );
 }
 
-/** Metà campo con lo Starting Six; con onPick le giocatrici si toccano (selezionata = selectedId) */
-export function Court({ players, big, selectedId, onPick }: { players: LineupPlayer[]; big?: boolean; selectedId?: string | null; onPick?: (p: LineupPlayer) => void }) {
+/**
+ * Metà campo con lo Starting Six; con onPick le giocatrici si toccano (selezionata = selectedId).
+ * onZone: si toccano tutte le zone, anche quelle vuote (scambio delle posizioni).
+ */
+export function Court({ players, big, selectedId, onPick, onZone }: { players: LineupPlayer[]; big?: boolean; selectedId?: string | null; onPick?: (p: LineupPlayer) => void; onZone?: (zone: number, p?: LineupPlayer) => void }) {
   const at = (z: number) => players.find((p) => p.zone === z);
   return (
     <View accessibilityLabel="Starting Six in campo" style={{ width: '100%', maxWidth: big ? 300 : 200, alignSelf: 'center' }}>
@@ -96,11 +120,15 @@ export function Court({ players, big, selectedId, onPick }: { players: LineupPla
             {row.map((z) => {
               const p = at(z);
               const on = !!p && p.id === selectedId;
+              const press = onZone ? () => onZone(z, p) : p && onPick ? () => onPick(p) : undefined;
+              // con una giocatrice selezionata anche le zone vuote si possono toccare: le si indica con un bordo
+              const target = !!onZone && !!selectedId && !on;
               return (
-                <Pressable key={z} disabled={!p || !onPick} onPress={p && onPick ? () => onPick(p) : undefined}
-                  accessibilityRole={p && onPick ? 'button' : undefined} accessibilityState={onPick ? { selected: on } : undefined}
-                  accessibilityLabel={p ? `${p.name}, posizione ${ROMAN[z]}` : undefined}
+                <Pressable key={z} disabled={!press} onPress={press}
+                  accessibilityRole={press ? 'button' : undefined} accessibilityState={onPick || onZone ? { selected: on } : undefined}
+                  accessibilityLabel={p ? `${p.name}, posizione ${ROMAN[z]}` : `Posizione ${ROMAN[z]} libera`}
                   style={({ pressed }) => ({ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2, paddingHorizontal: 2, margin: 2, borderRadius: 8,
+                    borderWidth: 1.5, borderStyle: 'dashed', borderColor: target ? COURT.zone : 'transparent',
                     backgroundColor: on ? 'rgba(255,213,3,0.45)' : pressed ? 'rgba(11,49,102,0.08)' : undefined })}>
                   <Txt w={700} size={8.5} color={COURT.zone} style={{ position: 'absolute', top: 0, left: 2 }}>{ROMAN[z]}</Txt>
                   {p ? (

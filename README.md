@@ -55,7 +55,8 @@ Migrazioni in `supabase/migrations/`.
 - L'app ascolta in Realtime `partite`, `set_partita` e `eventi_live`: devono essere nella
   pubblicazione `supabase_realtime` (vedi fondo della migrazione 20261004).
 - Chi ha fatto punto si deduce dal punteggio degli eventi (timeout e cambi restano neutri).
-- In modalità demo: Impostazioni (rotella) > Anteprima > "Partita in diretta (demo)".
+- Partita demo: con Supabase la attiva un admin collegato da Impostazioni (rotella) > Partita demo > "Partita in diretta (demo)",
+  e la vedono solo gli admin. Senza `.env` è accesa di default (si spegne con `EXPO_PUBLIC_DEMO_LIVE=0`).
 
 ### Accesso, consensi e GDPR
 

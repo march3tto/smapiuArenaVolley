@@ -142,7 +142,7 @@ export default function Live() {
               </Txt>
             ) : null}
             {live.saveError ? <Txt size={12} color="live" center>{live.saveError}</Txt> : null}
-            {m.demoLive && live.finished ? (
+            {m.demoLive && live.finished && live.canResetDemo ? (
               <Button size="sm" label="Ricomincia la demo" icon={<RotateCcw size={14} color={c.text} />} onPress={live.resetDemo} />
             ) : null}
           </View>

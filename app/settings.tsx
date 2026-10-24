@@ -102,10 +102,13 @@ export default function Settings() {
               </Block>
             ) : null}
 
-            <Block icon={<Volleyball size={16} color={c.accent} />} title="Partita demo">
-              <Item title="Partita in diretta (demo)" sub="Mostra in home una partita dimostrativa, se non ce n'è una vera in corso." first
-                right={toggleSwitch(demoLive, setDemoLive)} />
-            </Block>
+            {/* la partita demo la gestiscono solo gli amministratori collegati */}
+            {user?.role === 'admin' ? (
+              <Block icon={<Volleyball size={16} color={c.accent} />} title="Partita demo">
+                <Item title="Partita in diretta (demo)" sub="Mostra in home una partita dimostrativa, se non ce n'è una vera in corso." first
+                  right={toggleSwitch(demoLive, setDemoLive)} />
+              </Block>
+            ) : null}
 
             {user ? (
               <Button size="sm" label={`Esci (${user.email})`} onPress={async () => { await signOut(); toast.show("Sei uscito dall'account."); router.replace('/login'); }} />

@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
-import { LIVE_EVENTS_MAX, fetchLive, newId, pushLivePoint, setFirstServe, subscribeLive, withAction } from '@/lib/api';
+import { LIVE_EVENTS_MAX, demoRevision, fetchLive, newId, pushLivePoint, setFirstServe, subscribeDemo, subscribeLive, type DemoChannel, withAction } from '@/lib/api';
+import { hasSupabase } from '@/lib/supabase';
 import { demoLive as demoInitial } from '@/data/mock';
 import { isSideSwitch, matchWinner, setWinner, setsWon, standingPoints } from '@/lib/volley';
 import { useApp } from './AppProvider';
@@ -29,8 +30,10 @@ interface LiveCtx extends LiveState {
   lastPoint: { side: 'us' | 'opp'; key: number } | null;
   /** Punti in classifica a partita finita */
   standing: { our: number; opp: number } | null;
-  /** Il punteggio si cambia a mano nella partita demo, o da un admin nella diretta vera, finché non è finita */
+  /** Il punteggio si cambia a mano nella partita demo (con Supabase solo l'admin), o da un admin nella diretta vera, finché non è finita */
   canScore: boolean;
+  /** La partita demo si può far ripartire da questo dispositivo */
+  canResetDemo: boolean;
   /** Diretta vera: i punti assegnati qui vengono salvati su Supabase */
   scoringLive: boolean;
   /** Ultimo salvataggio non riuscito (il punteggio torna quello del database) */
@@ -165,6 +168,11 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const isDemo = !!liveMatch?.demoLive;
   const scoringLive = !!liveMatch && !isDemo && user?.role === 'admin';
+  // con Supabase la demo è condivisa tra i dispositivi e la segna solo l'admin; senza, ognuno la prova per conto suo
+  const scoringDemo = isDemo && (!hasSupabase || user?.role === 'admin');
+  // demo condivisa: versione dello stato e canale broadcast
+  const demoRev = useRef(0);
+  const demoChannel = useRef<DemoChannel<LiveState> | null>(null);
   // stato corrente letto in addPoint (serve per sapere cosa salvare)
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -174,21 +182,46 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   const failed = useRef(false);
   const reload = useRef<() => void>(() => {});
 
-  // Carica lo stato della partita live (demo o Supabase Realtime)
+  // Carica lo stato della partita live (demo o Supabase Realtime).
+  // Dipende solo dall'id: la partita viene ricreata a ogni ricaricamento dei dati e non deve far ripartire la diretta.
+  const liveId = liveMatch?.id ?? null;
   useEffect(() => {
-    if (!liveMatch) {
+    if (!liveId) {
       setState(EMPTY);
       reload.current = () => {};
       return;
     }
-    if (liveMatch.demoLive) {
+    if (isDemo) {
       setState(DEMO_START());
       reload.current = () => {};
-      return;
+      demoRev.current = 0;
+      if (!hasSupabase) return;
+      const ch = subscribeDemo<LiveState>(
+        'live',
+        liveId,
+        (rev, next) => {
+          if (rev <= demoRev.current) return;
+          demoRev.current = rev;
+          // animazione +1 solo se è stato giocato un punto in più
+          const played = (x: LiveState) => x.history.reduce((n, h) => n + h.our + h.opp, 0) + (x.finished ? 0 : x.our + x.opp);
+          if (played(next) > played(stateRef.current) && next.events[0]) setLastPoint({ side: next.events[0].side, key: Date.now() });
+          stateRef.current = next;
+          setState(next);
+        },
+        // chi entra chiede lo stato: risponde chi ne ha già uno condiviso
+        () => {
+          if (demoRev.current > 0) ch.send(demoRev.current, stateRef.current);
+        },
+      );
+      demoChannel.current = ch;
+      return () => {
+        ch.close();
+        demoChannel.current = null;
+      };
     }
     let active = true;
     const load = async () => {
-      const snap = await fetchLive(liveMatch.id);
+      const snap = await fetchLive(liveId);
       if (!snap || !active) return;
       const done = snap.sets.filter((_, i) => snap.completed[i]);
       const current = snap.sets.find((_, i) => !snap.completed[i]) ?? { our: 0, opp: 0 };
@@ -207,7 +240,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
     reload.current = load;
     load();
     const unsub = subscribeLive(
-      liveMatch.id,
+      liveId,
       (e) =>
         setState((s) => {
           // eco dei punti assegnati da questo dispositivo: sono già in lista
@@ -230,7 +263,14 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       active = false;
       unsub();
     };
-  }, [liveMatch]);
+  }, [liveId, isDemo]);
+
+  /** Demo condivisa: manda il nuovo stato agli altri dispositivi */
+  const shareDemo = useCallback((next: LiveState) => {
+    if (!demoChannel.current) return;
+    demoRev.current = demoRevision(demoRev.current);
+    demoChannel.current.send(demoRev.current, next);
+  }, []);
 
   const addPoint = useCallback((side: 'us' | 'opp', detail?: PointDetail) => {
     const prev = stateRef.current;
@@ -240,6 +280,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
     setState(next);
     setLastPoint({ side, key: Date.now() });
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    if (isDemo) shareDemo(next);
     if (!scoringLive || !liveMatch) return;
 
     // eventi nuovi in testa alla lista; se il set si è chiuso si salva il punteggio finale del set
@@ -269,16 +310,23 @@ export function LiveProvider({ children }: { children: ReactNode }) {
           reload.current();
         }
       });
-  }, [scoringLive, liveMatch]);
+  }, [isDemo, scoringLive, liveMatch, shareDemo]);
 
-  const resetDemo = useCallback(() => setState(DEMO_START()), []);
+  const resetDemo = useCallback(() => {
+    if (!scoringDemo) return;
+    const next = DEMO_START();
+    stateRef.current = next;
+    setState(next);
+    shareDemo(next);
+  }, [scoringDemo, shareDemo]);
 
   const chooseServe = useCallback((side: 'us' | 'opp') => {
     const s = stateRef.current;
-    if (s.finished || s.our + s.opp > 0 || !(isDemo || scoringLive)) return;
+    if (s.finished || s.our + s.opp > 0 || !(scoringDemo || scoringLive)) return;
     const next = { ...s, firstServe: { ...s.firstServe, [s.set]: side } };
     stateRef.current = next;
     setState(next);
+    if (isDemo) shareDemo(next);
     if (!scoringLive || !liveMatch) return;
     setSaveError(null);
     pending.current += 1;
@@ -296,7 +344,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
           reload.current();
         }
       });
-  }, [isDemo, scoringLive, liveMatch]);
+  }, [isDemo, scoringDemo, scoringLive, liveMatch, shareDemo]);
 
   const value = useMemo<LiveCtx>(() => {
     const won = setsWon(state.history);
@@ -311,16 +359,17 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       oppSets: won.opp,
       lastPoint,
       standing: state.finished ? standingPoints(won) : null,
-      canScore: (isDemo || scoringLive) && !state.finished,
+      canScore: (scoringDemo || scoringLive) && !state.finished,
+      canResetDemo: scoringDemo,
       scoringLive,
       saveError,
       rotation: setRotations(state.events, state.set, first),
       addPoint,
       resetDemo,
-      canChooseServe: (isDemo || scoringLive) && atStart,
+      canChooseServe: (scoringDemo || scoringLive) && atStart,
       chooseServe,
     };
-  }, [state, liveMatch, lastPoint, isDemo, scoringLive, saveError, addPoint, resetDemo, chooseServe]);
+  }, [state, liveMatch, lastPoint, scoringDemo, scoringLive, saveError, addPoint, resetDemo, chooseServe]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

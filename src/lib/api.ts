@@ -30,6 +30,8 @@ export const T = {
   /** Pubblicità al centro dello schermo (migrazione 20261023000300_pubblicita) */
   pubblicita: 'pubblicita',
   media: 'media',
+  /** Stato della partita demo condivisa (migrazione 20261025000100_demo_diretta) */
+  demoDiretta: 'demo_diretta',
 } as const;
 
 export interface AppData {
@@ -574,6 +576,72 @@ export function subscribeLive(matchId: string, onEvent: (e: LiveEvent) => void, 
     .subscribe();
   return () => {
     client.removeChannel(ch);
+  };
+}
+
+/** Canale della partita demo condivisa: punteggio ('live') o formazioni ('formazioni') */
+export type DemoChannel<S> = { send: (rev: number, state: S) => void; close: () => void };
+
+type DemoListener = { onState: (rev: number, state: unknown) => void; onSync: () => void };
+
+/**
+ * Un canale per argomento, aperto una volta e mai chiuso: con lo stesso nome realtime-js restituisce il canale esistente,
+ * anche mentre si sta chiudendo, e riaprirlo subito dopo removeChannel lo lascerebbe morto. Chi si iscrive aggiunge solo un ascoltatore.
+ */
+const demoChannels = new Map<string, { ch: RealtimeChannel; listeners: Set<DemoListener>; joined: boolean; saves: Promise<void> }>();
+
+/** Versione dello stato demo: l'ora della modifica, così resta crescente anche dopo aver ricaricato l'app */
+export const demoRevision = (prev: number) => Math.max(Date.now(), prev + 1);
+
+/**
+ * Partita demo condivisa: lo stato passa tra i dispositivi col broadcast Realtime e resta salvato in demo_diretta
+ * (non nelle partite vere: risultati e classifica non cambiano). rev (demoRevision) cresce a ogni modifica: si tiene
+ * lo stato più recente. Entrando si legge lo stato salvato e, anche a ogni riconnessione, lo si chiede a chi è già collegato (sync).
+ */
+export function subscribeDemo<S>(kind: 'live' | 'formazioni', matchId: string, onState: (rev: number, state: S) => void, onSync: () => void): DemoChannel<S> {
+  if (!supabase) return { send: () => {}, close: () => {} };
+  const client = supabase;
+  const topic = `demo-${kind}-${matchId}`;
+  const key = `${kind}-${matchId}`;
+  let entry = demoChannels.get(topic);
+  if (!entry) {
+    const listeners = new Set<DemoListener>();
+    const ch = client.channel(topic)
+      .on('broadcast', { event: 'state' }, ({ payload }) => listeners.forEach((l) => l.onState(payload.rev as number, payload.state)))
+      .on('broadcast', { event: 'sync' }, () => listeners.forEach((l) => l.onSync()));
+    const created = { ch, listeners, joined: false, saves: Promise.resolve() };
+    ch.subscribe((status) => {
+      created.joined = status === 'SUBSCRIBED';
+      if (created.joined) ch.send({ type: 'broadcast', event: 'sync', payload: {} });
+    });
+    demoChannels.set(topic, created);
+    entry = created;
+  }
+  const { ch, listeners } = entry;
+  const listener: DemoListener = { onState: (rev, state) => onState(rev, state as S), onSync };
+  listeners.add(listener);
+  // canale già collegato: chi arriva adesso chiede subito lo stato
+  if (entry.joined) ch.send({ type: 'broadcast', event: 'sync', payload: {} });
+  // stato salvato: serve anche quando nessun altro dispositivo ha la demo aperta
+  client.from(T.demoDiretta).select('stato, versione').eq('chiave', key).maybeSingle()
+    .then(({ data, error }) => {
+      if (error) console.warn('Stato demo non letto', error.message);
+      else if (data && listeners.has(listener)) listener.onState(Number(data.versione), data.stato);
+    });
+  const saved = entry;
+  return {
+    send: (rev, state) => {
+      ch.send({ type: 'broadcast', event: 'state', payload: { rev, state } });
+      // salvataggi uno alla volta, nell'ordine delle modifiche (scrive solo l'admin)
+      saved.saves = saved.saves
+        .then(async () => {
+          const { error } = await client.from(T.demoDiretta).upsert({ chiave: key, stato: state, versione: rev, aggiornato_il: new Date().toISOString() });
+          if (error) console.warn('Stato demo non salvato', error.message);
+        });
+    },
+    close: () => {
+      listeners.delete(listener);
+    },
   };
 }
 
