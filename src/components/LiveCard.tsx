@@ -33,8 +33,9 @@ export function LiveCard() {
   const m = live.match;
   if (!m) return null;
   const home = m.homeAway === 'casa';
-  const left = { name: home ? US : m.opponent, logo: home ? null : m.opponentLogo, sets: home ? live.ourSets : live.oppSets, pts: home ? live.our : live.opp };
-  const right = { name: home ? m.opponent : US, logo: home ? m.opponentLogo : null, sets: home ? live.oppSets : live.ourSets, pts: home ? live.opp : live.our };
+  const us = m.usName ?? US;
+  const left = { name: home ? us : m.opponent, logo: home ? null : m.opponentLogo, sets: home ? live.ourSets : live.oppSets, pts: home ? live.our : live.opp };
+  const right = { name: home ? m.opponent : us, logo: home ? m.opponentLogo : null, sets: home ? live.oppSets : live.ourSets, pts: home ? live.opp : live.our };
   // come nella scheda "Vota MVP" della diretta: casa a sinistra, ospite a destra
   const mvpTeams: MvpTeam[] = [{ t: left, side: home ? 'us' : 'opp' } as const, { t: right, side: home ? 'opp' : 'us' } as const]
     .map(({ t, side }) => ({ side, name: t.name, logo: t.logo, players: side === 'us' ? lineup.us : lineup.opp }));
@@ -95,7 +96,7 @@ export function LiveCard() {
               size="sm"
               icon={<YoutubeIcon size={22} />}
               // il video si apre nella schermata Live, dentro l'app
-              onPress={() => { player.open(m.youtubeLiveId!, `${US} – ${m.opponent}`); router.push('/live'); }}
+              onPress={() => { player.open(m.youtubeLiveId!, `${left.name} – ${right.name}`); router.push('/live'); }}
               accessibilityLabel="Guarda la diretta video"
               style={{ flex: 1, paddingHorizontal: 8 }}
             />

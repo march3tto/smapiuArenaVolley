@@ -7,6 +7,7 @@ import { Court } from './LineupPanel';
 import { Pressy } from './Pressy';
 import { SegmentedControl } from './SegmentedControl';
 import { Txt } from './Txt';
+import { US } from '@/constants';
 import { suggestCommentary } from '@/lib/api';
 import { setWinner } from '@/lib/volley';
 import { PHASE_LABEL, POINT_ACTIONS, ZONE_LABEL, actionLabel, detailLine, type PointAction, type PointDetail, type PointPhase } from '@/store/LiveProvider';
@@ -102,7 +103,7 @@ export function PointPicker({ anchor, side, team, names, players, rotation = 0, 
   const after = { our: score.our + (side === 'us' ? 1 : 0), opp: score.opp + (side === 'opp' ? 1 : 0) };
   const standard = (() => {
     const d = detail();
-    return d ? detailLine(side, d) : '';
+    return d ? detailLine(side, d, names.us === US ? undefined : names) : '';
   })();
   const options = [...phrases, standard];
 

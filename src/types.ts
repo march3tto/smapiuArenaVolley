@@ -43,6 +43,8 @@ export interface Match {
   youtubeLiveId?: string | null;
   /** Solo dati demo: la partita diventa "live" quando l'anteprima è attiva */
   demoLive?: boolean;
+  /** Solo dati demo: squadra che gioca al posto di Smapiù (partita tra due avversarie) */
+  usName?: string;
 }
 
 /** Gara del calendario completo del girone (tabella partite, anche con nostra_partita = false) */

@@ -55,24 +55,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const matches = useMemo(
-    () => data.matches.map((m) => (m.demoLive ? { ...m, status: demoLive ? ('live' as const) : ('scheduled' as const) } : m)),
-    [data.matches, demoLive],
-  );
   const liveMatch = useMemo(() => {
-    const real = matches.find((m) => m.status === 'live');
+    const real = data.matches.find((m) => m.status === 'live');
     if (real) return real;
-    // Con Supabase la partita demo non è nel calendario: se l'anteprima è attiva si usa quella dei dati demo
-    if (demoLive && data.source === 'supabase') {
-      const demo = mock.matches.find((m) => m.demoLive);
-      if (demo) return { ...demo, status: 'live' as const };
-    }
-    return null;
-  }, [matches, demoLive, data.source]);
+    // La partita demo non è nel calendario: se l'anteprima è attiva diventa la diretta
+    return demoLive ? { ...mock.demoMatch, status: 'live' as const } : null;
+  }, [data.matches, demoLive]);
 
   const value = useMemo<DataCtx>(
-    () => ({ ...data, matches, liveMatch, loading, error, refresh }),
-    [data, matches, liveMatch, loading, error, refresh],
+    () => ({ ...data, liveMatch, loading, error, refresh }),
+    [data, liveMatch, loading, error, refresh],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

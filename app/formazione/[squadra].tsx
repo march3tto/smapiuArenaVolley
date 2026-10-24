@@ -54,7 +54,7 @@ export default function Formazione() {
       </View>
     );
   }
-  const name = team === 'us' ? US : m.opponent;
+  const name = team === 'us' ? m.usName ?? US : m.opponent;
 
   return (
     <ScrollView ref={scroll} style={{ flex: 1, backgroundColor: c.bg }} keyboardShouldPersistTaps="handled" keyboardDismissMode="none"
@@ -103,8 +103,9 @@ export default function Formazione() {
         }} />
       </View>
 
+      {/* la nostra rosa solo se gioca Smapiù (nella demo può esserci un'altra squadra) */}
       {team === 'us' ? (
-        <TeamRoster name={name} roster={ourRoster} team={team} lineup={lineup} />
+        m.usName ? null : <TeamRoster name={name} roster={ourRoster} team={team} lineup={lineup} />
       ) : m.opponentTeamId ? (
         <OpponentRoster teamId={m.opponentTeamId} name={name} lineup={lineup} />
       ) : null}

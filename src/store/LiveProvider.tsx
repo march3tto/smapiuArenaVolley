@@ -70,11 +70,21 @@ const ACTION_TEXT: Record<PointAction, string> = {
 };
 export const actionLabel = (a: PointAction) => POINT_ACTIONS.find((x) => x.value === a)?.label ?? a;
 
+/** Nomi delle due squadre, solo nella partita demo tra due avversarie (altrimenti la cronaca parla di Smapiù) */
+export type TeamNames = { us: string; opp: string };
+
+/** Nomi da usare in cronaca: solo se nella partita non gioca Smapiù */
+export const teamNames = (m: Match | null): TeamNames | undefined => (m?.usName ? { us: m.usName, opp: m.opponent } : undefined);
+
 /** Frase predefinita (senza AI): sempre disponibile come alternativa */
-export function detailLine(side: 'us' | 'opp', d: PointDetail): string {
-  if (d.action === 'errore_avversario') return side === 'us' ? 'Errore delle avversarie, punto Smapiù!' : 'Errore Smapiù, punto per le avversarie.';
+export function detailLine(side: 'us' | 'opp', d: PointDetail, names?: TeamNames): string {
   const where = d.zone ? ` da zona ${ZONE_LABEL[d.zone]}` : '';
   const what = `${ACTION_TEXT[d.action]}${d.player ? ` di ${d.player.name}` : ''}${where}`;
+  if (names) {
+    const other = side === 'us' ? names.opp : names.us;
+    return d.action === 'errore_avversario' ? `Errore ${other}, punto ${names[side]}!` : `${what}, punto ${names[side]}!`;
+  }
+  if (d.action === 'errore_avversario') return side === 'us' ? 'Errore delle avversarie, punto Smapiù!' : 'Errore Smapiù, punto per le avversarie.';
   return side === 'us' ? `${what}, punto Smapiù!` : `Punto per le avversarie: ${what.charAt(0).toLowerCase()}${what.slice(1)}.`;
 }
 
@@ -89,21 +99,24 @@ const US_LINES = [
 const EMPTY: LiveState = { set: 1, our: 0, opp: 0, history: [], events: [], serving: 'us', finished: false, firstServe: {} };
 
 const DEMO_START = (): LiveState => ({
-  set: demoInitial.set, our: demoInitial.our, opp: demoInitial.opp, history: demoInitial.history, events: demoInitial.events, serving: 'us', finished: false, firstServe: {},
+  set: demoInitial.set, our: demoInitial.our, opp: demoInitial.opp, history: demoInitial.history, events: demoInitial.events,
+  serving: demoInitial.events[0]?.side ?? 'us', finished: false, firstServe: {},
 });
 
 /**
  * Applica un punto secondo il regolamento: chiusura set, cambio campo nel tie-break, fine partita.
  * real: diretta vera, cronaca neutra (niente azioni inventate) e id uuid salvabili nel database.
+ * names: partita senza Smapiù, la cronaca usa i nomi delle due squadre.
  */
-function scorePoint(s: LiveState, side: 'us' | 'opp', real = false, detail?: PointDetail): LiveState {
+function scorePoint(s: LiveState, side: 'us' | 'opp', real = false, detail?: PointDetail, names?: TeamNames): LiveState {
   if (s.finished) return s;
   const before = { our: s.our, opp: s.opp };
   const after = { our: s.our + (side === 'us' ? 1 : 0), opp: s.opp + (side === 'opp' ? 1 : 0) };
   const stamp = Date.now();
   const event = (text: string, who: 'us' | 'opp', n = 0): LiveEvent => ({ id: real ? newId() : `sim-${stamp}-${n}`, set: s.set, our: after.our, opp: after.opp, side: who, text });
   const usLine = real ? 'Punto Smapiù!' : US_LINES[Math.floor(Math.random() * US_LINES.length)];
-  const line = detail ? detail.text?.trim() || detailLine(side, detail) : side === 'us' ? usLine : 'Punto per le avversarie.';
+  const plain = names ? `Punto ${names[side]}!` : side === 'us' ? usLine : 'Punto per le avversarie.';
+  const line = detail ? detail.text?.trim() || detailLine(side, detail, names) : plain;
   const events: LiveEvent[] = [{ ...event(line, side), detail: detail ? { ...detail, text: line } : null }];
 
   if (isSideSwitch(s.set, before, after)) events.unshift(event(`Cambio campo sull'${after.our}–${after.opp}.`, side, 1));
@@ -115,7 +128,7 @@ function scorePoint(s: LiveState, side: 'us' | 'opp', real = false, detail?: Poi
   const won = setsWon(history);
   const winner = matchWinner(won);
   events.unshift(event(winner
-    ? `Fine partita: ${won.our}–${won.opp}${winner === 'us' ? ', vittoria Smapiù!' : '.'}`
+    ? `Fine partita: ${won.our}–${won.opp}${names ? `, vittoria ${names[winner]}!` : winner === 'us' ? ', vittoria Smapiù!' : '.'}`
     : `Fine ${s.set}° set: ${after.our}–${after.opp}.`, setWon, 2));
   return winner
     ? { ...s, ...after, history, serving: side, finished: true, events: [...events, ...s.events].slice(0, LIVE_EVENTS_MAX) }
@@ -221,7 +234,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
 
   const addPoint = useCallback((side: 'us' | 'opp', detail?: PointDetail) => {
     const prev = stateRef.current;
-    const next = scorePoint(prev, side, scoringLive, detail);
+    const next = scorePoint(prev, side, scoringLive, detail, teamNames(liveMatch));
     if (next === prev) return;
     stateRef.current = next;
     setState(next);

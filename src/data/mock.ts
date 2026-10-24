@@ -9,7 +9,7 @@ import { PLAYER_PHOTOS, SPONSOR_LOGOS } from './assets';
 
 export const matches: Match[] = [
   { id: '7af4cf40-77dc-519d-8897-487b9a5c405c', giornata: 1, phase: 'andata', date: '2026-10-18T17:00:00+02:00', homeAway: 'trasferta', opponent: "Azimut Giorgione", venue: "Castelfranco Veneto (TV)", status: 'finished', ourSets: 3, oppSets: 1, sets: [{ our: 25, opp: 22 }, { our: 21, opp: 25 }, { our: 25, opp: 19 }, { our: 25, opp: 23 }] },
-  { id: '5616abe1-c59b-59e1-bdec-3ddfc9efaad0', giornata: 2, phase: 'andata', date: '2026-10-25T17:00:00+01:00', homeAway: 'casa', opponent: "Tonno Callipo Calabria", venue: "Verona", status: 'scheduled', demoLive: true, youtubeLiveId: 'hdAwCmQj-98' },
+  { id: '5616abe1-c59b-59e1-bdec-3ddfc9efaad0', giornata: 2, phase: 'andata', date: '2026-10-25T17:00:00+01:00', homeAway: 'casa', opponent: "Tonno Callipo Calabria", venue: "Verona", status: 'scheduled' },
   { id: '722f1300-eff3-55ca-9547-9e17c2eea7fc', giornata: 3, phase: 'andata', date: '2026-10-31T17:00:00+01:00', homeAway: 'trasferta', opponent: "CO.GE. Vesuvio Oplonti", venue: "Torre Annunziata (NA)", status: 'scheduled' },
   { id: '28f20e9f-83d8-5c02-bc17-8251b56d0fc0', giornata: 4, phase: 'andata', date: '2026-11-08T17:00:00+01:00', homeAway: 'casa', opponent: "Banca Annia Aduna Women", venue: "Verona", status: 'scheduled' },
   { id: 'f643f1d5-1e1d-5dac-8a49-5a13a334f8d7', giornata: 5, phase: 'andata', date: '2026-11-14T17:00:00+01:00', homeAway: 'trasferta', opponent: "V&V Modena", venue: "Modena", status: 'scheduled' },
@@ -118,20 +118,40 @@ export const venues: Venue[] = [
   { name: 'Palalupatotina Gas e Luce', address: 'Via Monte Ortigara, 37057 San Giovanni Lupatoto VR', city: 'San Giovanni Lupatoto', kind: 'palasport' },
 ];
 
-/** Stato iniziale della diretta demo (4° set) */
+/** Partita della diretta demo (fuori calendario): Olimpia Ravenna in casa contro Oplonti */
+export const demoMatch: Match = {
+  id: 'f0c1d2e3-a4b5-5c6d-8e7f-90a1b2c3d4e5', giornata: null, phase: 'andata', date: '2026-10-25T17:00:00+01:00', homeAway: 'casa',
+  usName: 'Olimpia di Navigazione Ravenna', opponent: 'CO.GE. Vesuvio Oplonti', venue: 'Ravenna', status: 'scheduled', demoLive: true, youtubeLiveId: 'hdAwCmQj-98',
+};
+
+/** Stato iniziale della diretta demo (1° set, 8-10 per Oplonti) */
 export const demoLive: { set: number; our: number; opp: number; history: SetScore[]; events: LiveEvent[] } = {
-  set: 4,
-  our: 18,
-  opp: 15,
-  history: [{ our: 25, opp: 23 }, { our: 18, opp: 25 }, { our: 25, opp: 21 }],
+  set: 1,
+  our: 8,
+  opp: 10,
+  history: [],
   events: [
-    { id: 'e3', set: 4, our: 18, opp: 15, side: 'us', text: 'Muro vincente di Anna Riccato! Esplode il palazzetto!' },
-    { id: 'e2', set: 4, our: 17, opp: 15, side: 'us', text: 'Attacco potente di Aurora Piron in diagonale.' },
-    { id: 'e1', set: 4, our: 16, opp: 15, side: 'opp', text: 'Punto per le ospiti al centro.' },
+    { id: 'e3', set: 1, our: 8, opp: 10, side: 'opp', text: 'Ace in battuta di Sofia Caruso, Oplonti allunga!' },
+    { id: 'e2', set: 1, our: 8, opp: 9, side: 'opp', text: 'Muro vincente di Martina Greco per Oplonti.' },
+    { id: 'e1', set: 1, our: 8, opp: 8, side: 'us', text: 'Attacco in diagonale di Camilla Bertoni, punto Ravenna.' },
   ],
 };
 
-/** Formazione avversaria della diretta demo: nomi di fantasia, Starting Six già schierato (zone I-VI) */
+/** Formazione di casa (Ravenna) della diretta demo: nomi di fantasia, Starting Six già schierato (zone I-VI) */
+export const demoHomeLineup: Pick<LineupPlayer, 'number' | 'name' | 'role' | 'isCaptain' | 'zone'>[] = [
+  { number: 2, name: 'Laura Benedetti', role: 'palleggiatrice', isCaptain: false, zone: 1 },
+  { number: 5, name: 'Camilla Bertoni', role: 'schiacciatrice', isCaptain: true, zone: 2 },
+  { number: 8, name: 'Serena Montanari', role: 'centrale', isCaptain: false, zone: 3 },
+  { number: 10, name: 'Beatrice Rinaldi', role: 'opposto', isCaptain: false, zone: 4 },
+  { number: 13, name: 'Giada Pellegrini', role: 'schiacciatrice', isCaptain: false, zone: 5 },
+  { number: 15, name: 'Arianna Ricci', role: 'centrale', isCaptain: false, zone: 6 },
+  { number: 1, name: 'Marta Zanetti', role: 'libero', isCaptain: false, zone: null },
+  { number: 7, name: 'Irene Valli', role: 'palleggiatrice', isCaptain: false, zone: null },
+  { number: 11, name: 'Elena Fabbri', role: 'schiacciatrice', isCaptain: false, zone: null },
+  { number: 18, name: 'Sara Guidi', role: 'centrale', isCaptain: false, zone: null },
+];
+
+/** Formazione ospite (Oplonti) della diretta demo: nomi di fantasia, Starting Six già schierato (zone I-VI) */
 export const demoOpponentLineup: Pick<LineupPlayer, 'number' | 'name' | 'role' | 'isCaptain' | 'zone'>[] = [
   { number: 1, name: 'Giulia Marchetti', role: 'palleggiatrice', isCaptain: true, zone: 1 },
   { number: 4, name: 'Sofia Caruso', role: 'schiacciatrice', isCaptain: false, zone: 2 },

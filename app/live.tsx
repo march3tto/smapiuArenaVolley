@@ -53,8 +53,10 @@ export default function Live() {
   }
 
   const home = m.homeAway === 'casa';
-  const L = { name: home ? US : m.opponent, logo: home ? null : m.opponentLogo, pts: home ? live.our : live.opp, sets: home ? live.ourSets : live.oppSets, serving: (live.serving === 'us') === home, side: (home ? 'us' : 'opp') as 'us' | 'opp' };
-  const R = { name: home ? m.opponent : US, logo: home ? m.opponentLogo : null, pts: home ? live.opp : live.our, sets: home ? live.oppSets : live.ourSets, serving: (live.serving === 'us') !== home, side: (home ? 'opp' : 'us') as 'us' | 'opp' };
+  // nella demo può giocare un'altra squadra al posto di Smapiù
+  const us = m.usName ?? US;
+  const L = { name: home ? us : m.opponent, logo: home ? null : m.opponentLogo, pts: home ? live.our : live.opp, sets: home ? live.ourSets : live.oppSets, serving: (live.serving === 'us') === home, side: (home ? 'us' : 'opp') as 'us' | 'opp' };
+  const R = { name: home ? m.opponent : us, logo: home ? m.opponentLogo : null, pts: home ? live.opp : live.our, sets: home ? live.oppSets : live.ourSets, serving: (live.serving === 'us') !== home, side: (home ? 'opp' : 'us') as 'us' | 'opp' };
   // a partita finita lo storico contiene già tutti i set
   const rowsSets = live.finished ? live.history : [...live.history, { our: live.our, opp: live.opp }];
   // al servizio va chi è in zona I dopo le rotazioni del set: col nome si controlla che la rotazione sia giusta
@@ -129,7 +131,7 @@ export default function Live() {
           <View style={{ gap: 8, alignItems: 'center' }}>
             {m.youtubeLiveId ? (
               <Button label={player.stream ? 'Diretta aperta' : 'Guarda la diretta'} variant="gold" icon={<MonitorPlay size={18} color={palette.onGold} />}
-                onPress={() => player.open(m.youtubeLiveId!, `${US} – ${m.opponent}`)} />
+                onPress={() => player.open(m.youtubeLiveId!, `${L.name} – ${R.name}`)} />
             ) : null}
             {live.canChooseServe ? (
               <Txt size={12} color="muted" center>Inizio set: tocca lo stemma della squadra che va al servizio.</Txt>
@@ -175,13 +177,13 @@ export default function Live() {
             <MvpPanel key={m.id} match={m} awayMatch={!home} events={live.events} finished={live.finished}
               teams={[L, R].map((t) => ({ side: t.side, name: t.name, logo: t.logo, players: t.side === 'us' ? lineup.us : lineup.opp }))} />
           ) : (
-            <StatsPanel events={live.events} names={{ us: US, opp: m.opponent }} logos={{ us: null, opp: m.opponentLogo }} totals={totals} home={home ? 'us' : 'opp'}
+            <StatsPanel events={live.events} names={{ us, opp: m.opponent }} logos={{ us: null, opp: m.opponentLogo }} totals={totals} home={home ? 'us' : 'opp'}
               sets={rowsSets.length} current={live.finished ? live.history.length : live.set} />
           )}
         </Card>
   
         {picker ? (
-          <PointPicker anchor={picker.anchor} side={picker.side} team={picker.name} names={{ us: US, opp: m.opponent }}
+          <PointPicker anchor={picker.anchor} side={picker.side} team={picker.name} names={{ us, opp: m.opponent }}
             players={onCourt(picker.side)} rotation={live.rotation[picker.side]} score={{ set: live.set, our: live.our, opp: live.opp }} ai={ai}
             onScore={(detail) => live.addPoint(picker.side, detail)} onClose={() => setPicker(null)} />
         ) : null}

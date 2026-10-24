@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { deleteLineupPlayer, fetchLineup, fetchTeamRoster, insertLineup, newId, setLineupCaptain, setLineupLibero, setLineupZone, subscribeLineup, updateLineupPlayer } from '@/lib/api';
-import { demoOpponentLineup } from '@/data/mock';
+import { demoHomeLineup, demoOpponentLineup } from '@/data/mock';
 import { useApp } from './AppProvider';
 import { useData } from './DataProvider';
 import type { LineupPlayer, Match, Player, PlayerRole } from '@/types';
@@ -45,8 +45,9 @@ function fromRoster(players: Player[], team: 'us' | 'opp'): LineupPlayer[] {
     }));
 }
 
-/** Avversarie della partita demo, ogni volta con id nuovi */
-const demoOpp = (): LineupPlayer[] => demoOpponentLineup.map((p, i) => ({ ...p, id: newId(), team: 'opp', playerId: null, isLibero: p.role === 'libero', order: i }));
+/** Squadre della partita demo, ogni volta con id nuovi */
+const demoTeam = (list: typeof demoOpponentLineup, team: 'us' | 'opp'): LineupPlayer[] =>
+  list.map((p, i) => ({ ...p, id: newId(), team, playerId: null, isLibero: p.role === 'libero', order: i }));
 
 const byOrder = (a: LineupPlayer, b: LineupPlayer) => a.order - b.order || (a.number ?? 99) - (b.number ?? 99);
 
@@ -76,7 +77,7 @@ export function useLineup(match: Match | null): Lineup {
     }
     if (!live) {
       // nella demo le avversarie partono già schierate; le modifiche restano solo in locale
-      setRows(demoOpp());
+      setRows(demoTeam(demoOpponentLineup, 'opp'));
       reload.current = () => {};
       return;
     }
@@ -140,7 +141,11 @@ export function useLineup(match: Match | null): Lineup {
   );
   const [demoUs, setDemoUs] = useState<LineupPlayer[] | null>(null);
   useEffect(() => setDemoUs(null), [matchId]);
-  const us = live ? (savedUs ? rows.filter((p) => p.team === 'us').sort(byOrder) : roster) : (demoUs ?? roster);
+  // nella demo tra due avversarie la squadra di casa parte già schierata, altrimenti si usa la nostra rosa
+  const otherTeam = isDemo && !!match?.usName;
+  const demoHome = useMemo(() => (otherTeam ? demoTeam(demoHomeLineup, 'us') : null), [otherTeam]);
+  const demoBase = demoHome ?? roster;
+  const us = live ? (savedUs ? rows.filter((p) => p.team === 'us').sort(byOrder) : roster) : (demoUs ?? demoBase);
   const opp = live && !savedOpp ? oppRoster : rows.filter((p) => p.team === 'opp').sort(byOrder);
 
   useEffect(() => {
@@ -159,11 +164,11 @@ export function useLineup(match: Match | null): Lineup {
   // modifica locale: nella demo la nostra squadra vive in demoUs, il resto in rows
   const patch = useCallback((team: 'us' | 'opp', fn: (list: LineupPlayer[]) => LineupPlayer[]) => {
     if (!live && team === 'us') {
-      setDemoUs((d) => fn(d ?? roster));
+      setDemoUs((d) => fn(d ?? demoBase));
       return;
     }
     setRows((r) => [...r.filter((p) => p.team !== team), ...fn(r.filter((p) => p.team === team))]);
-  }, [live, roster]);
+  }, [live, demoBase]);
 
   const toggleStarter = useCallback((p: LineupPlayer) => {
     if (!canEdit || !matchId) return;
