@@ -101,13 +101,16 @@ export function LiveCard() {
               style={{ flex: 1, paddingHorizontal: 8 }}
             />
           ) : null}
-          <Button label="Vota la tua MVP" size="sm" icon={<Award size={18} color={c.text} />} onPress={() => setMvpOpen(true)} style={{ flex: 1, paddingHorizontal: 8 }} />
+          {/* in trasferta (punteggio dall'agente a3live) niente voto MVP */}
+          {live.autoScore ? null : (
+            <Button label="Vota la tua MVP" size="sm" icon={<Award size={18} color={c.text} />} onPress={() => setMvpOpen(true)} style={{ flex: 1, paddingHorizontal: 8 }} />
+          )}
         </View>
 
-        {last ? <LiveTicker text={`${last.set}° set ${home ? `${last.our}–${last.opp}` : `${last.opp}–${last.our}`} · ${last.text}`} /> : null}
+        {last && !live.autoScore ? <LiveTicker text={`${last.set}° set ${home ? `${last.our}–${last.opp}` : `${last.opp}–${last.our}`} · ${last.text}`} /> : null}
       </LinearGradient>
     </Pressy>
-    <MvpSheet open={mvpOpen} onClose={() => setMvpOpen(false)} match={m} awayMatch={!home} events={live.events} finished={live.finished} teams={mvpTeams} />
+    {live.autoScore ? null : <MvpSheet open={mvpOpen} onClose={() => setMvpOpen(false)} match={m} awayMatch={!home} events={live.events} finished={live.finished} teams={mvpTeams} />}
     </>
   );
 }

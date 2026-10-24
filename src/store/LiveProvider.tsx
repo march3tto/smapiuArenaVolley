@@ -33,6 +33,8 @@ interface LiveCtx extends LiveState {
   canScore: boolean;
   /** Diretta vera: i punti assegnati qui vengono salvati su Supabase */
   scoringLive: boolean;
+  /** Nostra trasferta: il punteggio lo scrive l'agente a3live (solo set_partita), niente cronaca né MVP */
+  autoScore: boolean;
   /** Ultimo salvataggio non riuscito (il punteggio torna quello del database) */
   saveError: string | null;
   /** Rotazioni di ciascuna squadra nel set in corso, rispetto allo Starting Six */
@@ -164,7 +166,9 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   const [lastPoint, setLastPoint] = useState<LiveCtx['lastPoint']>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const isDemo = !!liveMatch?.demoLive;
-  const scoringLive = !!liveMatch && !isDemo && user?.role === 'admin';
+  // in trasferta il punteggio arriva dall'agente a3live: l'admin segna a mano solo le partite in casa
+  const autoScore = !!liveMatch && !isDemo && liveMatch.homeAway !== 'casa';
+  const scoringLive = !!liveMatch && !isDemo && !autoScore && user?.role === 'admin';
   // stato corrente letto in addPoint (serve per sapere cosa salvare)
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -313,6 +317,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       standing: state.finished ? standingPoints(won) : null,
       canScore: (isDemo || scoringLive) && !state.finished,
       scoringLive,
+      autoScore,
       saveError,
       rotation: setRotations(state.events, state.set, first),
       addPoint,
@@ -320,7 +325,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       canChooseServe: (isDemo || scoringLive) && atStart,
       chooseServe,
     };
-  }, [state, liveMatch, lastPoint, isDemo, scoringLive, saveError, addPoint, resetDemo, chooseServe]);
+  }, [state, liveMatch, lastPoint, isDemo, scoringLive, autoScore, saveError, addPoint, resetDemo, chooseServe]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

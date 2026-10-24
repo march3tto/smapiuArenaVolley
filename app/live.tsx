@@ -53,6 +53,9 @@ export default function Live() {
   }
 
   const home = m.homeAway === 'casa';
+  // trasferta seguita dall'agente a3live: solo punteggio, formazioni e statistiche
+  const auto = live.autoScore;
+  const tab = auto && panel === 'mvp' ? 'statistiche' : panel;
   // nella demo può giocare un'altra squadra al posto di Smapiù
   const us = m.usName ?? US;
   const L = { name: home ? us : m.opponent, logo: home ? null : m.opponentLogo, pts: home ? live.our : live.opp, sets: home ? live.ourSets : live.oppSets, serving: (live.serving === 'us') === home, side: (home ? 'us' : 'opp') as 'us' | 'opp' };
@@ -149,7 +152,7 @@ export default function Live() {
         </Card>
   
         {/* cronaca in un pannello compatto tra il punteggio e le schede: scorre al suo interno, l'ultima azione è in alto */}
-        <Card style={{ gap: 4 }}>
+        {auto ? null : <Card style={{ gap: 4 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
             <Txt w={800} size={15}>Cronaca</Txt>
             <Txt size={13} color="muted">{live.events.length} azioni</Txt>
@@ -163,17 +166,17 @@ export default function Live() {
           ) : (
             <Txt size={13} color="muted">Nessuna azione ancora.</Txt>
           )}
-        </Card>
+        </Card>}
 
         {/* in ogni scheda i dati stanno sotto la loro squadra: casa a sinistra, ospite a destra */}
         <Card style={{ gap: 4 }}>
           <View style={{ marginBottom: 10 }}>
-            <SegmentedControl stretch={wide} value={panel} onChange={setPanel}
-              options={[{ value: 'formazioni', label: 'Formazioni' }, { value: 'mvp', label: 'Vota MVP' }, { value: 'statistiche', label: 'Statistiche' }]} />
+            <SegmentedControl stretch={wide} value={tab} onChange={setPanel}
+              options={[{ value: 'formazioni', label: 'Formazioni' }, ...(auto ? [] : [{ value: 'mvp' as const, label: 'Vota MVP' }]), { value: 'statistiche', label: 'Statistiche' }]} />
           </View>
-          {panel === 'formazioni' ? (
+          {tab === 'formazioni' ? (
             <LineupPanel lineup={lineup} teams={[L, R].map((t) => ({ team: t.side, name: t.name, logo: t.logo, players: t.side === 'us' ? lineup.us : lineup.opp }))} />
-          ) : panel === 'mvp' ? (
+          ) : tab === 'mvp' ? (
             <MvpPanel key={m.id} match={m} awayMatch={!home} events={live.events} finished={live.finished}
               teams={[L, R].map((t) => ({ side: t.side, name: t.name, logo: t.logo, players: t.side === 'us' ? lineup.us : lineup.opp }))} />
           ) : (
