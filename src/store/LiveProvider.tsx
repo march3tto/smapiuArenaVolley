@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 import { LIVE_EVENTS_MAX, demoRevision, fetchLive, newId, pushLivePoint, setFirstServe, subscribeDemo, subscribeLive, type DemoChannel, withAction } from '@/lib/api';
 import { hasSupabase } from '@/lib/supabase';
 import { demoLive as demoInitial } from '@/data/mock';
+import { firstServer, pointWinners, rotationState } from '@/lib/rotations';
 import { isSideSwitch, matchWinner, setWinner, setsWon, standingPoints } from '@/lib/volley';
 import { useApp } from './AppProvider';
 import { useData } from './DataProvider';
@@ -140,24 +141,11 @@ function scorePoint(s: LiveState, side: 'us' | 'opp', real = false, detail?: Poi
 
 /**
  * Rotazioni del set in corso: si parte dallo Starting Six e la squadra che fa punto in ricezione (cambio palla)
- * ruota di una posizione. Al primo scambio serve la squadra scelta sullo 0-0 (first), altrimenti chi ha chiuso il set precedente (1° set: noi).
+ * ruota di una posizione. Al primo scambio serve la squadra scelta sullo 0-0, altrimenti quella dell'alternanza FIPAV.
  */
-/** Al servizio sullo 0-0 se non scelto: chi ha chiuso il set precedente (1° set: noi) */
-const firstServer = (events: LiveEvent[], set: number): 'us' | 'opp' => events.find((e) => e.set === set - 1)?.side ?? 'us';
-
-function setRotations(events: LiveEvent[], set: number, first?: 'us' | 'opp'): { us: number; opp: number } {
-  const rot = { us: 0, opp: 0 };
-  let server: 'us' | 'opp' = first ?? firstServer(events, set);
-  let total = 0;
-  // dal più vecchio; cambio campo e fine set ripetono il punteggio del punto e si saltano
-  for (const e of [...events].reverse()) {
-    if (e.set !== set || e.our + e.opp <= total) continue;
-    // se nella cronaca mancano dei punti non si sa chi serviva: niente rotazione
-    if (e.our + e.opp === total + 1 && e.side !== server) rot[e.side] += 1;
-    server = e.side;
-    total = e.our + e.opp;
-  }
-  return rot;
+function setRotations(events: LiveEvent[], set: number, chosen: LiveState['firstServe']): { us: number; opp: number } {
+  const r = rotationState(firstServer(set, chosen), pointWinners(events, set));
+  return { us: r.usRotations, opp: r.oppRotations };
 }
 
 export function LiveProvider({ children }: { children: ReactNode }) {
@@ -348,12 +336,11 @@ export function LiveProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<LiveCtx>(() => {
     const won = setsWon(state.history);
-    const first = state.firstServe[state.set];
-    // sullo 0-0 serve la squadra scelta; senza scelta la regola predefinita (dal 2° set chi ha chiuso il precedente)
+    // sullo 0-0 serve la squadra scelta; senza scelta l'alternanza FIPAV (dal 2° set chi aveva ricevuto per prima nel precedente)
     const atStart = state.our + state.opp === 0 && !state.finished;
     return {
       ...state,
-      serving: atStart ? first ?? firstServer(state.events, state.set) : state.serving,
+      serving: atStart ? firstServer(state.set, state.firstServe) : state.serving,
       match: liveMatch,
       ourSets: won.our,
       oppSets: won.opp,
@@ -363,7 +350,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       canResetDemo: scoringDemo,
       scoringLive,
       saveError,
-      rotation: setRotations(state.events, state.set, first),
+      rotation: setRotations(state.events, state.set, state.firstServe),
       addPoint,
       resetDemo,
       canChooseServe: (scoringDemo || scoringLive) && atStart,

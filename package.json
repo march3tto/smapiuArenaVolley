@@ -10,7 +10,8 @@
     "web": "expo start --web",
     "build:web": "expo export -p web --output-dir dist && node scripts/build-sw.mjs dist",
     "typecheck": "tsc --noEmit",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test": "node --test src/lib/*.test.ts"
   },
   "dependencies": {
     "@expo-google-fonts/barlow-condensed": "^0.4.1",
