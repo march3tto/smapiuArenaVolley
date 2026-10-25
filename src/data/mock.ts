@@ -128,17 +128,13 @@ export const demoMatch: Match = {
   venue: 'Castellana Grotte (BA)', status: 'scheduled', demoLive: true, youtubeLiveId: 'hdAwCmQj-98',
 };
 
-/** Stato iniziale della diretta demo (1° set, 8-10 per Giorgione) */
+/** Stato iniziale della diretta demo: 1° set sullo 0-0, cronaca vuota (chi serve lo sceglie l'admin toccando lo stemma) */
 export const demoLive: { set: number; our: number; opp: number; history: SetScore[]; events: LiveEvent[] } = {
   set: 1,
-  our: 8,
-  opp: 10,
+  our: 0,
+  opp: 0,
   history: [],
-  events: [
-    { id: 'e3', set: 1, our: 8, opp: 10, side: 'opp', text: 'Ace in battuta di Alessandra Bartolomei, Giorgione allunga!' },
-    { id: 'e2', set: 1, our: 8, opp: 9, side: 'opp', text: 'Muro vincente di Ilaria Fanelli per Giorgione.' },
-    { id: 'e1', set: 1, our: 8, opp: 8, side: 'us', text: 'Attacco in diagonale di Vera Bondarenko, punto Zero5.' },
-  ],
+  events: [],
 };
 
 /**

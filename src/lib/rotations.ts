@@ -40,6 +40,19 @@ export const rotate = (zones: Zones) => rotateN(zones, 1);
 /** Le 6 rotazioni in ordine di gioco, dalla partenza */
 export const allRotations = (zones: Zones) => [0, 1, 2, 3, 4, 5].map((n) => rotateN(zones, n));
 
+/**
+ * Sestetto in P1 (5-1) dai ruoli: palleggiatrice in I, schiacciatrici in II e V, centrali in III e VI, opposto in IV.
+ * Le due schiacciatrici e le due centrali seguono l'ordine della lista (la prima va in prima linea).
+ * null se i ruoli non sono quelli del 5-1 (4-2, 6-2, ruoli mancanti): lo schieramento resta a mano.
+ */
+export function p1Lineup(players: readonly { id: string; role: PlayerRole | null }[]): string[] | null {
+  if (players.length !== 6) return null;
+  const of = (role: PlayerRole) => players.filter((p) => p.role === role).map((p) => p.id);
+  const [setters, hitters, middles, opposites] = [of('palleggiatrice'), of('schiacciatrice'), of('centrale'), of('opposto')];
+  if (setters.length !== 1 || hitters.length !== 2 || middles.length !== 2 || opposites.length !== 1) return null;
+  return [setters[0], hitters[0], middles[0], opposites[0], hitters[1], middles[1]];
+}
+
 /** "P1".."P6" dalla zona della palleggiatrice; con due palleggiatrici (4-2, 6-2) conta la prima in ordine di zona, null senza */
 export function rotationName(zones: Zones, roleOf: RoleOf): string | null {
   const i = zones.findIndex((id) => !!id && roleOf(id) === 'palleggiatrice');

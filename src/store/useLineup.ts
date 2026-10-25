@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { deleteLineupPlayer, fetchLineup, fetchTeamRoster, insertLineup, newId, setLineupCaptain, setLineupLibero, setLineupZone, demoRevision, subscribeDemo, subscribeLineup, updateLineupPlayer, type DemoChannel } from '@/lib/api';
 import { demoHomeLineup, demoOpponentLineup } from '@/data/mock';
+import { p1Lineup, rotateZone } from '@/lib/rotations';
 import { hasSupabase } from '@/lib/supabase';
 import { useApp } from './AppProvider';
 import { useData } from './DataProvider';
@@ -23,8 +24,10 @@ export interface Lineup {
   /** Admin; nella partita demo senza Supabase chiunque (le modifiche restano in locale) */
   canEdit: boolean;
   error: string | null;
-  /** Titolare ↔ panchina; la titolare prende la prima zona libera (I-VI) */
+  /** Titolare ↔ panchina; la titolare prende la prima zona libera (I-VI). Alla sesta titolare, se i ruoli sono del 5-1, lo schieramento va in P1 */
   toggleStarter: (p: LineupPlayer) => void;
+  /** Una rotazione dello Starting Six (P1 → P6 → P5 → P4 → P3 → P2 → P1) */
+  rotateStarters: (team: 'us' | 'opp') => void;
   /**
    * Porta p nella zona: se è occupata le due giocatrici si scambiano (titolare ↔ titolare),
    * oppure, se p viene dalla panchina, quella in campo va in panchina
@@ -223,6 +226,16 @@ export function useLineup(match: Match | null): Lineup {
     setRows((r) => [...r.filter((p) => p.team !== team), ...fn(r.filter((p) => p.team === team))]);
   }, [live, demoBase]);
 
+  /** Nuove zone di più giocatrici: una zona per giocatrice nel database, quindi prima si liberano tutte e poi si assegnano */
+  const setZones = useCallback((team: 'us' | 'opp', zones: Map<string, number | null>) => {
+    if (!zones.size) return;
+    patch(team, (list) => list.map((x) => (zones.has(x.id) ? { ...x, zone: zones.get(x.id)! } : x)));
+    save(async () => {
+      for (const id of zones.keys()) await setLineupZone(id, null);
+      for (const [id, zone] of zones) if (zone != null) await setLineupZone(id, zone);
+    });
+  }, [patch, save]);
+
   const toggleStarter = useCallback((p: LineupPlayer) => {
     if (!canEdit || !matchId) return;
     const team = p.team === 'us' ? us : opp;
@@ -240,9 +253,22 @@ export function useLineup(match: Match | null): Lineup {
       }
     }
     setError(null);
+    // sesta titolare: con i ruoli del 5-1 lo schieramento va in P1 (palleggiatrice in I, opposto in IV, ...), nell'ordine dei tocchi per i doppi ruoli
+    const starters = zone == null ? [] : [...team.filter((x) => x.zone != null).sort((a, b) => a.zone! - b.zone!), { ...p, zone }];
+    const p1 = starters.length === STARTERS ? p1Lineup(starters) : null;
+    if (p1) {
+      setZones(p.team, new Map(p1.map((id, i) => [id, i + 1])));
+      return;
+    }
     patch(p.team, (list) => list.map((x) => (x.id === p.id ? { ...x, zone } : x)));
     save(() => setLineupZone(p.id, zone));
-  }, [canEdit, matchId, us, opp, patch, save]);
+  }, [canEdit, matchId, us, opp, patch, save, setZones]);
+
+  const rotateStarters = useCallback((team: 'us' | 'opp') => {
+    if (!canEdit || !matchId) return;
+    setError(null);
+    setZones(team, new Map((team === 'us' ? us : opp).filter((x) => x.zone != null).map((x) => [x.id, rotateZone(x.zone!, 1)])));
+  }, [canEdit, matchId, us, opp, setZones]);
 
   const moveToZone = useCallback((p: LineupPlayer, zone: number) => {
     if (!canEdit || !matchId || p.zone === zone) return;
@@ -341,5 +367,5 @@ export function useLineup(match: Match | null): Lineup {
     save(() => deleteLineupPlayer(p.id));
   }, [canEdit, patch, save]);
 
-  return { us, opp, loading, canEdit, error, toggleStarter, moveToZone, toggleLibero, toggleCaptain, addPlayers, update, remove };
+  return { us, opp, loading, canEdit, error, toggleStarter, rotateStarters, moveToZone, toggleLibero, toggleCaptain, addPlayers, update, remove };
 }

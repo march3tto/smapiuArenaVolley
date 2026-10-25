@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ClipboardList, X } from 'lucide-react-native';
+import { ClipboardList, RefreshCw, X } from 'lucide-react-native';
 import { Button } from './Button';
 import { Pressy } from './Pressy';
 import { TeamBadge } from './TeamBadge';
 import { Txt } from './Txt';
+import { rotationName } from '@/lib/rotations';
 import { STARTERS, type Lineup } from '@/store/useLineup';
 import { brand, palette, radius } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -39,7 +40,7 @@ export function LineupPanel({ lineup, teams }: { lineup: Lineup; teams: TeamProp
       {lineup.error ? <Txt size={12.5} color="danger">{lineup.error}</Txt> : null}
       <TagLegend />
       {lineup.canEdit ? (
-        <Txt size={12} color="muted">Tocca una giocatrice dell&apos;elenco per metterla nello Starting Six (prima zona libera, I al servizio). Per sistemare le posizioni tocca una giocatrice in campo e poi un&apos;altra zona: si scambiano. Con una giocatrice in campo selezionata, toccane una in panchina per farla entrare al suo posto. Libero, capitana e giocatrici si cambiano da Modifica.</Txt>
+        <Txt size={12} color="muted">Tocca una giocatrice dell&apos;elenco per metterla nello Starting Six (prima zona libera, I al servizio): alla sesta, con palleggiatrice, opposto, due schiacciatrici e due centrali, lo schieramento va in P1. Il tasto di rotazione accanto a Starting Six passa da P1 a P6, P5, P4, P3, P2. Per sistemare le posizioni tocca una giocatrice in campo e poi un&apos;altra zona: si scambiano. Con una giocatrice in campo selezionata, toccane una in panchina per farla entrare al suo posto. Libero, capitana e giocatrici si cambiano da Modifica.</Txt>
       ) : null}
     </View>
   );
@@ -49,6 +50,9 @@ function TeamLineup({ players, team, name, logo, lineup }: TeamProps & { lineup:
   const { c } = useTheme();
   const router = useRouter();
   const starters = players.filter((p) => p.zone != null).length;
+  // nome della rotazione dalla zona della palleggiatrice (P1 = al servizio)
+  const rotation = rotationName([1, 2, 3, 4, 5, 6].map((z) => players.find((p) => p.zone === z)?.id ?? null),
+    (id) => players.find((p) => p.id === id)?.role);
   // tap-tap: primo tocco su una giocatrice in campo, secondo su un'altra zona (o su una giocatrice in panchina) e si scambiano
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = players.find((p) => p.id === selectedId && p.zone != null) ?? null;
@@ -94,7 +98,22 @@ function TeamLineup({ players, team, name, logo, lineup }: TeamProps & { lineup:
       ) : null}
 
       <View style={{ gap: 6, marginTop: 4 }}>
-        <Txt w={700} size={11.5} center color={starters === STARTERS ? 'accent' : 'muted'} tnum>Starting Six {starters}/{STARTERS}</Txt>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 28 }}>
+          <Txt w={700} size={11.5} color={starters === STARTERS ? 'accent' : 'muted'} tnum>
+            Starting Six {starters}/{STARTERS}{rotation ? ` · ${rotation}` : ''}
+          </Txt>
+          {lineup.canEdit && starters ? (
+            // una rotazione a ogni tocco: P1 → P6 → P5 → P4 → P3 → P2 → P1
+            <Pressy onPress={() => {
+              setSelectedId(null);
+              lineup.rotateStarters(team);
+            }} scaleTo={0.85} hitSlop={8} accessibilityRole="button"
+              accessibilityLabel={`Ruota lo Starting Six di ${name}${rotation ? `, ora in ${rotation}` : ''}`}
+              style={{ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: c.lineStrong }}>
+              <RefreshCw size={14} color={c.text} />
+            </Pressy>
+          ) : null}
+        </View>
         <Court players={players} selectedId={selected?.id} onZone={lineup.canEdit ? tapZone : undefined} />
         {selected ? (
           <Txt size={11} color="accent" center numberOfLines={2}>{surname(selected.name)} selezionata: tocca la zona o la giocatrice con cui scambiarla</Txt>

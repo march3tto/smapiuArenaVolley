@@ -5,7 +5,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { PlayerRole } from '@/types';
 import {
-  allRotations, firstServer, onCourt, pointWinners, rotate, rotateN, rotationName, rotationState, validateLineup,
+  allRotations, firstServer, onCourt, p1Lineup, pointWinners, rotate, rotateN, rotationName, rotationState, validateLineup,
   type ScoredEvent, type Zones,
 } from './rotations.ts';
 
@@ -25,6 +25,21 @@ describe('rotazioni', () => {
   test('da P1 classico: P1, P6, P5, P4, P3, P2 e ritorno a P1', () => {
     assert.deepEqual(allRotations(P1).map((z) => rotationName(z, roleOf)), ['P1', 'P6', 'P5', 'P4', 'P3', 'P2']);
     assert.deepEqual(rotateN(P1, 6), [...P1]);
+  });
+
+  test('schema P1 dai ruoli, in qualsiasi ordine di inserimento', () => {
+    const players = ['c1', 'opp', 's1', 'c2', 'pal', 's2'].map((id) => ({ id, role: ROLES[id] }));
+    const p1 = p1Lineup(players);
+    assert.deepEqual(p1, ['pal', 's1', 'c1', 'opp', 's2', 'c2']);
+    assert.equal(rotationName(p1!, roleOf), 'P1');
+    assert.deepEqual(validateLineup(p1!, [], roleOf), []);
+  });
+
+  test('schema P1 solo con i ruoli del 5-1', () => {
+    const twoSetters = ['pal', 'pal2', 's1', 's2', 'c1', 'c2'].map((id) => ({ id, role: ROLES[id] }));
+    assert.equal(p1Lineup(twoSetters), null);
+    assert.equal(p1Lineup([{ id: 'x', role: null }, ...twoSetters.slice(1)]), null);
+    assert.equal(p1Lineup(twoSetters.slice(0, 5)), null);
   });
 
   test('senza palleggiatrice la rotazione non ha nome', () => {
