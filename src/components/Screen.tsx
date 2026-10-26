@@ -1,5 +1,5 @@
 import type { ReactNode, Ref } from 'react';
-import { RefreshControl, ScrollView, type StyleProp, type ViewStyle } from 'react-native';
+import { RefreshControl, ScrollView, type ScrollViewInstance, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTopBarHeight } from './TopBar';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -10,7 +10,7 @@ interface Props {
   refreshing?: boolean;
   contentStyle?: StyleProp<ViewStyle>;
   /** Per scorrere da codice (es. banner che portano a una sezione) */
-  scrollRef?: Ref<ScrollView>;
+  scrollRef?: Ref<ScrollViewInstance>;
 }
 
 /** Contenitore scorrevole delle tab, con spazio per la barra inferiore */

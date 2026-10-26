@@ -22,7 +22,7 @@ const ICONS: Record<string, LucideIcon> = {
 const HIDDEN = new Set(['giovanili']);
 
 /** Barra inferiore flottante con indicatore oro che scivola */
-export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTabBarProps) {
   const { c, mode } = useTheme();
   const insets = useSafeAreaInsets();
   const [width, setWidth] = useState(0);
@@ -55,8 +55,8 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               const Icon = ICONS[route.name] ?? House;
               const color = focused ? palette.onGold : c.muted;
               const onPress = () => {
-                const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-                if (!focused && !event.defaultPrevented) navigation.navigate(route.name, route.params);
+                const event = emitter.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+                if (!focused && !event.defaultPrevented) navigateToTab(route.key);
               };
               return (
                 <Pressable key={route.key} onPress={onPress} accessibilityRole="tab" accessibilityState={{ selected: focused }} accessibilityLabel={label} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 7, gap: 3 }}>

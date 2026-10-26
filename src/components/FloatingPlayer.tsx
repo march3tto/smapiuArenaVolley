@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Animated, BackHandler, PanResponder, View, useWindowDimensions } from 'react-native';
+import { Animated, BackHandler, PanResponder, View, useWindowDimensions, type HostInstance } from 'react-native';
 import { useFocusEffect, useNavigation, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -181,7 +181,7 @@ function BarButton({ children, label, onPress, small }: { children: ReactNode; l
 export function PlayerSlot() {
   const { stream, source, minimized, setDock } = usePlayer();
   const navigation = useNavigation();
-  const ref = useRef<View>(null);
+  const ref = useRef<HostInstance>(null);
   const focused = useRef(false);
 
   const measure = useCallback(() => {

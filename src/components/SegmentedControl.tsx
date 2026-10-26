@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, ScrollView, View, type LayoutChangeEvent } from 'react-native';
+import { Animated, Pressable, ScrollView, View, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
 import { Txt } from './Txt';
 import { palette, radius } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -20,7 +20,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange, s
   const [layouts, setLayouts] = useState<Record<string, { x: number; w: number }>>({});
   const x = useRef(new Animated.Value(0)).current;
   const w = useRef(new Animated.Value(0)).current;
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<ScrollViewInstance>(null);
 
   useEffect(() => {
     if (value == null) {

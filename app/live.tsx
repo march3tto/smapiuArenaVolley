@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, ScrollView, View, useWindowDimensions } from 'react-native';
+import { Animated, ScrollView, View, useWindowDimensions, type HostInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MonitorPlay, Plus, RotateCcw, Trophy, Volleyball } from 'lucide-react-native';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
@@ -195,7 +195,7 @@ export default function Live() {
 /** onServe: sullo 0-0 del set (admin) il tocco sullo stemma mette la squadra al servizio */
 function Side({ name, logo, serving, server, flash, onPlus, onServe }: { name: string; logo?: string | number | null; serving: boolean; server: LineupPlayer | null; flash: number; onPlus?: (anchor: Anchor) => void; onServe?: () => void }) {
   const { c } = useTheme();
-  const plusRef = useRef<View>(null);
+  const plusRef = useRef<HostInstance>(null);
   const plus = useRef(new Animated.Value(0)).current;
   const pop = useRef(new Animated.Value(1)).current;
   // il punto già segnato prima di aprire la schermata non va rianimato: solo quelli nuovi

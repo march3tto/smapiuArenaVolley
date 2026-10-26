@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Keyboard, Platform, ScrollView, TextInput, View } from 'react-native';
+import { Keyboard, Platform, ScrollView, TextInput, View, type ScrollViewInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { Plus, Save, UserPlus } from 'lucide-react-native';
@@ -38,7 +38,7 @@ export default function Formazione() {
   const editing = players.find((p) => p.id === editId) ?? null;
   // con la tastiera aperta il contenuto si allunga della sua altezza: si scorre fino in fondo e la schermata resta dove la lasci
   const kb = useKeyboardHeight();
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<ScrollViewInstance>(null);
   const formY = useRef(0);
   // porta il form in alto, sopra la tastiera (dopo che la tastiera ha allungato il contenuto)
   const showForm = () => setTimeout(() => scroll.current?.scrollTo({ y: Math.max(0, formY.current - 12), animated: true }), 120);

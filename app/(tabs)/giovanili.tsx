@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import { Modal, Pressable, ScrollView, View, useWindowDimensions, type ScrollViewInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { ChevronDown, ChevronLeft, ChevronRight, Expand, Images, Sparkles, User, X } from 'lucide-react-native';
@@ -33,7 +33,7 @@ export default function Giovanili() {
   const rows = Array.from({ length: Math.ceil(GALLERIA.length / cols) }, (_, r) => GALLERIA.slice(r * cols, r * cols + cols));
 
   // banner: posizione di ogni sezione nella pagina, la barra in alto è sopra il contenuto e va scavalcata
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<ScrollViewInstance>(null);
   // oggetto stabile scritto da onLayout (non serve ridisegnare quando cambia)
   const [pos] = useState<Partial<Record<Sezione, number>>>(() => ({}));
   const top = useTopBarHeight();
