@@ -40,7 +40,7 @@ export function LineupPanel({ lineup, teams }: { lineup: Lineup; teams: TeamProp
       {lineup.error ? <Txt size={12.5} color="danger">{lineup.error}</Txt> : null}
       <TagLegend />
       {lineup.canEdit ? (
-        <Txt size={12} color="muted">Tocca una giocatrice dell&apos;elenco per metterla nello Starting Six (prima zona libera, I al servizio): alla sesta, con palleggiatrice, opposto, due schiacciatrici e due centrali, lo schieramento va in P1. Il tasto di rotazione accanto a Starting Six passa da P1 a P6, P5, P4, P3, P2. Per sistemare le posizioni tocca una giocatrice in campo e poi un&apos;altra zona: si scambiano. Con una giocatrice in campo selezionata, toccane una in panchina per farla entrare al suo posto. Libero, capitana e giocatrici si cambiano da Modifica.</Txt>
+        <Txt size={12} color="muted">Tocca una giocatrice dell&apos;elenco per metterla nello Starting Six (prima zona libera, I al servizio): alla sesta, con palleggiatrice, opposto, due schiacciatrici e due centrali, lo schieramento va in P1. Il tasto di rotazione accanto a Starting Six passa da P1 a P6, P5, P4, P3, P2. Per sistemare le posizioni tocca una giocatrice in campo e poi un&apos;altra zona: si scambiano. Con una giocatrice in campo selezionata, toccane una in panchina per farla entrare al suo posto: anche il libero, ad esempio al posto di una schiacciatrice in difesa. C sceglie la capitana, L il libero (ruolo Libero); numeri, nomi e giocatrici si cambiano da Modifica.</Txt>
       ) : null}
     </View>
   );
@@ -69,13 +69,14 @@ function TeamLineup({ players, team, name, logo, lineup }: TeamProps & { lineup:
     else if (!selected) lineup.toggleStarter(p);
     setSelectedId(null);
   };
-  // la scheda giocatrice c'è solo per la nostra rosa; chi modifica la formazione usa il tocco per lo Starting Six (libero e capitana da Modifica)
+  // la scheda giocatrice c'è solo per la nostra rosa; chi modifica la formazione usa il tocco per lo Starting Six, C e L per capitana e libero
   const open = (p: LineupPlayer) => (!lineup.canEdit && team === 'us' && p.playerId
     ? () => router.push({ pathname: '/player/[id]', params: { id: p.playerId! } })
     : undefined);
   return (
     <View style={{ flex: 1, minWidth: 0, gap: 10 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      {/* altezza fissa (due righe di nome): i due elenchi e i campi partono alla stessa altezza */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, height: 36 }}>
         <TeamBadge name={name} logo={logo} size={28} />
         <Txt w={700} size={13} numberOfLines={2} style={{ flex: 1 }}>{name}</Txt>
       </View>
@@ -83,7 +84,9 @@ function TeamLineup({ players, team, name, logo, lineup }: TeamProps & { lineup:
         <View style={{ borderRadius: radius.md, borderWidth: 1, borderColor: c.line, overflow: 'hidden' }}>
           {players.map((p, i) => (
             <PlayerRow key={p.id} p={p} first={i === 0} onPress={lineup.canEdit ? () => tapRow(p) : open(p)} pressRole={lineup.canEdit ? 'button' : 'link'}
-              selected={lineup.canEdit ? p.id === selected?.id : undefined} />
+              selected={lineup.canEdit ? p.id === selected?.id : undefined}
+              onCaptain={lineup.canEdit ? () => lineup.toggleCaptain(p) : undefined} captainSet={players.some((x) => x.isCaptain)}
+              onLibero={lineup.canEdit ? () => lineup.toggleLibero(p) : undefined} />
           ))}
         </View>
       ) : (
@@ -152,7 +155,7 @@ export function Court({ players, big, selectedId, onPick, onZone }: { players: L
                   <Txt w={700} size={8.5} color={COURT.zone} style={{ position: 'absolute', top: 0, left: 2 }}>{ROMAN[z]}</Txt>
                   {p ? (
                     <>
-                      <NumberTag value={p.number} variant="court" size={big ? 28 : 22} />
+                      <NumberTag value={p.number} variant={p.isLibero ? 'libero' : 'court'} size={big ? 28 : 22} />
                       <Txt w={600} size={big ? 11 : 9.5} color={COURT.text} numberOfLines={1}>{surname(p.name)}</Txt>
                     </>
                   ) : (
@@ -226,7 +229,7 @@ export function TagLegend() {
 
 /**
  * Riga giocatrice. onPress: tocco sulla riga (Starting Six, scheda giocatrice o selezione per la modifica).
- * onLibero / onCaptain: pulsanti L e C (solo nella schermata Modifica); C su tutte finché la squadra non ha una capitana, poi solo su di lei.
+ * onLibero / onCaptain: pulsanti L e C (solo per chi modifica la formazione); C su tutte finché la squadra non ha una capitana, poi solo su di lei.
  */
 export function PlayerRow({ p, first, onPress, pressRole, selected, onLibero, onCaptain, captainSet, onRemove }: {
   p: LineupPlayer; first: boolean; onPress?: () => void; pressRole?: 'button' | 'link'; selected?: boolean;
@@ -234,7 +237,7 @@ export function PlayerRow({ p, first, onPress, pressRole, selected, onLibero, on
 }) {
   const { c } = useTheme();
   const starter = p.zone != null;
-  const liberoButton = !!onLibero && !starter && (p.role === 'libero' || p.isLibero);
+  const liberoButton = !!onLibero && (p.role === 'libero' || p.isLibero);
   const captainButton = !!onCaptain && (p.isCaptain || !captainSet);
   // i pulsanti C, L e X stanno accanto alla parte toccabile, non dentro (sul web un pulsante non può contenerne un altro)
   return (

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, ScrollView, View, useWindowDimensions, type HostInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MonitorPlay, Plus, RotateCcw, Trophy, Volleyball } from 'lucide-react-native';
+import { ChevronDown, MonitorPlay, Plus, RotateCcw, Trophy, Volleyball } from 'lucide-react-native';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -41,6 +41,9 @@ export default function Live() {
   const wide = useWindowDimensions().width >= 380;
   // riquadro del punto aperto dal pulsante + di una squadra
   const [picker, setPicker] = useState<{ side: 'us' | 'opp'; name: string; anchor: Anchor } | null>(null);
+  // cronaca: chiusa (solo l'intestazione) o aperta con filtro e tutte le azioni, filtrate per set ('all' = tutti)
+  const [feedOpen, setFeedOpen] = useState(false);
+  const [feedSet, setFeedSet] = useState('all');
 
   if (!m) {
     return (
@@ -67,6 +70,9 @@ export default function Live() {
   // posizioni attuali in campo: solo nel riquadro del punto, nelle formazioni resta lo Starting Six
   const onCourt = (side: 'us' | 'opp'): LineupPlayer[] => (side === 'us' ? lineup.us : lineup.opp)
     .map((p) => (p.zone == null ? p : { ...p, zone: rotateZone(p.zone, live.rotation[side]) }));
+  // un set che non c'è più (es. demo ricominciata) torna a tutti
+  const shownSet = feedSet !== 'all' && Number(feedSet) <= rowsSets.length ? Number(feedSet) : null;
+  const feed = shownSet ? live.events.filter((e) => e.set === shownSet) : live.events;
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
@@ -148,20 +154,30 @@ export default function Live() {
           </View>
         </Card>
   
-        {/* cronaca in un pannello compatto tra il punteggio e le schede: scorre al suo interno, l'ultima azione è in alto */}
+        {/* cronaca tra il punteggio e le schede: si apre e si chiude tutta dall'intestazione; l'ultima azione è in alto */}
         <Card style={{ gap: 4 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-            <Txt w={800} size={15}>Cronaca</Txt>
-            <Txt size={13} color="muted">{live.events.length} azioni</Txt>
-          </View>
-          {live.events.length ? (
-            <ScrollView style={{ maxHeight: 230 }} nestedScrollEnabled showsVerticalScrollIndicator>
-              {live.events.map((e, i) => (
-                <FeedItem key={e.id} first={i === 0} last={i === live.events.length - 1} us={e.side === 'us'} meta={`${e.set}° set, ${e.our}–${e.opp}`} text={e.text} detail={e.detail} />
+          <Pressy onPress={() => setFeedOpen((o) => !o)} scaleTo={0.98} accessibilityRole="button" accessibilityState={{ expanded: feedOpen }}
+            accessibilityLabel={feedOpen ? 'Riduci la cronaca' : 'Espandi la cronaca'}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Txt w={800} size={15} style={{ flex: 1 }}>Cronaca</Txt>
+            <Txt size={13} color="muted" tnum>{feed.length} azioni</Txt>
+            <ChevronDown size={18} color={c.muted} style={{ transform: [{ rotate: feedOpen ? '180deg' : '0deg' }] }} />
+          </Pressy>
+          {feedOpen && rowsSets.length > 1 ? (
+            <View style={{ marginTop: 8, marginBottom: 6 }}>
+              {/* dal 4° set le etichette non stanno in larghezza: il filtro diventa scorrevole */}
+              <SegmentedControl stretch={rowsSets.length <= 3} value={shownSet ? String(shownSet) : 'all'} onChange={setFeedSet}
+                options={[{ value: 'all', label: 'Tutti' }, ...rowsSets.map((_, i) => ({ value: String(i + 1), label: i === 4 ? 'Tie-break' : `${i + 1}° set` }))]} />
+            </View>
+          ) : null}
+          {!feedOpen ? null : feed.length ? (
+            <View style={{ marginTop: rowsSets.length > 1 ? 0 : 8 }}>
+              {feed.map((e, i) => (
+                <FeedItem key={e.id} first={i === 0} last={i === feed.length - 1} us={e.side === 'us'} meta={`${e.set}° set, ${e.our}–${e.opp}`} text={e.text} detail={e.detail} />
               ))}
-            </ScrollView>
+            </View>
           ) : (
-            <Txt size={13} color="muted">Nessuna azione ancora.</Txt>
+            <Txt size={13} color="muted" style={{ marginTop: 8 }}>{shownSet ? 'Nessuna azione in questo set.' : 'Nessuna azione ancora.'}</Txt>
           )}
         </Card>
 

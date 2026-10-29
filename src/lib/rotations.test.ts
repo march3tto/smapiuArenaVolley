@@ -134,9 +134,9 @@ describe('validazione del sestetto', () => {
     assert.deepEqual(levels(['pal', 'c1', 's1', 'opp', 's2', 'c2']), ['avviso', 'avviso']);
   });
 
-  test('libero in zona → errore', () => {
-    const issues = validateLineup(['lib', 's1', 'c1', 'opp', 's2', 'c2'], [], roleOf);
-    assert.ok(issues.some((i) => i.level === 'errore' && i.message.includes('Zona I')));
+  test('libero in zona (al posto di una schiacciatrice) → nessun errore', () => {
+    const issues = validateLineup(['pal', 'lib', 'c1', 'opp', 's2', 'c2'], ['lib'], roleOf);
+    assert.ok(!issues.some((i) => i.level === 'errore'));
   });
 
   test('due palleggiatrici → avviso "schema 4-2/6-2?"', () => {

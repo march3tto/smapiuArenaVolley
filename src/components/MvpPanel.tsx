@@ -131,7 +131,8 @@ export function MvpPanel({ match, awayMatch, teams, events, finished, onLeave }:
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, opacity: awayMatch ? 0.55 : 1 }}>
         {columns.map((t) => (
           <View key={t.side} style={{ flex: 1, minWidth: 0, gap: 8 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {/* altezza fissa (due righe di nome): i due elenchi partono alla stessa altezza */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, height: 36 }}>
               <TeamBadge name={t.name} logo={t.logo} size={28} />
               <Txt w={700} size={13} numberOfLines={2} style={{ flex: 1 }}>{t.name}</Txt>
             </View>

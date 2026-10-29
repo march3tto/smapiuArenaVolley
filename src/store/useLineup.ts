@@ -30,10 +30,10 @@ export interface Lineup {
   rotateStarters: (team: 'us' | 'opp') => void;
   /**
    * Porta p nella zona: se è occupata le due giocatrici si scambiano (titolare ↔ titolare),
-   * oppure, se p viene dalla panchina, quella in campo va in panchina
+   * oppure, se p viene dalla panchina, quella in campo va in panchina (anche il libero, es. al posto di una schiacciatrice in difesa)
    */
   moveToZone: (p: LineupPlayer, zone: number) => void;
-  /** Libero ↔ panchina: solo dalla panchina e con ruolo Libero, il nuovo libero sostituisce il precedente */
+  /** Libero ↔ nessuno: solo con ruolo Libero (anche se è in campo), il nuovo libero sostituisce il precedente */
   toggleLibero: (p: LineupPlayer) => void;
   /** Capitana ↔ nessuna: una per squadra, la nuova sostituisce la precedente */
   toggleCaptain: (p: LineupPlayer) => void;
@@ -241,10 +241,6 @@ export function useLineup(match: Match | null): Lineup {
     const team = p.team === 'us' ? us : opp;
     let zone: number | null = null;
     if (p.zone == null) {
-      if (p.role === 'libero' || p.isLibero) {
-        setError('Il libero non può far parte dello Starting Six.');
-        return;
-      }
       const used = new Set(team.map((x) => x.zone).filter((z): z is number => z != null));
       zone = [1, 2, 3, 4, 5, 6].find((z) => !used.has(z)) ?? null;
       if (zone == null) {
@@ -272,10 +268,6 @@ export function useLineup(match: Match | null): Lineup {
 
   const moveToZone = useCallback((p: LineupPlayer, zone: number) => {
     if (!canEdit || !matchId || p.zone === zone) return;
-    if (p.zone == null && (p.role === 'libero' || p.isLibero)) {
-      setError('Il libero non può far parte dello Starting Six.');
-      return;
-    }
     const other = (p.team === 'us' ? us : opp).find((x) => x.zone === zone && x.id !== p.id);
     const from = p.zone;
     setError(null);
@@ -292,10 +284,6 @@ export function useLineup(match: Match | null): Lineup {
     if (!canEdit || !matchId) return;
     if (!p.isLibero && p.role !== 'libero') {
       setError('Come libero si possono scegliere solo le giocatrici con ruolo Libero.');
-      return;
-    }
-    if (p.zone != null) {
-      setError('Il libero si sceglie dalla panchina: togli prima la giocatrice dallo Starting Six.');
       return;
     }
     const on = !p.isLibero;
@@ -344,10 +332,6 @@ export function useLineup(match: Match | null): Lineup {
     const team = p.team === 'us' ? us : opp;
     if (f.number != null && team.some((x) => x.id !== p.id && x.number === f.number)) {
       setError(`Il numero ${f.number} è già in formazione.`);
-      return false;
-    }
-    if (f.role === 'libero' && p.zone != null) {
-      setError('Una giocatrice nello Starting Six non può avere ruolo Libero: toglila prima dal campo.');
       return false;
     }
     // cambiando ruolo il libero scelto resta tale solo se è ancora Libero

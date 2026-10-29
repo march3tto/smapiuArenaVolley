@@ -56,9 +56,10 @@ select throws_ok($$ insert into public.sestetti_set (partita_id, numero_set, squ
                     ('00000000-0000-4000-8000-00000000d101', 2, 'nostra', 1, '00000000-0000-4000-8000-00000000e001'),
                     ('00000000-0000-4000-8000-00000000d101', 2, 'nostra', 2, '00000000-0000-4000-8000-00000000e001') $$, '23505', null,
   'una riga per giocatrice nello stesso set');
-select throws_ok($$ insert into public.sestetti_set (partita_id, numero_set, squadra, zona, convocata_id)
-                    values ('00000000-0000-4000-8000-00000000d101', 2, 'nostra', 1, '00000000-0000-4000-8000-00000000e007') $$, '23514', null,
-  'il libero non va in zona');
+select lives_ok($$ insert into public.sestetti_set (partita_id, numero_set, squadra, zona, convocata_id)
+                    values ('00000000-0000-4000-8000-00000000d101', 2, 'nostra', 1, '00000000-0000-4000-8000-00000000e007') $$,
+  'il libero può andare in zona');
+delete from public.sestetti_set where partita_id = '00000000-0000-4000-8000-00000000d101' and numero_set = 2;
 select throws_ok($$ insert into public.sestetti_set (partita_id, numero_set, squadra, zona, convocata_id)
                     values ('00000000-0000-4000-8000-00000000d101', 2, 'nostra', null, '00000000-0000-4000-8000-00000000e003') $$, '23514', null,
   'libero solo con ruolo Libero');
@@ -87,7 +88,7 @@ select lives_ok($$ select public.salva_sestetto('00000000-0000-4000-8000-0000000
 select is((select zona from public.sestetti_set where convocata_id = '00000000-0000-4000-8000-00000000e002' and numero_set = 1), 1::smallint,
   'salva_sestetto: la schiacciatrice ora è in zona I');
 select throws_ok($$ select public.salva_sestetto('00000000-0000-4000-8000-00000000d101', 1::smallint, 'nostra', '[
-  {"zona": 1, "convocata_id": "00000000-0000-4000-8000-00000000e001"}, {"zona": 2, "convocata_id": "00000000-0000-4000-8000-00000000e007"}
+  {"zona": 1, "convocata_id": "00000000-0000-4000-8000-00000000e001"}, {"zona": null, "convocata_id": "00000000-0000-4000-8000-00000000e003"}
 ]'::jsonb) $$, '23514', null, 'salva_sestetto: con una riga non valida non salva niente');
 select is((select count(*)::int from public.sestetti_set where partita_id = '00000000-0000-4000-8000-00000000d101'), 8,
   'salva_sestetto: dopo l''errore il sestetto è quello di prima');

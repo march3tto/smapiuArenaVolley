@@ -150,18 +150,16 @@ export interface LineupIssue {
 const DIAGONALS: [number, number][] = [[1, 4], [2, 5], [3, 6]];
 const DIAGONAL_PAIRS = ['opposto+palleggiatrice', 'schiacciatrice+schiacciatrice', 'centrale+centrale'];
 
-/** Controlli del sestetto: gli errori non sono ammessi, gli avvisi segnalano uno schema diverso dal 5-1 (4-2, 6-2 nelle giovanili) */
+/**
+ * Controlli del sestetto: gli errori non sono ammessi, gli avvisi segnalano uno schema diverso dal 5-1 (4-2, 6-2 nelle giovanili).
+ * Il libero può stare in una zona (es. al posto di una schiacciatrice in difesa).
+ */
 export function validateLineup(zones: Zones, liberos: readonly string[], roleOf: RoleOf): LineupIssue[] {
   const issues: LineupIssue[] = [];
   const placed = zones.slice(0, 6).filter((id): id is string => !!id);
   const missing = 6 - placed.length;
   if (missing > 0) issues.push({ level: 'errore', message: missing === 1 ? 'Sestetto incompleto: manca una titolare.' : `Sestetto incompleto: mancano ${missing} titolari.` });
   if (new Set(placed).size < placed.length) issues.push({ level: 'errore', message: 'La stessa giocatrice è in più di una zona.' });
-  zones.slice(0, 6).forEach((id, i) => {
-    if (id && (liberos.includes(id) || roleOf(id) === 'libero')) {
-      issues.push({ level: 'errore', message: `Zona ${ROMAN[i + 1]}: il libero non può far parte del sestetto.` });
-    }
-  });
   if (liberos.length > 2) issues.push({ level: 'errore', message: 'Al massimo 2 liberi.' });
   if (liberos.some((id) => roleOf(id) !== 'libero')) issues.push({ level: 'errore', message: 'Come libero si possono scegliere solo le giocatrici con ruolo Libero.' });
 
