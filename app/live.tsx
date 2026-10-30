@@ -17,7 +17,7 @@ import { TeamBadge } from '@/components/TeamBadge';
 import { Txt } from '@/components/Txt';
 import { US } from '@/constants';
 import { hasSupabase } from '@/lib/supabase';
-import { rotateZone, setTarget } from '@/lib/volley';
+import { rotateZone } from '@/lib/volley';
 import { useApp } from '@/store/AppProvider';
 import { PHASE_LABEL, ZONE_LABEL, actionLabel, useLive } from '@/store/LiveProvider';
 import { useLiveLineup } from '@/store/LineupProvider';
@@ -85,11 +85,6 @@ export default function Live() {
             <Txt w={700} size={13} color={live.finished ? 'accent' : 'live'}>{live.finished ? 'Finale' : 'In diretta'}</Txt>
             <Txt size={13} color="muted" numberOfLines={1} style={{ flexShrink: 1 }}>· {m.venue}</Txt>
           </View>
-          <Txt w={600} size={13} color="muted" center>
-            {live.finished
-              ? `Set ${L.sets}–${R.sets}`
-              : `${live.set === 5 ? 'Tie-break' : `${live.set}° set`} a ${setTarget(live.set)}, set ${L.sets}–${R.sets}`}
-          </Txt>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
             <Side {...L} flash={live.lastPoint?.side === L.side ? live.lastPoint.key : 0} serving={L.serving && !live.finished} server={serverOf(L.side)}
               onServe={live.canChooseServe ? () => live.chooseServe(L.side) : undefined}

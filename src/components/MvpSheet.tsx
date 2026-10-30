@@ -28,7 +28,7 @@ export function MvpSheet({ open, onClose, match, awayMatch, events, finished, te
               </Pressable>
             </View>
             <ScrollView contentContainerStyle={{ padding: space.md, paddingTop: space.sm }}>
-              <MvpPanel key={match.id} match={match} awayMatch={awayMatch} events={events} finished={finished} teams={teams} onLeave={onClose} showTitle={false} />
+              <MvpPanel key={match.id} match={match} awayMatch={awayMatch} events={events} finished={finished} teams={teams} onLeave={onClose} />
             </ScrollView>
           </View>
         </View>

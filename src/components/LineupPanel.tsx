@@ -4,7 +4,8 @@ import { useRouter } from 'expo-router';
 import { ClipboardList, RefreshCw, X } from 'lucide-react-native';
 import { Button } from './Button';
 import { Pressy } from './Pressy';
-import { TeamBadge } from './TeamBadge';
+import { SearchField, matchesPlayer } from './SearchField';
+import { TeamSwitch } from './TeamSwitch';
 import { Txt } from './Txt';
 import { rotationName } from '@/lib/rotations';
 import { STARTERS, type Lineup } from '@/store/useLineup';
@@ -28,15 +29,22 @@ interface TeamProps {
   logo?: ImgSrc | null;
 }
 
-/** Formazioni delle due squadre affiancate, nello stesso ordine del tabellone: giocatrici a referto e Starting Six sul campo */
+/**
+ * Formazione di una squadra alla volta: l'interruttore in alto sceglie tra le due (nello stesso ordine del tabellone, si parte dalla nostra),
+ * sotto la ricerca per nome o numero, che filtra l'elenco (il campo resta completo), poi giocatrici a referto e Starting Six sul campo.
+ */
 export function LineupPanel({ lineup, teams }: { lineup: Lineup; teams: TeamProps[] }) {
+  const [team, setTeam] = useState<TeamProps['team']>('us');
+  const [query, setQuery] = useState('');
+  const shown = teams.find((t) => t.team === team) ?? teams[0];
+  const side = (t: TeamProps) => ({ value: t.team, name: t.name, logo: t.logo });
   return (
     <View style={{ gap: space.md }}>
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: space.sm }}>
-        {teams.map((t) => (
-          <TeamLineup key={t.team} {...t} lineup={lineup} />
-        ))}
+      <View style={{ gap: space.sm }}>
+        {teams.length === 2 ? <TeamSwitch left={side(teams[0])} right={side(teams[1])} value={shown.team} onChange={setTeam} /> : null}
+        <SearchField value={query} onChange={setQuery} placeholder="Cerca per nome o numero" label="Cerca una giocatrice per nome o numero di maglia" />
       </View>
+      {shown ? <TeamLineup key={shown.team} {...shown} lineup={lineup} query={query} /> : null}
       {lineup.error ? <Txt size={12.5} color="danger">{lineup.error}</Txt> : null}
       <TagLegend />
       {lineup.canEdit ? (
@@ -46,7 +54,7 @@ export function LineupPanel({ lineup, teams }: { lineup: Lineup; teams: TeamProp
   );
 }
 
-function TeamLineup({ players, team, name, logo, lineup }: TeamProps & { lineup: Lineup }) {
+function TeamLineup({ players, team, name, lineup, query }: TeamProps & { lineup: Lineup; query: string }) {
   const { c } = useTheme();
   const router = useRouter();
   const starters = players.filter((p) => p.zone != null).length;
@@ -73,16 +81,14 @@ function TeamLineup({ players, team, name, logo, lineup }: TeamProps & { lineup:
   const open = (p: LineupPlayer) => (!lineup.canEdit && team === 'us' && p.playerId
     ? () => router.push({ pathname: '/player/[id]', params: { id: p.playerId! } })
     : undefined);
+  const listed = players.filter((p) => matchesPlayer(p, query));
   return (
-    <View style={{ flex: 1, minWidth: 0, gap: space.sm }}>
-      {/* altezza fissa (due righe di nome): i due elenchi e i campi partono alla stessa altezza */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, height: 36 }}>
-        <TeamBadge name={name} logo={logo} size={28} />
-        <Txt w={700} size={13} numberOfLines={2} style={{ flex: 1 }}>{name}</Txt>
-      </View>
-      {players.length ? (
+    <View style={{ gap: space.sm }}>
+      {players.length && !listed.length ? (
+        <Txt size={13} color="muted" center>Nessuna giocatrice trovata.</Txt>
+      ) : players.length ? (
         <View style={{ borderRadius: radius.md, borderWidth: 1, borderColor: c.line, overflow: 'hidden' }}>
-          {players.map((p, i) => (
+          {listed.map((p, i) => (
             <PlayerRow key={p.id} p={p} first={i === 0} onPress={lineup.canEdit ? () => tapRow(p) : open(p)} pressRole={lineup.canEdit ? 'button' : 'link'}
               selected={lineup.canEdit ? p.id === selected?.id : undefined}
               onCaptain={lineup.canEdit ? () => lineup.toggleCaptain(p) : undefined} captainSet={players.some((x) => x.isCaptain)}
@@ -117,7 +123,7 @@ function TeamLineup({ players, team, name, logo, lineup }: TeamProps & { lineup:
             </Pressy>
           ) : null}
         </View>
-        <Court players={players} selectedId={selected?.id} onZone={lineup.canEdit ? tapZone : undefined} />
+        <Court players={players} big selectedId={selected?.id} onZone={lineup.canEdit ? tapZone : undefined} />
         {selected ? (
           <Txt size={11} color="accent" center numberOfLines={2}>{surname(selected.name)} selezionata: tocca la zona o la giocatrice con cui scambiarla</Txt>
         ) : null}
