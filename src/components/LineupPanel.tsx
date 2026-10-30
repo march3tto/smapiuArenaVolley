@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ClipboardList, RefreshCw, X } from 'lucide-react-native';
@@ -31,7 +31,7 @@ interface TeamProps {
 
 /**
  * Formazione di una squadra alla volta: l'interruttore in alto sceglie tra le due (nello stesso ordine del tabellone, si parte dalla nostra),
- * sotto la ricerca per nome o numero, che filtra l'elenco (il campo resta completo), poi giocatrici a referto e Starting Six sul campo.
+ * sotto lo Starting Six sul campo, poi la ricerca per nome o numero, che filtra l'elenco delle giocatrici a referto (il campo resta completo).
  */
 export function LineupPanel({ lineup, teams }: { lineup: Lineup; teams: TeamProps[] }) {
   const [team, setTeam] = useState<TeamProps['team']>('us');
@@ -40,11 +40,11 @@ export function LineupPanel({ lineup, teams }: { lineup: Lineup; teams: TeamProp
   const side = (t: TeamProps) => ({ value: t.team, name: t.name, logo: t.logo });
   return (
     <View style={{ gap: space.md }}>
-      <View style={{ gap: space.sm }}>
-        {teams.length === 2 ? <TeamSwitch left={side(teams[0])} right={side(teams[1])} value={shown.team} onChange={setTeam} /> : null}
-        <SearchField value={query} onChange={setQuery} placeholder="Cerca per nome o numero" label="Cerca una giocatrice per nome o numero di maglia" />
-      </View>
-      {shown ? <TeamLineup key={shown.team} {...shown} lineup={lineup} query={query} /> : null}
+      {teams.length === 2 ? <TeamSwitch left={side(teams[0])} right={side(teams[1])} value={shown.team} onChange={setTeam} /> : null}
+      {shown ? (
+        <TeamLineup key={shown.team} {...shown} lineup={lineup} query={query}
+          search={<SearchField value={query} onChange={setQuery} placeholder="Cerca per nome o numero" label="Cerca una giocatrice per nome o numero di maglia" />} />
+      ) : null}
       {lineup.error ? <Txt size={12.5} color="danger">{lineup.error}</Txt> : null}
       <TagLegend />
       {lineup.canEdit ? (
@@ -54,7 +54,7 @@ export function LineupPanel({ lineup, teams }: { lineup: Lineup; teams: TeamProp
   );
 }
 
-function TeamLineup({ players, team, name, lineup, query }: TeamProps & { lineup: Lineup; query: string }) {
+function TeamLineup({ players, team, name, lineup, query, search }: TeamProps & { lineup: Lineup; query: string; search: ReactNode }) {
   const { c } = useTheme();
   const router = useRouter();
   const starters = players.filter((p) => p.zone != null).length;
@@ -84,6 +84,31 @@ function TeamLineup({ players, team, name, lineup, query }: TeamProps & { lineup
   const listed = players.filter((p) => matchesPlayer(p, query));
   return (
     <View style={{ gap: space.sm }}>
+      {/* prima il campo con lo Starting Six, poi ricerca ed elenco delle giocatrici */}
+      <View style={{ gap: space.sm, marginBottom: space.sm }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm, minHeight: 28 }}>
+          <Txt w={700} size={11.5} color="cobalt" tnum>
+            Starting Six {starters}/{STARTERS}{rotation ? ` · ${rotation}` : ''}
+          </Txt>
+          {lineup.canEdit && starters ? (
+            // una rotazione a ogni tocco: P1 → P6 → P5 → P4 → P3 → P2 → P1
+            <Pressy onPress={() => {
+              setSelectedId(null);
+              lineup.rotateStarters(team);
+            }} scaleTo={0.85} hitSlop={8} accessibilityRole="button"
+              accessibilityLabel={`Ruota lo Starting Six di ${name}${rotation ? `, ora in ${rotation}` : ''}`}
+              style={{ width: 28, height: 28, alignItems: 'center', justifyContent: 'center' }}>
+              <RefreshCw size={16} color={c.cobalt} />
+            </Pressy>
+          ) : null}
+        </View>
+        <Court players={players} big selectedId={selected?.id} onZone={lineup.canEdit ? tapZone : undefined} />
+        {selected ? (
+          <Txt size={11} color="accent" center numberOfLines={2}>{surname(selected.name)} selezionata: tocca la zona o la giocatrice con cui scambiarla</Txt>
+        ) : null}
+        <LiberoLine player={players.find((p) => p.isLibero)} />
+      </View>
+      {search}
       {players.length && !listed.length ? (
         <Txt size={13} color="muted" center>Nessuna giocatrice trovata.</Txt>
       ) : players.length ? (
@@ -105,30 +130,6 @@ function TeamLineup({ players, team, name, lineup, query }: TeamProps & { lineup
         <Button size="sm" label={players.length ? 'Modifica' : 'Inserisci formazione'} icon={<ClipboardList size={15} color={c.text} />}
           onPress={() => router.push({ pathname: '/formazione/[squadra]', params: { squadra: team === 'us' ? 'nostra' : 'avversaria' } })} />
       ) : null}
-
-      <View style={{ gap: space.sm, marginTop: space.xs }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm, minHeight: 28 }}>
-          <Txt w={700} size={11.5} color={starters === STARTERS ? 'accent' : 'muted'} tnum>
-            Starting Six {starters}/{STARTERS}{rotation ? ` · ${rotation}` : ''}
-          </Txt>
-          {lineup.canEdit && starters ? (
-            // una rotazione a ogni tocco: P1 → P6 → P5 → P4 → P3 → P2 → P1
-            <Pressy onPress={() => {
-              setSelectedId(null);
-              lineup.rotateStarters(team);
-            }} scaleTo={0.85} hitSlop={8} accessibilityRole="button"
-              accessibilityLabel={`Ruota lo Starting Six di ${name}${rotation ? `, ora in ${rotation}` : ''}`}
-              style={{ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: c.lineStrong }}>
-              <RefreshCw size={14} color={c.text} />
-            </Pressy>
-          ) : null}
-        </View>
-        <Court players={players} big selectedId={selected?.id} onZone={lineup.canEdit ? tapZone : undefined} />
-        {selected ? (
-          <Txt size={11} color="accent" center numberOfLines={2}>{surname(selected.name)} selezionata: tocca la zona o la giocatrice con cui scambiarla</Txt>
-        ) : null}
-        <LiberoLine player={players.find((p) => p.isLibero)} />
-      </View>
     </View>
   );
 }

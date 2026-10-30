@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, ScrollView, View, useWindowDimensions, type HostInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronDown, MonitorPlay, Plus, RotateCcw, Trophy, Volleyball } from 'lucide-react-native';
+import { MonitorPlay, Plus, RotateCcw, Trophy, Volleyball } from 'lucide-react-native';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -36,13 +36,12 @@ export default function Live() {
   const player = usePlayer();
   // la funzione cronaca-ai accetta solo staff e admin
   const ai = hasSupabase && (user?.role === 'admin' || user?.role === 'staff');
-  const [panel, setPanel] = useState<'formazioni' | 'mvp' | 'statistiche'>('formazioni');
-  // tre schede: a larghezza piena solo se le etichette ci stanno, altrimenti scorrono
-  const wide = useWindowDimensions().width >= 380;
+  const [panel, setPanel] = useState<'formazioni' | 'cronaca' | 'mvp' | 'statistiche'>('formazioni');
+  // quattro schede: a larghezza piena solo se le etichette ci stanno, altrimenti scorrono
+  const wide = useWindowDimensions().width >= 480;
   // riquadro del punto aperto dal pulsante + di una squadra
   const [picker, setPicker] = useState<{ side: 'us' | 'opp'; name: string; anchor: Anchor } | null>(null);
-  // cronaca: chiusa (solo l'intestazione) o aperta con filtro e tutte le azioni, filtrate per set ('all' = tutti)
-  const [feedOpen, setFeedOpen] = useState(false);
+  // cronaca: azioni filtrate per set ('all' = tutti)
   const [feedSet, setFeedSet] = useState('all');
 
   if (!m) {
@@ -149,41 +148,32 @@ export default function Live() {
           </View>
         </Card>
   
-        {/* cronaca tra il punteggio e le schede: si apre e si chiude tutta dall'intestazione; l'ultima azione è in alto */}
-        <Card style={{ gap: space.xs }}>
-          <Pressy onPress={() => setFeedOpen((o) => !o)} scaleTo={0.98} accessibilityRole="button" accessibilityState={{ expanded: feedOpen }}
-            accessibilityLabel={feedOpen ? 'Riduci la cronaca' : 'Espandi la cronaca'}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-            <Txt w={800} size={15} style={{ flex: 1 }}>Cronaca</Txt>
-            <Txt size={13} color="muted" tnum>{feed.length} azioni</Txt>
-            <ChevronDown size={18} color={c.muted} style={{ transform: [{ rotate: feedOpen ? '180deg' : '0deg' }] }} />
-          </Pressy>
-          {feedOpen && rowsSets.length > 1 ? (
-            <View style={{ marginTop: space.sm, marginBottom: space.sm }}>
-              {/* dal 4° set le etichette non stanno in larghezza: il filtro diventa scorrevole */}
-              <SegmentedControl stretch={rowsSets.length <= 3} value={shownSet ? String(shownSet) : 'all'} onChange={setFeedSet}
-                options={[{ value: 'all', label: 'Tutti' }, ...rowsSets.map((_, i) => ({ value: String(i + 1), label: i === 4 ? 'Tie-break' : `${i + 1}° set` }))]} />
-            </View>
-          ) : null}
-          {!feedOpen ? null : feed.length ? (
-            <View style={{ marginTop: rowsSets.length > 0 ? 0 : space.sm }}>
-              {feed.map((e, i) => (
-                <FeedItem key={e.id} first={i === 0} last={i === feed.length - 1} us={e.side === 'us'} meta={`${e.set}° set, ${e.our}–${e.opp}`} text={e.text} detail={e.detail} />
-              ))}
-            </View>
-          ) : (
-            <Txt size={13} color="muted" style={{ marginTop: space.sm }}>{shownSet ? 'Nessuna azione in questo set.' : 'Nessuna azione ancora.'}</Txt>
-          )}
-        </Card>
-
-        {/* in ogni scheda i dati stanno sotto la loro squadra: casa a sinistra, ospite a destra */}
+        {/* schede sotto il punteggio: formazioni, cronaca (l'ultima azione è in alto), voto MVP e statistiche */}
         <Card style={{ gap: space.xs }}>
           <View style={{ marginBottom: space.sm }}>
             <SegmentedControl stretch={wide} value={panel} onChange={setPanel}
-              options={[{ value: 'formazioni', label: 'Formazioni' }, { value: 'mvp', label: 'Vota MVP' }, { value: 'statistiche', label: 'Statistiche' }]} />
+              options={[{ value: 'formazioni', label: 'Formazioni' }, { value: 'cronaca', label: 'Cronaca' }, { value: 'mvp', label: 'Vota MVP' }, { value: 'statistiche', label: 'Statistiche' }]} />
           </View>
           {panel === 'formazioni' ? (
             <LineupPanel lineup={lineup} teams={[L, R].map((t) => ({ team: t.side, name: t.name, logo: t.logo, players: t.side === 'us' ? lineup.us : lineup.opp }))} />
+          ) : panel === 'cronaca' ? (
+            <View style={{ gap: space.sm }}>
+              {rowsSets.length > 1 ? (
+                // dal 4° set le etichette non stanno in larghezza: il filtro diventa scorrevole
+                <SegmentedControl stretch={rowsSets.length <= 3} value={shownSet ? String(shownSet) : 'all'} onChange={setFeedSet}
+                  options={[{ value: 'all', label: 'Tutti' }, ...rowsSets.map((_, i) => ({ value: String(i + 1), label: i === 4 ? 'Tie-break' : `${i + 1}° set` }))]} />
+              ) : null}
+              <Txt size={12.5} color="muted" tnum>{feed.length} {feed.length === 1 ? 'azione' : 'azioni'}</Txt>
+              {feed.length ? (
+                <View>
+                  {feed.map((e, i) => (
+                    <FeedItem key={e.id} first={i === 0} last={i === feed.length - 1} us={e.side === 'us'} meta={`${e.set}° set, ${e.our}–${e.opp}`} text={e.text} detail={e.detail} />
+                  ))}
+                </View>
+              ) : (
+                <Txt size={13} color="muted">{shownSet ? 'Nessuna azione in questo set.' : 'Nessuna azione ancora.'}</Txt>
+              )}
+            </View>
           ) : panel === 'mvp' ? (
             <MvpPanel key={m.id} match={m} awayMatch={!home} events={live.events} finished={live.finished}
               teams={[L, R].map((t) => ({ side: t.side, name: t.name, logo: t.logo, players: t.side === 'us' ? lineup.us : lineup.opp }))} />
