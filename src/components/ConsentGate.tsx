@@ -10,7 +10,7 @@ import { Txt } from './Txt';
 import { useToast } from './Toast';
 import { apriInformativa, PRIVACY_POLICY_VERSION } from '@/lib/privacy';
 import { useApp } from '@/store/AppProvider';
-import { FONT, palette } from '@/theme/colors';
+import { FONT, palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
 /**
@@ -62,8 +62,8 @@ export function ConsentGate() {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} accessibilityViewIsModal
       style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: c.bg }}>
       <ScrollView keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 18, paddingTop: insets.top + 18, paddingBottom: insets.bottom + 18 }}>
-        <View style={{ width: '100%', maxWidth: 480, alignSelf: 'center', borderRadius: 28, padding: 20, gap: 14, backgroundColor: c.card, borderWidth: 1.5, borderColor: 'rgba(255,213,3,0.5)' }}>
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: space.md, paddingTop: insets.top + space.md, paddingBottom: insets.bottom + space.md }}>
+        <View style={{ width: '100%', maxWidth: 480, alignSelf: 'center', borderRadius: 28, padding: space.lg, gap: space.md, backgroundColor: c.card, borderWidth: 1.5, borderColor: 'rgba(255,213,3,0.5)' }}>
           {elimina ? (
             <DeleteAccountPanel
               onCancel={() => setElimina(false)}
@@ -74,7 +74,7 @@ export function ConsentGate() {
             />
           ) : (
             <>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
                 <View style={{ width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.gold }}>
                   <ShieldCheck size={20} color={palette.onGold} />
                 </View>
@@ -90,10 +90,10 @@ export function ConsentGate() {
               </Txt>
 
               {chiediNome ? (
-                <View style={{ gap: 6 }}>
+                <View style={{ gap: space.sm }}>
                   <Txt w={600} size={13}>Nome e cognome</Txt>
                   <TextInput value={nome} onChangeText={setNome} autoComplete="name" textContentType="name" placeholder="Es. Giulia Rossi" placeholderTextColor={c.muted}
-                    style={{ height: 50, borderRadius: 14, borderWidth: 1, borderColor: tentato && !nomeOk ? c.danger : c.lineStrong, backgroundColor: c.fill, paddingHorizontal: 14, fontFamily: FONT[500], fontSize: 16, color: c.text }} />
+                    style={{ height: 50, borderRadius: 14, borderWidth: 1, borderColor: tentato && !nomeOk ? c.danger : c.lineStrong, backgroundColor: c.fill, paddingHorizontal: space.md, fontFamily: FONT[500], fontSize: 16, color: c.text }} />
                   {tentato && !nomeOk ? <Txt size={12.5} color="danger">Scrivi nome e cognome.</Txt> : null}
                 </View>
               ) : null}
@@ -117,7 +117,7 @@ export function ConsentGate() {
               {errore ? <Txt size={13} color="danger">{errore}</Txt> : null}
 
               <Button label="Conferma e continua" variant="gold" loading={busy} onPress={conferma} />
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: space.xs }}>
                 <Pressable onPress={esci} hitSlop={8} accessibilityRole="button" disabled={busy}>
                   <Txt w={600} size={14} color="muted">Esci</Txt>
                 </Pressable>

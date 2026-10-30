@@ -1,5 +1,6 @@
 import type { PropsWithChildren } from 'react';
 import { ScrollViewStyleReset, useServerDocumentContext } from 'expo-router/html';
+import { blue } from '@/theme/colors';
 
 /*
  * Pagina HTML che avvolge ogni rotta, solo sul web (l'app nativa non la usa).
@@ -17,7 +18,7 @@ export default function Root({ children }: PropsWithChildren) {
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
         <meta name="description" content="L'app ufficiale di Arena Volley Team: risultati, dirette, classifica, rosa e news." />
-        <meta name="theme-color" content="#061A3A" />
+        <meta name="theme-color" content={blue[900]} />
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
 

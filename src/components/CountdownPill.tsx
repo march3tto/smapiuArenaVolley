@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { Volleyball } from 'lucide-react-native';
 import { Txt } from './Txt';
-import { palette } from '@/theme/colors';
+import { palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
 /** Finestra dell'anello: si parte a riempirlo 7 giorni prima della partita */
@@ -52,7 +52,7 @@ export function CountdownPill({ date }: { date: string }) {
 
   return (
     <View
-      style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7 }}
+      style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: space.sm }}
       accessibilityLabel={`Mancano ${d} giorni, ${h} ore, ${min} minuti`}
     >
       <View style={{ width: SIZE, height: SIZE, alignItems: 'center', justifyContent: 'center' }}>
@@ -74,7 +74,7 @@ export function CountdownPill({ date }: { date: string }) {
         <Volleyball size={13} color={ink} strokeWidth={2.2} />
       </View>
       <Txt w={400} size={15} color={ink} style={{ opacity: 0.55, transform: [{ skewX: '-8deg' }] }}>/</Txt>
-      <View style={{ flexDirection: 'row', gap: 4.5 }}>
+      <View style={{ flexDirection: 'row', gap: space.xs }}>
         <TimeBox value={String(d)} label="Giorni" ink={ink} />
         <TimeBox value={pad(h)} label="Ore" ink={ink} />
         <TimeBox value={pad(min)} label="Minuti" ink={ink} />
@@ -87,7 +87,7 @@ export function CountdownPill({ date }: { date: string }) {
 function TimeBox({ value, label, ink }: { value: string; label: string; ink: string }) {
   const { c } = useTheme();
   return (
-    <View style={{ minWidth: 35, alignItems: 'center', paddingVertical: 3, paddingHorizontal: 4.5, borderRadius: 7.5, backgroundColor: c.fill2 }}>
+    <View style={{ minWidth: 35, alignItems: 'center', paddingVertical: space.xs, paddingHorizontal: space.xs, borderRadius: 7.5, backgroundColor: c.fill2 }}>
       <Txt w={800} size={11.5} display={false} color={ink} tnum style={{ lineHeight: 13.5 }}>{value}</Txt>
       <Txt w={700} size={6.75} color="muted" style={{ letterSpacing: 0.45, lineHeight: 8.5 }}>{label.toUpperCase()}</Txt>
     </View>

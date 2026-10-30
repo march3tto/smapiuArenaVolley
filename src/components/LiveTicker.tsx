@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, View } from 'react-native';
 import { Txt } from './Txt';
-import { palette } from '@/theme/colors';
+import { palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
 /** Velocità di scorrimento in px al secondo */
@@ -36,12 +36,12 @@ export function LiveTicker({ text }: { text: string }) {
   return (
     <View accessible accessibilityLabel={`Ultima azione: ${text}`}
       style={{ flexDirection: 'row', height: 30, borderRadius: 8, overflow: 'hidden', backgroundColor: palette.gold }}>
-      <View style={{ justifyContent: 'center', paddingHorizontal: 9, backgroundColor: c.live, zIndex: 1 }}>
+      <View style={{ justifyContent: 'center', paddingHorizontal: space.sm, backgroundColor: c.live, zIndex: 1 }}>
         <Txt w={800} size={11} color="#FFFFFF" display={false} style={{ letterSpacing: 0.6 }}>ULTIMA AZIONE</Txt>
       </View>
       <View style={{ flex: 1, justifyContent: 'center', overflow: 'hidden' }} onLayout={(e) => setBoxW(e.nativeEvent.layout.width)}>
         {still ? (
-          <Txt w={700} size={12.5} color={palette.onGold} numberOfLines={1} style={{ paddingHorizontal: 8 }}>{text}</Txt>
+          <Txt w={700} size={12.5} color={palette.onGold} numberOfLines={1} style={{ paddingHorizontal: space.sm }}>{text}</Txt>
         ) : (
           // contenitore molto largo: il testo si misura sulla sua larghezza naturale, senza andare a capo
           <Animated.View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4000, flexDirection: 'row', alignItems: 'center', transform: [{ translateX: x }] }}>

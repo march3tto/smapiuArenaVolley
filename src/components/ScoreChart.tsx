@@ -2,14 +2,14 @@ import { useMemo, useState } from 'react';
 import { View, type GestureResponderEvent } from 'react-native';
 import Svg, { Circle, Line, Polyline, Text as SvgText } from 'react-native-svg';
 import { Txt } from './Txt';
-import { FONT } from '@/theme/colors';
+import { blue, FONT, palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { SetScore } from '@/types';
 
-/** Colori delle due linee, validati per daltonismo e contrasto sullo sfondo della card (chiaro e scuro) */
+/** Colori delle due linee: noi nell'accento oro (più scuro sul chiaro, per il contrasto), l'avversaria in blu */
 export const SERIES = {
-  dark: { us: '#FFD503', opp: '#5AA2F0' },
-  light: { us: '#B8860B', opp: '#115BAB' },
+  dark: { us: palette.gold, opp: blue[400] },
+  light: { us: '#B8860B', opp: blue[500] },
 } as const;
 
 const H = 190;
@@ -50,10 +50,10 @@ export function ScoreChart({ points, names, target }: { points: SetScore[]; name
   const label = (v: number, other: number) => (Math.abs(y(v) - y(other)) < 12 ? (v >= other ? -6 : 6) : 0);
 
   return (
-    <View style={{ gap: 8 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16 }}>
+    <View style={{ gap: space.sm }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'center', gap: space.md }}>
         {(['us', 'opp'] as const).map((s) => (
-          <View key={s} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
+          <View key={s} style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, flexShrink: 1 }}>
             <View style={{ width: 14, height: 3, borderRadius: 2, backgroundColor: col[s] }} />
             <Txt size={12} color="muted" numberOfLines={1} style={{ flexShrink: 1 }}>{names[s]}</Txt>
           </View>

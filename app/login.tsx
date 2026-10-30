@@ -3,7 +3,6 @@ import { Animated, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextIn
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { Check, Eye, EyeOff, Mail, User } from 'lucide-react-native';
 import { Arches } from '@/components/Arches';
@@ -18,7 +17,7 @@ import { LOGO_AVT } from '@/data/assets';
 import { AccessoAnnullato, PROVIDER_LABEL, providerDisponibili, type SocialProvider } from '@/lib/auth';
 import { apriInformativa } from '@/lib/privacy';
 import { useApp } from '@/store/AppProvider';
-import { brandGradient, FONT, palette } from '@/theme/colors';
+import { blue, FONT, palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
 type Mode = 'login' | 'register';
@@ -143,10 +142,10 @@ export default function Login() {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView contentContainerStyle={{ flexGrow: 1, flexDirection: wide ? 'row' : 'column' }} keyboardShouldPersistTaps="handled">
-        <LinearGradient colors={brandGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={{ paddingTop: insets.top + (wide ? 22 : 14), paddingHorizontal: 24, paddingBottom: wide ? 40 : short ? 76 : 84, borderBottomLeftRadius: wide ? 0 : 34, borderBottomRightRadius: 34, borderTopRightRadius: wide ? 34 : 0, overflow: 'hidden', flex: wide ? 1.1 : undefined, justifyContent: 'space-between', gap: wide ? 26 : 14 }}>
+        <View
+          style={{ backgroundColor: blue[900], paddingTop: insets.top + (wide ? space.lg : space.md), paddingHorizontal: space.lg, paddingBottom: wide ? space.xxl : short ? 80 : 88, borderBottomLeftRadius: wide ? 0 : 34, borderBottomRightRadius: 34, borderTopRightRadius: wide ? 34 : 0, overflow: 'hidden', flex: wide ? 1.1 : undefined, justifyContent: 'space-between', gap: wide ? space.lg : space.md }}>
           <Arches width={wide ? width * 0.55 : width} height={wide ? 240 : 130} />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
             <View style={{ width: wide ? 56 : 44, height: wide ? 56 : 44, borderRadius: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,213,3,0.6)', backgroundColor: 'rgba(255,255,255,0.08)' }}>
               <Image source={LOGO_AVT} style={{ width: wide ? 40 : 30, height: wide ? 43 : 32 }} contentFit="contain" />
             </View>
@@ -160,21 +159,21 @@ export default function Login() {
               Ogni punto,{'\n'}in diretta.
             </Txt>
             {short ? null : (
-              <Txt size={wide ? 15 : 13} color="rgba(255,255,255,0.82)" style={{ marginTop: wide ? 14 : 8, maxWidth: 420 }}>
+              <Txt size={wide ? 15 : 13} color="rgba(255,255,255,0.82)" style={{ marginTop: wide ? space.md : space.sm, maxWidth: 420 }}>
                 Accedi per seguire i match, salvare le giocatrici preferite e ricevere una notifica quando la squadra segna.
               </Txt>
             )}
           </View>
-        </LinearGradient>
+        </View>
 
-        <View style={{ flex: wide ? 1 : undefined, alignItems: 'center', justifyContent: wide ? 'center' : 'flex-start', padding: 14, paddingBottom: insets.bottom + (wide ? 24 : 12), marginTop: wide ? 0 : short ? -58 : -64 }}>
+        <View style={{ flex: wide ? 1 : undefined, alignItems: 'center', justifyContent: wide ? 'center' : 'flex-start', padding: space.md, paddingBottom: insets.bottom + (wide ? space.lg : space.md), marginTop: wide ? 0 : short ? -56 : -64 }}>
           <Animated.View style={{ width: '100%', maxWidth: 430, transform: [{ translateX: shake }] }}>
-            <LinearGradient colors={[c.card, c.cardAlt]} style={{ borderRadius: 28, padding: wide ? 22 : 18, borderWidth: 1.5, borderColor: 'rgba(255,213,3,0.5)', gap: wide ? 14 : short ? 8 : 10 }}>
+            <View style={{ backgroundColor: c.card, borderRadius: 28, padding: wide ? space.lg : space.md, borderWidth: 1.5, borderColor: 'rgba(255,213,3,0.5)', gap: wide ? space.md : short ? space.sm : space.sm }}>
               <SegmentedControl stretch options={[{ value: 'login', label: 'Accedi' }, { value: 'register', label: 'Registrati' }]} value={mode} onChange={(m) => { setMode(m); setErrors({}); }} />
               {/* su telefono il titolo ripeterebbe il selettore Accedi/Registrati: si omette per guadagnare spazio */}
               {wide ? <View>
                 <Txt w={900} size={28} style={{ letterSpacing: -0.8 }}>{reg ? 'Crea il tuo account' : 'Accedi'}</Txt>
-                <Txt size={14} color="muted" style={{ marginTop: 4 }}>{reg ? 'Bastano pochi secondi, ed è gratis.' : 'Inserisci email e password.'}</Txt>
+                <Txt size={14} color="muted" style={{ marginTop: space.xs }}>{reg ? 'Bastano pochi secondi, ed è gratis.' : 'Inserisci email e password.'}</Txt>
               </View> : null}
 
               {reg ? <Field label="Nome e cognome" value={name} onChangeText={(t) => { setName(t); setErrors((e) => ({ ...e, name: undefined })); }} error={errors.name} compact={!wide} autoComplete="name" right={<User size={18} color={c.muted} />} /> : null}
@@ -183,8 +182,8 @@ export default function Login() {
                 right={<Pressable onPress={() => setShow((s) => !s)} hitSlop={10} accessibilityLabel={show ? 'Nascondi password' : 'Mostra password'}>{show ? <EyeOff size={18} color={c.muted} /> : <Eye size={18} color={c.muted} />}</Pressable>} />
 
               {reg ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <View style={{ flex: 1, flexDirection: 'row', gap: 4 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+                  <View style={{ flex: 1, flexDirection: 'row', gap: space.xs }}>
                     {[1, 2, 3, 4].map((i) => (
                       <View key={i} style={{ flex: 1, height: 4, borderRadius: 4, backgroundColor: i <= st.lv ? [c.danger, c.danger, '#F2994A', palette.gold, c.ok][st.lv] : c.fill2 }} />
                     ))}
@@ -198,7 +197,7 @@ export default function Login() {
               )}
 
               {reg ? (
-                <View style={{ gap: 8 }}>
+                <View style={{ gap: space.sm }}>
                   <Checkbox checked={eta} onChange={(v) => { setEta(v); setErrors((e) => ({ ...e, consents: undefined })); }} error={!!errors.consents && !eta}>
                     <Txt size={13} style={{ lineHeight: 18 }}>Dichiaro di avere almeno 14 anni</Txt>
                   </Checkbox>
@@ -221,13 +220,13 @@ export default function Login() {
 
               {socials.length ? (
                 <>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
                     <View style={{ flex: 1, height: 1, backgroundColor: c.line }} />
                     <Txt size={13} color="muted">oppure</Txt>
                     <View style={{ flex: 1, height: 1, backgroundColor: c.line }} />
                   </View>
                   {/* stessa misura ed evidenza per tutti i provider (App Store, guideline 4.8) */}
-                  <View style={{ gap: 8 }}>
+                  <View style={{ gap: space.sm }}>
                     {socials.map((p) => p === 'apple' ? (
                       <AppleAuthentication.AppleAuthenticationButton key={p}
                         buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
@@ -243,10 +242,10 @@ export default function Login() {
                   </Txt>
                 </>
               ) : null}
-              <Pressable onPress={guest} style={{ alignSelf: 'center', paddingVertical: wide ? 4 : 2 }} hitSlop={8}>
+              <Pressable onPress={guest} style={{ alignSelf: 'center', paddingVertical: wide ? space.xs : space.xs }} hitSlop={8}>
                 <Txt w={600} size={14} color="muted">Continua senza account</Txt>
               </Pressable>
-            </LinearGradient>
+            </View>
           </Animated.View>
         </View>
       </ScrollView>
@@ -258,15 +257,15 @@ function Field({ label, error, right, compact, ...input }: TextInputProps & { la
   const { c } = useTheme();
   const [focus, setFocus] = useState(false);
   return (
-    <View style={{ gap: 6 }}>
-      <View style={{ height: compact ? 52 : 58, borderRadius: 16, borderWidth: 1, borderColor: error ? c.danger : focus ? palette.gold : c.lineStrong, backgroundColor: c.fill, paddingHorizontal: 16, justifyContent: 'center' }}>
+    <View style={{ gap: space.sm }}>
+      <View style={{ height: compact ? 52 : 58, borderRadius: 16, borderWidth: 1, borderColor: error ? c.danger : focus ? palette.gold : c.lineStrong, backgroundColor: c.fill, paddingHorizontal: space.md, justifyContent: 'center' }}>
         <Txt w={600} size={compact ? 11 : 12} color={error ? 'danger' : focus || input.value ? 'accent' : 'muted'}>{label}</Txt>
         <TextInput
           {...input}
           onFocus={(e) => { setFocus(true); input.onFocus?.(e); }}
           onBlur={(e) => { setFocus(false); input.onBlur?.(e); }}
           placeholderTextColor={c.muted}
-          style={{ fontFamily: FONT[500], fontSize: 16, color: c.text, paddingVertical: 2, paddingRight: 30 }}
+          style={{ fontFamily: FONT[500], fontSize: 16, color: c.text, paddingVertical: space.xs, paddingRight: space.xl }}
         />
         {right ? <View style={{ position: 'absolute', right: 14, top: compact ? 17 : 20 }}>{right}</View> : null}
       </View>

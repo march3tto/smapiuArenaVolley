@@ -10,7 +10,7 @@ import { Pressy } from '@/components/Pressy';
 import { Txt } from '@/components/Txt';
 import { askAssistant, type AssistantMessage } from '@/lib/api';
 import { useApp } from '@/store/AppProvider';
-import { FONT, palette, radius } from '@/theme/colors';
+import { FONT, palette, radius, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
 const SUGGERIMENTI = ['Prossima partita', 'Ultimo risultato', 'Classifica', 'Chi è la capitana?', 'Rosa Serie D', 'Cos’è il libero?'];
@@ -56,8 +56,8 @@ export default function Assistente() {
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: c.bg }}>
-      <View style={{ flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center', paddingTop: Platform.OS === 'ios' ? 22 : insets.top + 16 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingBottom: 12 }}>
+      <View style={{ flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center', paddingTop: Platform.OS === 'ios' ? space.lg : insets.top + space.md }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.md, paddingBottom: space.md }}>
           <View style={{ width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.navy }}>
             <Sparkles size={20} color={palette.gold} />
           </View>
@@ -71,8 +71,8 @@ export default function Assistente() {
         </View>
 
         {!user ? (
-          <View style={{ padding: 14 }}>
-            <Card style={{ gap: 12 }}>
+          <View style={{ padding: space.md }}>
+            <Card style={{ gap: space.md }}>
               <Txt w={700} size={17}>Accedi per usare l’assistente</Txt>
               <Txt size={15} color="muted">L’assistente risponde alle domande su partite, risultati, classifica, rosa e news della società, e sulla pallavolo in generale.</Txt>
               <Button label="Accedi o registrati" variant="gold" onPress={() => router.replace('/login')} />
@@ -84,16 +84,16 @@ export default function Assistente() {
               ref={list}
               data={messages}
               keyExtractor={(_, i) => String(i)}
-              contentContainerStyle={{ padding: 14, gap: 10, flexGrow: 1 }}
+              contentContainerStyle={{ padding: space.md, gap: space.sm, flexGrow: 1 }}
               keyboardShouldPersistTaps="handled"
               onContentSizeChange={() => list.current?.scrollToEnd({ animated: true })}
               renderItem={({ item }) => <Bubble message={item} />}
               ListEmptyComponent={<Suggestions onPick={ask} />}
               ListFooterComponent={
-                <View style={{ gap: 10, marginTop: messages.length ? 10 : 0 }}>
+                <View style={{ gap: space.sm, marginTop: messages.length ? space.sm : 0 }}>
                   {loading ? <Typing /> : null}
                   {error ? (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'flex-start' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, alignSelf: 'flex-start' }}>
                       <Txt size={14} color="danger">{error}</Txt>
                       <Button label="Riprova" size="sm" icon={<RotateCcw size={14} color={c.text} />} onPress={() => send(messages)} />
                     </View>
@@ -102,8 +102,8 @@ export default function Assistente() {
               }
             />
 
-            <View style={{ paddingHorizontal: 14, paddingTop: 8, paddingBottom: insets.bottom + 10, gap: 8, borderTopWidth: 1, borderTopColor: c.line }}>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
+            <View style={{ paddingHorizontal: space.md, paddingTop: space.sm, paddingBottom: insets.bottom + space.sm, gap: space.sm, borderTopWidth: 1, borderTopColor: c.line }}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: space.sm }}>
                 <TextInput
                   value={text}
                   onChangeText={setText}
@@ -117,7 +117,7 @@ export default function Assistente() {
                   onSubmitEditing={() => ask(text)}
                   accessibilityLabel="Domanda per l’assistente"
                   style={{ flex: 1, minHeight: 46, maxHeight: 120, borderRadius: 23, borderWidth: 1, borderColor: c.lineStrong, backgroundColor: c.fill,
-                    paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, fontFamily: FONT[500], fontSize: 16, color: c.text, opacity: blocked ? 0.5 : 1 }}
+                    paddingHorizontal: space.md, paddingTop: space.md, paddingBottom: space.md, fontFamily: FONT[500], fontSize: 16, color: c.text, opacity: blocked ? 0.5 : 1 }}
                 />
                 <IconButton label="Invia" size={46} active={!disabled && !!text.trim()} onPress={() => ask(text)}>
                   {loading ? <ActivityIndicator size="small" color={c.muted} /> : <SendHorizontal size={19} color={!disabled && text.trim() ? palette.onGold : c.muted} />}
@@ -136,7 +136,7 @@ function Bubble({ message }: { message: AssistantMessage }) {
   const { c } = useTheme();
   const mine = message.role === 'user';
   return (
-    <View style={{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: '86%', paddingHorizontal: 14, paddingVertical: 10, borderRadius: radius.md,
+    <View style={{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: '86%', paddingHorizontal: space.md, paddingVertical: space.sm, borderRadius: radius.md,
       borderBottomRightRadius: mine ? 6 : radius.md, borderBottomLeftRadius: mine ? radius.md : 6,
       backgroundColor: mine ? palette.gold : c.card, borderWidth: mine ? 0 : 1, borderColor: c.line }}>
       <Txt size={15} color={mine ? palette.onGold : c.text} selectable>{message.content}</Txt>
@@ -148,12 +148,12 @@ function Bubble({ message }: { message: AssistantMessage }) {
 function Suggestions({ onPick }: { onPick: (q: string) => void }) {
   const { c } = useTheme();
   return (
-    <View style={{ flex: 1, justifyContent: 'flex-end', gap: 14, paddingBottom: 6 }}>
+    <View style={{ flex: 1, justifyContent: 'flex-end', gap: space.md, paddingBottom: space.sm }}>
       <Txt size={15} color="muted">Ciao! Chiedimi delle partite, dei risultati, della classifica, della rosa o delle news. Posso anche spiegarti le regole della pallavolo.</Txt>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
         {SUGGERIMENTI.map((s) => (
           <Pressy key={s} onPress={() => onPick(s)} scaleTo={0.95} accessibilityRole="button" accessibilityLabel={s}
-            style={{ paddingHorizontal: 14, height: 36, borderRadius: radius.pill, justifyContent: 'center', borderWidth: 1, borderColor: palette.gold, backgroundColor: c.fill }}>
+            style={{ paddingHorizontal: space.md, height: 36, borderRadius: radius.pill, justifyContent: 'center', borderWidth: 1, borderColor: palette.gold, backgroundColor: c.fill }}>
             <Txt w={600} size={13.5}>{s}</Txt>
           </Pressy>
         ))}
@@ -175,9 +175,9 @@ function Typing() {
     return () => anim.stop();
   }, [dots]);
   return (
-    <View accessibilityLabel="L’assistente sta scrivendo" style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 12,
+    <View accessibilityLabel="L’assistente sta scrivendo" style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.md, paddingVertical: space.md,
       borderRadius: radius.md, borderBottomLeftRadius: 6, backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
-      <View style={{ flexDirection: 'row', gap: 4 }}>
+      <View style={{ flexDirection: 'row', gap: space.xs }}>
         {dots.map((d, i) => <Animated.View key={i} style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: palette.gold, opacity: d }} />)}
       </View>
       <Txt size={13} color="muted">sta scrivendo…</Txt>

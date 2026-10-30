@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { ActivityIndicator, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Pressy } from './Pressy';
 import { Txt } from './Txt';
-import { palette, radius } from '@/theme/colors';
+import { palette, radius, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
 interface Props {
@@ -32,19 +32,15 @@ export function Button({ label, onPress, variant = 'ghost', size = 'md', icon, l
         {
           height: h,
           borderRadius: radius.pill,
-          paddingHorizontal: size === 'sm' ? 14 : 20,
+          paddingHorizontal: size === 'sm' ? space.md : space.lg,
           backgroundColor: bg,
           borderWidth: variant === 'ghost' ? 1 : 0,
           borderColor: c.line,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 8,
+          gap: space.sm,
           opacity: disabled ? 0.5 : 1,
-          shadowColor: variant === 'gold' ? palette.gold : 'transparent',
-          shadowOpacity: variant === 'gold' ? 0.45 : 0,
-          shadowRadius: 16,
-          shadowOffset: { width: 0, height: 8 },
         },
         style,
       ]}

@@ -22,7 +22,7 @@ import { useApp } from '@/store/AppProvider';
 import { PHASE_LABEL, ZONE_LABEL, actionLabel, useLive } from '@/store/LiveProvider';
 import { useLiveLineup } from '@/store/LineupProvider';
 import { usePlayer } from '@/store/PlayerProvider';
-import { palette } from '@/theme/colors';
+import { palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { LineupPlayer, PointDetail } from '@/types';
 
@@ -47,7 +47,7 @@ export default function Live() {
 
   if (!m) {
     return (
-      <View style={{ flex: 1, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 10 }}>
+      <View style={{ flex: 1, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center', padding: space.lg, gap: space.sm }}>
         <Volleyball size={30} color={c.accent} />
         <Txt w={700} size={18}>Nessuna partita in diretta</Txt>
         <Txt color="muted" center>Quando una partita è in corso la trovi qui, punto per punto.</Txt>
@@ -78,9 +78,9 @@ export default function Live() {
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       {/* il video resta fisso in alto mentre sotto scorrono punteggio e cronaca */}
       <PlayerSlot />
-      <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ padding: 14, gap: 16, paddingBottom: insets.bottom + 30, width: '100%', maxWidth: 900, alignSelf: 'center' }}>
-        <Card style={{ gap: 18, borderColor: 'rgba(255,213,3,0.5)', borderWidth: 1.5 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+      <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ padding: space.md, gap: space.md, paddingBottom: insets.bottom + space.xl, width: '100%', maxWidth: 900, alignSelf: 'center' }}>
+        <Card style={{ gap: space.md, borderColor: 'rgba(255,213,3,0.5)', borderWidth: 1.5 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm }}>
             {live.finished ? <Trophy size={14} color={c.accent} /> : <LiveDot />}
             <Txt w={700} size={13} color={live.finished ? 'accent' : 'live'}>{live.finished ? 'Finale' : 'In diretta'}</Txt>
             <Txt size={13} color="muted" numberOfLines={1} style={{ flexShrink: 1 }}>· {m.venue}</Txt>
@@ -94,7 +94,7 @@ export default function Live() {
             <Side {...L} flash={live.lastPoint?.side === L.side ? live.lastPoint.key : 0} serving={L.serving && !live.finished} server={serverOf(L.side)}
               onServe={live.canChooseServe ? () => live.chooseServe(L.side) : undefined}
               onPlus={live.canScore ? (anchor) => setPicker({ side: L.side, name: L.name, anchor }) : undefined} />
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, paddingTop: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingTop: space.sm }}>
               <AnimatedNumber value={live.finished ? L.sets : L.pts} size={48} />
               <Txt w={400} size={34} color="accent">:</Txt>
               <AnimatedNumber value={live.finished ? R.sets : R.pts} size={48} />
@@ -105,13 +105,13 @@ export default function Live() {
           </View>
   
           {live.standing ? (
-            <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 10, padding: 12, borderRadius: 16, backgroundColor: c.fill }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'center', gap: space.sm, padding: space.md, borderRadius: 16, backgroundColor: c.fill }}>
               <Txt size={13} color="muted">Punti in classifica</Txt>
               <Txt w={800} size={13} tnum>{pts(L.side)} – {pts(R.side)}</Txt>
             </View>
           ) : null}
   
-          <View style={{ borderTopWidth: 1, borderTopColor: c.line, paddingTop: 12 }}>
+          <View style={{ borderTopWidth: 1, borderTopColor: c.line, paddingTop: space.md }}>
             <View style={{ flexDirection: 'row' }}>
               <Txt size={12} color="muted" style={{ flex: 1 }}> </Txt>
               {rowsSets.map((_, i) => (
@@ -119,22 +119,22 @@ export default function Live() {
               ))}
             </View>
             {[L, R].map((t) => (
-              <View key={t.name} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 9, borderTopWidth: 1, borderTopColor: c.line }}>
-                <Txt w={700} size={12} numberOfLines={2} style={{ flex: 1, paddingRight: 6 }}>{t.name}</Txt>
+              <View key={t.name} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: space.sm, borderTopWidth: 1, borderTopColor: c.line }}>
+                <Txt w={700} size={12} numberOfLines={2} style={{ flex: 1, paddingRight: space.sm }}>{t.name}</Txt>
                 {rowsSets.map((s, i) => {
                   const mine = t.side === 'us' ? s.our : s.opp;
                   const theirs = t.side === 'us' ? s.opp : s.our;
                   const current = i === rowsSets.length - 1 && !live.finished;
                   return (
                     <Txt key={i} w={!current && mine > theirs ? 800 : current ? 800 : 400} size={13} center tnum color={!current && mine > theirs ? 'accent' : 'text'}
-                      style={{ width: 34, backgroundColor: current ? c.fill : undefined, paddingVertical: 2, borderRadius: 6 }}>{mine}</Txt>
+                      style={{ width: 34, backgroundColor: current ? c.fill : undefined, paddingVertical: space.xs, borderRadius: 6 }}>{mine}</Txt>
                   );
                 })}
               </View>
             ))}
           </View>
   
-          <View style={{ gap: 8, alignItems: 'center' }}>
+          <View style={{ gap: space.sm, alignItems: 'center' }}>
             {m.youtubeLiveId ? (
               <Button label={player.stream ? 'Diretta aperta' : 'Guarda la diretta'} variant="gold" icon={<MonitorPlay size={18} color={palette.onGold} />}
                 onPress={() => player.open(m.youtubeLiveId!, `${L.name} – ${R.name}`)} />
@@ -155,35 +155,35 @@ export default function Live() {
         </Card>
   
         {/* cronaca tra il punteggio e le schede: si apre e si chiude tutta dall'intestazione; l'ultima azione è in alto */}
-        <Card style={{ gap: 4 }}>
+        <Card style={{ gap: space.xs }}>
           <Pressy onPress={() => setFeedOpen((o) => !o)} scaleTo={0.98} accessibilityRole="button" accessibilityState={{ expanded: feedOpen }}
             accessibilityLabel={feedOpen ? 'Riduci la cronaca' : 'Espandi la cronaca'}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
             <Txt w={800} size={15} style={{ flex: 1 }}>Cronaca</Txt>
             <Txt size={13} color="muted" tnum>{feed.length} azioni</Txt>
             <ChevronDown size={18} color={c.muted} style={{ transform: [{ rotate: feedOpen ? '180deg' : '0deg' }] }} />
           </Pressy>
           {feedOpen && rowsSets.length > 1 ? (
-            <View style={{ marginTop: 8, marginBottom: 6 }}>
+            <View style={{ marginTop: space.sm, marginBottom: space.sm }}>
               {/* dal 4° set le etichette non stanno in larghezza: il filtro diventa scorrevole */}
               <SegmentedControl stretch={rowsSets.length <= 3} value={shownSet ? String(shownSet) : 'all'} onChange={setFeedSet}
                 options={[{ value: 'all', label: 'Tutti' }, ...rowsSets.map((_, i) => ({ value: String(i + 1), label: i === 4 ? 'Tie-break' : `${i + 1}° set` }))]} />
             </View>
           ) : null}
           {!feedOpen ? null : feed.length ? (
-            <View style={{ marginTop: rowsSets.length > 1 ? 0 : 8 }}>
+            <View style={{ marginTop: rowsSets.length > 0 ? 0 : space.sm }}>
               {feed.map((e, i) => (
                 <FeedItem key={e.id} first={i === 0} last={i === feed.length - 1} us={e.side === 'us'} meta={`${e.set}° set, ${e.our}–${e.opp}`} text={e.text} detail={e.detail} />
               ))}
             </View>
           ) : (
-            <Txt size={13} color="muted" style={{ marginTop: 8 }}>{shownSet ? 'Nessuna azione in questo set.' : 'Nessuna azione ancora.'}</Txt>
+            <Txt size={13} color="muted" style={{ marginTop: space.sm }}>{shownSet ? 'Nessuna azione in questo set.' : 'Nessuna azione ancora.'}</Txt>
           )}
         </Card>
 
         {/* in ogni scheda i dati stanno sotto la loro squadra: casa a sinistra, ospite a destra */}
-        <Card style={{ gap: 4 }}>
-          <View style={{ marginBottom: 10 }}>
+        <Card style={{ gap: space.xs }}>
+          <View style={{ marginBottom: space.sm }}>
             <SegmentedControl stretch={wide} value={panel} onChange={setPanel}
               options={[{ value: 'formazioni', label: 'Formazioni' }, { value: 'mvp', label: 'Vota MVP' }, { value: 'statistiche', label: 'Statistiche' }]} />
           </View>
@@ -225,11 +225,11 @@ function Side({ name, logo, serving, server, flash, onPlus, onServe }: { name: s
     Animated.spring(pop, { toValue: 1, useNativeDriver: true, speed: 12, bounciness: 14 }).start();
   }, [flash, plus, pop]);
   return (
-    <View style={{ flex: 1, alignItems: 'center', gap: 6 }}>
+    <View style={{ flex: 1, alignItems: 'center', gap: space.sm }}>
       <Animated.View style={{ transform: [{ scale: pop }] }}>
         <Pressy onPress={onServe} disabled={!onServe} scaleTo={0.9} accessibilityRole={onServe ? 'button' : undefined}
           accessibilityLabel={onServe ? `${name} al servizio` : undefined} accessibilityState={onServe ? { selected: serving } : undefined}
-          style={{ borderRadius: 30, padding: 3, borderWidth: 2, borderColor: onServe && serving ? palette.gold : 'transparent' }}>
+          style={{ borderRadius: 30, padding: space.xs, borderWidth: 2, borderColor: onServe && serving ? palette.gold : 'transparent' }}>
           <TeamBadge name={name} logo={logo} size={52} />
         </Pressy>
       </Animated.View>
@@ -237,14 +237,14 @@ function Side({ name, logo, serving, server, flash, onPlus, onServe }: { name: s
         +1
       </Animated.Text>
       {/* altezza fissa di due righe: i pulsanti + restano allineati anche con nomi di lunghezza diversa */}
-      <Txt w={700} size={12.5} center numberOfLines={2} style={{ paddingHorizontal: 2, minHeight: 33 }}>{name}</Txt>
+      <Txt w={700} size={12.5} center numberOfLines={2} style={{ paddingHorizontal: space.xs, minHeight: 33 }}>{name}</Txt>
       <View style={{ alignItems: 'center', opacity: serving ? 1 : 0 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
           <Volleyball size={13} color={c.accent} />
           <Txt w={600} size={12}>Al servizio</Txt>
         </View>
         {/* riga sempre presente (anche vuota): i pulsanti + restano allineati tra le due squadre */}
-        <Txt size={11.5} color="muted" center numberOfLines={1} style={{ paddingHorizontal: 2 }}>
+        <Txt size={11.5} color="muted" center numberOfLines={1} style={{ paddingHorizontal: space.xs }}>
           {server ? `${server.number != null ? `#${server.number} ` : ''}${server.name}` : ' '}
         </Txt>
       </View>
@@ -269,21 +269,21 @@ function FeedItem({ meta, text, detail, us, first, last }: { meta: string; text:
     if (first) Animated.spring(anim, { toValue: 1, useNativeDriver: true, speed: 14, bounciness: 8 }).start();
   }, [first, anim]);
   return (
-    <Animated.View style={{ flexDirection: 'row', gap: 14, paddingVertical: 10, opacity: anim, transform: [{ translateX: anim.interpolate({ inputRange: [0, 1], outputRange: [-14, 0] }) }] }}>
+    <Animated.View style={{ flexDirection: 'row', gap: space.md, paddingVertical: space.sm, opacity: anim, transform: [{ translateX: anim.interpolate({ inputRange: [0, 1], outputRange: [-14, 0] }) }] }}>
       <View style={{ alignItems: 'center', width: 14 }}>
-        <View style={{ width: 12, height: 12, borderRadius: 6, marginTop: 4, backgroundColor: us ? palette.gold : c.muted }} />
-        {!last ? <View style={{ flex: 1, width: 2, backgroundColor: c.line, marginTop: 4 }} /> : null}
+        <View style={{ width: 12, height: 12, borderRadius: 6, marginTop: space.xs, backgroundColor: us ? palette.gold : c.muted }} />
+        {!last ? <View style={{ flex: 1, width: 2, backgroundColor: c.line, marginTop: space.xs }} /> : null}
       </View>
       <View style={{ flex: 1 }}>
         <Txt w={600} size={12} color="muted" tnum>{meta}</Txt>
         <Txt size={14}>{text}</Txt>
         {detail ? (
           // azione tecnica registrata: tipo, fase, posizione, giocatrice
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 5 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.xs, marginTop: space.xs }}>
             {[actionLabel(detail.action), PHASE_LABEL[detail.phase], detail.zone ? `Zona ${ZONE_LABEL[detail.zone]}` : null, detail.player?.name ?? null]
               .filter((x): x is string => !!x)
               .map((x) => (
-                <View key={x} style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, backgroundColor: c.fill }}>
+                <View key={x} style={{ paddingHorizontal: space.sm, paddingVertical: space.xs, borderRadius: 6, backgroundColor: c.fill }}>
                   <Txt w={600} size={11} color="muted">{x}</Txt>
                 </View>
               ))}

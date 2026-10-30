@@ -9,6 +9,7 @@ import { Txt } from '@/components/Txt';
 import { useToast } from '@/components/Toast';
 import { useApp } from '@/store/AppProvider';
 import { useTheme } from '@/theme/ThemeProvider';
+import { space } from '@/theme/colors';
 
 /** Impostazioni > Account e privacy > Elimina account */
 export default function EliminaAccount() {
@@ -21,7 +22,7 @@ export default function EliminaAccount() {
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ padding: 18, paddingTop: Platform.OS === 'ios' ? 22 : insets.top + 16, paddingBottom: insets.bottom + 30, gap: 16, width: '100%', maxWidth: 560, alignSelf: 'center' }}>
+        contentContainerStyle={{ padding: space.md, paddingTop: Platform.OS === 'ios' ? space.lg : insets.top + space.md, paddingBottom: insets.bottom + space.xl, gap: space.md, width: '100%', maxWidth: 560, alignSelf: 'center' }}>
         <View style={{ alignItems: 'flex-end' }}>
           <IconButton label="Chiudi" onPress={() => router.back()}>
             <X size={18} color={c.text} />
@@ -37,7 +38,7 @@ export default function EliminaAccount() {
             }}
           />
         ) : (
-          <View style={{ gap: 12 }}>
+          <View style={{ gap: space.md }}>
             <Txt size={15} color="muted">Accedi per eliminare il tuo account.</Txt>
             <Button label="Accedi" variant="gold" onPress={() => router.replace('/login')} />
           </View>

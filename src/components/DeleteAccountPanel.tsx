@@ -5,7 +5,7 @@ import { Button } from './Button';
 import { Txt } from './Txt';
 import { AccessoAnnullato } from '@/lib/auth';
 import { useApp } from '@/store/AppProvider';
-import { FONT } from '@/theme/colors';
+import { FONT, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
 const PAROLA = 'ELIMINA';
@@ -39,15 +39,15 @@ export function DeleteAccountPanel({ onDeleted, onCancel }: { onDeleted: (codice
   ];
 
   return (
-    <View style={{ gap: 12 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+    <View style={{ gap: space.md }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
         <View style={{ width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: c.danger }}>
           <Trash2 size={19} color="#fff" />
         </View>
         <Txt w={800} size={20} style={{ flex: 1, letterSpacing: -0.4 }}>Elimina account</Txt>
       </View>
       <Txt size={14} color="muted" style={{ lineHeight: 20 }}>Vengono eliminati definitivamente:</Txt>
-      <View style={{ gap: 4 }}>
+      <View style={{ gap: space.xs }}>
         {punti.map((p) => (
           <Txt key={p} size={14} style={{ lineHeight: 20 }}>•  {p}</Txt>
         ))}
@@ -64,7 +64,7 @@ export function DeleteAccountPanel({ onDeleted, onCancel }: { onDeleted: (codice
       <Txt w={600} size={13}>Scrivi {PAROLA} per confermare</Txt>
       <TextInput value={testo} onChangeText={(t) => { setTesto(t); setErrore(null); }} autoCapitalize="characters" autoCorrect={false} placeholder={PAROLA} placeholderTextColor={c.muted}
         accessibilityLabel={`Scrivi ${PAROLA} per confermare`}
-        style={{ height: 50, borderRadius: 14, borderWidth: 1, borderColor: testo === PAROLA ? c.danger : c.lineStrong, backgroundColor: c.fill, paddingHorizontal: 14, fontFamily: FONT[600], fontSize: 16, color: c.text, letterSpacing: 1 }} />
+        style={{ height: 50, borderRadius: 14, borderWidth: 1, borderColor: testo === PAROLA ? c.danger : c.lineStrong, backgroundColor: c.fill, paddingHorizontal: space.md, fontFamily: FONT[600], fontSize: 16, color: c.text, letterSpacing: 1 }} />
       {errore ? <Txt size={13} color="danger">{errore}</Txt> : null}
 
       <Button label="Elimina definitivamente" variant="danger" loading={busy} disabled={testo.trim() !== PAROLA} onPress={elimina} />

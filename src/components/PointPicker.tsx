@@ -11,7 +11,7 @@ import { US } from '@/constants';
 import { suggestCommentary } from '@/lib/api';
 import { setWinner } from '@/lib/volley';
 import { PHASE_LABEL, POINT_ACTIONS, ZONE_LABEL, actionLabel, detailLine, type PointAction, type PointDetail, type PointPhase } from '@/store/LiveProvider';
-import { palette, radius } from '@/theme/colors';
+import { palette, radius, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { LineupPlayer } from '@/types';
 
@@ -23,7 +23,7 @@ export interface Anchor {
   h: number;
 }
 
-const GUTTER = 12;
+const GUTTER = space.md;
 
 /**
  * Riquadro del punto in due passi.
@@ -168,7 +168,6 @@ export function PointPicker({ anchor, side, team, names, players, rotation = 0, 
         style={{
           position: 'absolute', left, top, width, maxHeight: maxH,
           backgroundColor: c.card, borderRadius: radius.lg, borderWidth: 1, borderColor: c.line, overflow: 'hidden',
-          shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 12,
           opacity: size ? t.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 1, 1], extrapolate: 'clamp' }) : 0,
           transform: [
             { translateX: t.interpolate({ inputRange: [0, 1], outputRange: [dx, 0] }) },
@@ -181,8 +180,8 @@ export function PointPicker({ anchor, side, team, names, players, rotation = 0, 
           <View onLayout={(e) => {
             const l = e.nativeEvent.layout;
             setSize((s) => (s && s.h === l.height ? s : { w: l.width, h: l.height }));
-          }} style={{ gap: 12, padding: 14 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          }} style={{ gap: space.md, padding: space.md }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
               {step === 'cronaca' ? (
                 <Pressy onPress={() => { request.current++; setLoading(false); setStep('azione'); }} scaleTo={0.85} accessibilityRole="button" accessibilityLabel="Torna all'azione"
                   style={{ width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: c.fill2 }}>
@@ -217,11 +216,11 @@ export function PointPicker({ anchor, side, team, names, players, rotation = 0, 
                 </Field>
 
                 <Field label="Azione">
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
                     {POINT_ACTIONS.map((a) => (
                       <Pressy key={a.value} scaleTo={0.94} onPress={() => pickAction(a)}
                         accessibilityRole="button" accessibilityState={{ selected: action === a.value }} accessibilityLabel={a.label}
-                        style={[chip(action === a.value), { flexGrow: 1, flexBasis: '30%', height: 40, paddingHorizontal: 6 }]}>
+                        style={[chip(action === a.value), { flexGrow: 1, flexBasis: '30%', height: 40, paddingHorizontal: space.sm }]}>
                         <Txt w={700} size={13} numberOfLines={1} color={action === a.value ? palette.onGold : 'text'}>{a.label}</Txt>
                       </Pressy>
                     ))}
@@ -230,20 +229,20 @@ export function PointPicker({ anchor, side, team, names, players, rotation = 0, 
 
                 <Button variant="gold" label={ai ? 'Avanti: cronaca AI' : 'Avanti: cronaca'} disabled={!action} onPress={toCronaca}
                   icon={ai ? <Sparkles size={16} color={palette.onGold} /> : undefined} />
-                <Pressy onPress={() => close(() => onScore())} scaleTo={0.96} accessibilityRole="button" style={{ alignSelf: 'center', paddingVertical: 4, paddingHorizontal: 10 }}>
+                <Pressy onPress={() => close(() => onScore())} scaleTo={0.96} accessibilityRole="button" style={{ alignSelf: 'center', paddingVertical: space.xs, paddingHorizontal: space.sm }}>
                   <Txt w={600} size={12.5} color="muted">Solo punto, senza dettagli</Txt>
                 </Pressy>
               </>
             ) : (
               <>
-                <View style={{ padding: 10, borderRadius: radius.sm, backgroundColor: c.fill }}>
+                <View style={{ padding: space.sm, borderRadius: radius.sm, backgroundColor: c.fill }}>
                   <Txt w={600} size={12.5}>{summary}</Txt>
                 </View>
 
                 <Field label="Scegli la frase per la cronaca">
-                  <View style={{ gap: 6 }}>
+                  <View style={{ gap: space.sm }}>
                     {loading ? (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.md }}>
                         <ActivityIndicator color={c.accent} />
                         <Txt size={13} color="muted">L&apos;AI sta scrivendo la cronaca…</Txt>
                       </View>
@@ -254,11 +253,11 @@ export function PointPicker({ anchor, side, team, names, players, rotation = 0, 
                       return (
                         <Pressy key={`${i}-${f}`} scaleTo={0.98} onPress={() => setChosen(i)}
                           accessibilityRole="radio" accessibilityState={{ selected: on }}
-                          style={{ flexDirection: 'row', gap: 10, padding: 10, borderRadius: radius.sm, borderWidth: 1.5, borderColor: on ? palette.gold : c.line, backgroundColor: on ? 'rgba(255,213,3,0.12)' : undefined }}>
-                          <View style={{ width: 18, height: 18, borderRadius: 9, marginTop: 1, borderWidth: 2, borderColor: on ? palette.gold : c.lineStrong, alignItems: 'center', justifyContent: 'center' }}>
+                          style={{ flexDirection: 'row', gap: space.sm, padding: space.sm, borderRadius: radius.sm, borderWidth: 1.5, borderColor: on ? palette.gold : c.line, backgroundColor: on ? 'rgba(255,213,3,0.12)' : undefined }}>
+                          <View style={{ width: 18, height: 18, borderRadius: 9, marginTop: 0, borderWidth: 2, borderColor: on ? palette.gold : c.lineStrong, alignItems: 'center', justifyContent: 'center' }}>
                             {on ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: palette.gold }} /> : null}
                           </View>
-                          <View style={{ flex: 1, gap: 2 }}>
+                          <View style={{ flex: 1, gap: space.xs }}>
                             <Txt size={13.5}>{f}</Txt>
                             <Txt w={600} size={11} color="muted">{isAi ? 'Proposta AI' : 'Frase standard'}</Txt>
                           </View>
@@ -284,7 +283,7 @@ export function PointPicker({ anchor, side, team, names, players, rotation = 0, 
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <View style={{ gap: 6 }}>
+    <View style={{ gap: space.sm }}>
       <Txt w={600} size={12} color="muted">{label}</Txt>
       {children}
     </View>

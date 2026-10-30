@@ -1,17 +1,17 @@
 import { Animated, Linking, Pressable, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Globe, Share2, X } from 'lucide-react-native';
 import { FacebookIcon } from './FacebookIcon';
 import { IconButton } from './IconButton';
 import { InstagramIcon } from './InstagramIcon';
 import { YoutubeIcon } from './YoutubeIcon';
 import { FACEBOOK_URL, INSTAGRAM_HANDLE, INSTAGRAM_URL, WEBSITE_URL, YOUTUBE_URL } from '@/constants';
-import { palette } from '@/theme/colors';
+import { palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
-const IG = ['#FDF497', '#FD5949', '#D6249F', '#285AEB'] as const;
+/** Colore pieno di ogni pulsante: i marchi in tinta unita (Instagram senza il suo gradiente) */
+const BRAND_BG = { ig: '#D6249F', fb: '#1877F2', yt: '#FF0000', web: palette.gold } as const;
 const SIZE = 34;
-const GAP = 5;
+const GAP = space.xs;
 
 const LINKS = [
   { key: 'ig', label: `Instagram ${INSTAGRAM_HANDLE}`, url: INSTAGRAM_URL },
@@ -21,9 +21,6 @@ const LINKS = [
   { key: 'yt', label: 'YouTube', url: YOUTUBE_URL },
   { key: 'web', label: 'Sito arenavolleyteam.it', url: WEBSITE_URL },
 ] as const;
-
-/** Colore di sfondo dei pulsanti non Instagram */
-const BRAND_BG = { fb: '#1877F2', yt: '#FF0000', web: palette.gold } as const;
 
 /** Larghezza dei collegamenti quando il menu è aperto */
 export const SOCIAL_MENU_W = LINKS.length * (SIZE + GAP);
@@ -51,12 +48,7 @@ export function SocialMenu({ progress, open, onOpenChange }: Props) {
       <Animated.View style={{ width: progress.interpolate({ inputRange: [0, 1], outputRange: [0, SOCIAL_MENU_W] }), opacity: progress, overflow: 'hidden' }}>
         <View style={{ flexDirection: 'row', gap: GAP, width: SOCIAL_MENU_W, paddingRight: GAP }}>
           {LINKS.map((l) => (
-            <IconButton key={l.key} label={l.label} size={SIZE} onPress={() => go(l.url)} style={{ borderWidth: 0, overflow: 'hidden' }}>
-              {l.key === 'ig' ? (
-                <LinearGradient colors={IG} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-              ) : (
-                <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: BRAND_BG[l.key] }} />
-              )}
+            <IconButton key={l.key} label={l.label} size={SIZE} onPress={() => go(l.url)} style={{ borderWidth: 0, backgroundColor: BRAND_BG[l.key] }}>
               {l.key === 'fb' ? (
                 <FacebookIcon size={17} />
               ) : l.key === 'yt' ? (

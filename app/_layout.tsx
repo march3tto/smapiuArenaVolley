@@ -5,9 +5,9 @@ import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import {
-  Roboto_400Regular, Roboto_500Medium, Roboto_600SemiBold, Roboto_700Bold, Roboto_800ExtraBold, Roboto_900Black,
-} from '@expo-google-fonts/roboto';
-import { BarlowCondensed_800ExtraBold_Italic, BarlowCondensed_900Black_Italic } from '@expo-google-fonts/barlow-condensed';
+  EncodeSansCondensed_400Regular, EncodeSansCondensed_500Medium, EncodeSansCondensed_600SemiBold, EncodeSansCondensed_700Bold, EncodeSansCondensed_800ExtraBold, EncodeSansCondensed_900Black,
+} from '@expo-google-fonts/encode-sans-condensed';
+import { SairaCondensed_800ExtraBold, SairaCondensed_900Black } from '@expo-google-fonts/saira-condensed';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 import { AppProvider, useApp } from '@/store/AppProvider';
 import { DataProvider } from '@/store/DataProvider';
@@ -26,8 +26,8 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   const [loaded] = useFonts({
-    Roboto_400Regular, Roboto_500Medium, Roboto_600SemiBold, Roboto_700Bold, Roboto_800ExtraBold, Roboto_900Black,
-    BarlowCondensed_800ExtraBold_Italic, BarlowCondensed_900Black_Italic,
+    EncodeSansCondensed_400Regular, EncodeSansCondensed_500Medium, EncodeSansCondensed_600SemiBold, EncodeSansCondensed_700Bold, EncodeSansCondensed_800ExtraBold, EncodeSansCondensed_900Black,
+    SairaCondensed_800ExtraBold, SairaCondensed_900Black,
   });
 
   useEffect(() => {

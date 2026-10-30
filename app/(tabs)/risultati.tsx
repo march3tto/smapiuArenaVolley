@@ -12,7 +12,7 @@ import { StandingsTable } from '@/components/StandingsTable';
 import { Txt } from '@/components/Txt';
 import { useData } from '@/store/DataProvider';
 import { useLive } from '@/store/LiveProvider';
-import { palette } from '@/theme/colors';
+import { palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
 type Filter = 'all' | 'past' | 'future' | 'a3' | 'standings';
@@ -48,7 +48,7 @@ export default function Risultati() {
   return (
     <Screen onRefresh={refresh} refreshing={loading}>
       <SectionHeader big title="Risultati" subtitle="Calendario e classifica Serie A3 femminile, girone B." />
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
         <View style={{ flexShrink: 1 }}>
           {/* con la classifica aperta nessuna pillola è evidenziata */}
           <SegmentedControl options={OPTIONS} value={filter === 'standings' ? null : filter} onChange={setFilter} />
@@ -58,12 +58,12 @@ export default function Risultati() {
         </IconButton>
       </View>
       {filter === 'standings' ? (
-        <Card style={{ gap: 6 }}>
+        <Card style={{ gap: space.sm }}>
           <SectionHeader title="Classifica" subtitle="Serie A3, girone B" />
           <StandingsTable rows={standings} />
         </Card>
       ) : (
-        <View style={{ gap: 12 }}>
+        <View style={{ gap: space.md }}>
           {list.length ? (
             list.map((m) => (
               <MatchRow
@@ -75,7 +75,7 @@ export default function Risultati() {
               />
             ))
           ) : (
-            <Card style={{ alignItems: 'center', gap: 8, paddingVertical: 30 }}>
+            <Card style={{ alignItems: 'center', gap: space.sm, paddingVertical: space.xl }}>
               <CalendarDays size={26} color={c.accent} />
               <Txt color="muted" center>Nessuna partita in questo elenco.</Txt>
             </Card>

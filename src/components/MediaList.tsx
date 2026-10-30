@@ -7,7 +7,7 @@ import { youtubeThumb, youtubeUrl } from '@/lib/api';
 import { newsDate } from '@/lib/format';
 import { parseStream } from '@/lib/stream';
 import { usePlayer } from '@/store/PlayerProvider';
-import { palette } from '@/theme/colors';
+import { palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { MediaItem } from '@/types';
 
@@ -37,12 +37,12 @@ export function MediaList({ items }: { items: MediaItem[] }) {
   const { c } = useTheme();
   const openMedia = useOpenMedia();
   return (
-    <View style={{ gap: 10 }}>
+    <View style={{ gap: space.sm }}>
       {items.map((m) => {
         const { video, cover } = mediaLinks(m);
         return (
           <Pressy key={m.id} onPress={() => openMedia(m)} scaleTo={0.98} accessibilityRole="button" accessibilityLabel={m.title}
-            style={{ flexDirection: 'row', gap: 12, padding: 10, borderRadius: 18, backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
+            style={{ flexDirection: 'row', gap: space.md, padding: space.sm, borderRadius: 18, backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
             <View style={{ width: 112, aspectRatio: 16 / 9, borderRadius: 12, overflow: 'hidden', backgroundColor: c.fill, alignItems: 'center', justifyContent: 'center' }}>
               {cover ? <Image source={cover} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} contentFit="cover" /> : null}
               {video ? (
@@ -51,7 +51,7 @@ export function MediaList({ items }: { items: MediaItem[] }) {
                 </View>
               ) : null}
             </View>
-            <View style={{ flex: 1, justifyContent: 'center', gap: 3 }}>
+            <View style={{ flex: 1, justifyContent: 'center', gap: space.xs }}>
               <Txt w={700} size={11} color={palette.gold}>{video ? 'VIDEO' : 'PODCAST'}{m.duration ? `  ·  ${m.duration}` : ''}</Txt>
               <Txt w={700} size={14.5} numberOfLines={2}>{m.title}</Txt>
               {m.date ? <Txt size={12} color="muted">{newsDate(m.date)}</Txt> : null}

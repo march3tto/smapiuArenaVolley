@@ -7,6 +7,7 @@ import { Screen } from '@/components/Screen';
 import { SectionHeader } from '@/components/SectionHeader';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { useData } from '@/store/DataProvider';
+import { space } from '@/theme/colors';
 
 /** Valore del filtro che mostra solo video e podcast */
 const MEDIA = '__media';
@@ -40,14 +41,14 @@ export default function News() {
       <SectionHeader big title="News" subtitle="Partite, interviste e vita di società." />
       <SegmentedControl options={options} value={cat} onChange={setCat} />
       {cat === MEDIA ? null : (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14, justifyContent: 'center' }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.md, justifyContent: 'center' }}>
           {list.map((n) => (
             <NewsCard key={n.id} item={n} width={cardW} onPress={() => router.push({ pathname: '/notizia/[id]', params: { id: n.id } })} />
           ))}
         </View>
       )}
       {showMedia ? (
-        <View style={{ gap: 12 }}>
+        <View style={{ gap: space.md }}>
           {cat === 'all' ? <SectionHeader title="Video e podcast" subtitle="Interviste e dietro le quinte, su YouTube." /> : null}
           <MediaList items={media} />
         </View>

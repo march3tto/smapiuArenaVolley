@@ -11,7 +11,7 @@ import { Txt } from '@/components/Txt';
 import { ROLE_FILTERS } from '@/constants';
 import { initials } from '@/lib/format';
 import { useData } from '@/store/DataProvider';
-import { palette } from '@/theme/colors';
+import { palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { PlayerRole } from '@/types';
 
@@ -39,11 +39,11 @@ export default function Squadra() {
       </View>
 
       {staff.length ? (
-        <View style={{ gap: 12, marginTop: 8 }}>
+        <View style={{ gap: space.md, marginTop: space.sm }}>
           <SectionHeader title="Staff tecnico" subtitle="Allenatori e staff della prima squadra." />
           <Card padded={false} style={{ overflow: 'hidden' }}>
             {staff.map((s, i) => (
-              <View key={s.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
+              <View key={s.id} style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.md, paddingVertical: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
                 <View style={{ width: 44, height: 44, borderRadius: 22, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: palette.navy }}>
                   {s.photo ? (
                     <Image source={s.photo} style={{ width: 44, height: 44 }} contentFit="cover" contentPosition="top" transition={200} />
@@ -53,7 +53,7 @@ export default function Squadra() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Txt w={700} size={16}>{s.name}</Txt>
-                  <Txt w={700} size={11.5} color="cobalt" style={{ letterSpacing: 0.6, textTransform: 'uppercase', marginTop: 2 }}>{s.role}</Txt>
+                  <Txt w={700} size={11.5} color="cobalt" style={{ letterSpacing: 0.6, textTransform: 'uppercase', marginTop: space.xs }}>{s.role}</Txt>
                 </View>
               </View>
             ))}

@@ -15,7 +15,7 @@ import { useData } from '@/store/DataProvider';
 import { useLiveLineup } from '@/store/LineupProvider';
 import { useLive } from '@/store/LiveProvider';
 import { STARTERS, type Lineup } from '@/store/useLineup';
-import { FONT, palette, radius } from '@/theme/colors';
+import { FONT, palette, radius, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { LineupPlayer, Player, PlayerRole } from '@/types';
 
@@ -49,7 +49,7 @@ export default function Formazione() {
 
   if (!m || !lineup.canEdit) {
     return (
-      <View style={{ flex: 1, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <View style={{ flex: 1, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center', padding: space.lg }}>
         <Txt color="muted" center>{m ? 'Solo gli admin possono modificare le formazioni.' : 'Nessuna partita in diretta.'}</Txt>
       </View>
     );
@@ -58,9 +58,9 @@ export default function Formazione() {
 
   return (
     <ScrollView ref={scroll} style={{ flex: 1, backgroundColor: c.bg }} keyboardShouldPersistTaps="handled" keyboardDismissMode="none"
-      contentContainerStyle={{ padding: 14, gap: 16, paddingBottom: (kb || insets.bottom) + 30, width: '100%', maxWidth: 600, alignSelf: 'center' }}>
-      <Card style={{ gap: 12 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+      contentContainerStyle={{ padding: space.md, gap: space.md, paddingBottom: (kb || insets.bottom) + space.xl, width: '100%', maxWidth: 600, alignSelf: 'center' }}>
+      <Card style={{ gap: space.md }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
           <TeamBadge name={name} logo={team === 'us' ? null : m.opponentLogo} size={36} />
           <View style={{ flex: 1 }}>
             <Txt w={700} size={15} numberOfLines={2}>{name}</Txt>
@@ -147,8 +147,8 @@ function TeamRoster({ name, roster, error, team, lineup }: { name: string; roste
   })));
 
   return (
-    <Card style={{ gap: 10 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+    <Card style={{ gap: space.sm }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
         <Txt w={700} size={14} style={{ flex: 1 }}>Rosa {name}</Txt>
         {free.length > 1 ? <Button size="sm" label="Aggiungi tutte" onPress={() => add(free)} icon={<UserPlus size={15} color={c.text} />} /> : null}
       </View>
@@ -161,7 +161,7 @@ function TeamRoster({ name, roster, error, team, lineup }: { name: string; roste
         <View style={{ borderRadius: radius.md, borderWidth: 1, borderColor: c.line, overflow: 'hidden' }}>
           {free.map((p, i) => (
             <Pressy key={p.id} onPress={() => add([p])} scaleTo={0.98} accessibilityRole="button" accessibilityLabel={`Metti a referto ${p.firstName} ${p.lastName}`}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, paddingVertical: 8, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
+              style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.sm, paddingVertical: space.sm, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
               <NumberTag value={p.number ?? null} variant="bench" />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Txt w={600} size={13} numberOfLines={1}>{p.firstName} {p.lastName}</Txt>
@@ -188,7 +188,7 @@ function PlayerForm({ editing, onSubmit, onCancel, onFocus }: {
   const [number, setNumber] = useState(editing?.number != null ? String(editing.number) : '');
   const [name, setName] = useState(editing?.name ?? '');
   const [role, setRole] = useState<PlayerRole | null>(editing?.role ?? null);
-  const input = { height: 44, borderRadius: radius.sm, borderWidth: 1, borderColor: c.lineStrong, backgroundColor: c.fill, paddingHorizontal: 12, fontFamily: FONT[500], fontSize: 15, color: c.text } as const;
+  const input = { height: 44, borderRadius: radius.sm, borderWidth: 1, borderColor: c.lineStrong, backgroundColor: c.fill, paddingHorizontal: space.md, fontFamily: FONT[500], fontSize: 15, color: c.text } as const;
   const submit = () => {
     if (!name.trim()) return;
     const n = parseInt(number, 10);
@@ -198,26 +198,26 @@ function PlayerForm({ editing, onSubmit, onCancel, onFocus }: {
     setRole(null);
   };
   return (
-    <Card style={{ gap: 10, borderColor: editing ? 'rgba(255,213,3,0.5)' : undefined, borderWidth: editing ? 1.5 : undefined }}>
+    <Card style={{ gap: space.sm, borderColor: editing ? 'rgba(255,213,3,0.5)' : undefined, borderWidth: editing ? 1.5 : undefined }}>
       <Txt w={700} size={14}>{editing ? `Modifica ${editing.name}` : 'Aggiungi giocatrice non in rosa'}</Txt>
-      <View style={{ flexDirection: 'row', gap: 8 }}>
+      <View style={{ flexDirection: 'row', gap: space.sm }}>
         <TextInput value={number} onChangeText={(t) => setNumber(t.replace(/\D/g, '').slice(0, 2))} placeholder="N°" placeholderTextColor={c.muted}
           keyboardType="number-pad" accessibilityLabel="Numero di maglia" onFocus={onFocus} style={[input, { width: 60, textAlign: 'center' }]} />
         <TextInput value={name} onChangeText={setName} placeholder="Nome e cognome" placeholderTextColor={c.muted} autoCapitalize="words"
           returnKeyType="done" onSubmitEditing={submit} accessibilityLabel="Nome e cognome" onFocus={onFocus} style={[input, { flex: 1 }]} />
       </View>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
         {(Object.keys(ROLE_LABEL) as PlayerRole[]).map((r) => {
           const on = role === r;
           return (
             <Pressy key={r} onPress={() => setRole(on ? null : r)} scaleTo={0.92} accessibilityRole="button" accessibilityState={{ selected: on }}
-              style={{ paddingHorizontal: 10, height: 30, borderRadius: radius.pill, justifyContent: 'center', backgroundColor: on ? palette.gold : c.fill2 }}>
+              style={{ paddingHorizontal: space.sm, height: 30, borderRadius: radius.pill, justifyContent: 'center', backgroundColor: on ? palette.gold : c.fill2 }}>
               <Txt w={600} size={12} color={on ? palette.onGold : 'muted'}>{ROLE_LABEL[r]}</Txt>
             </Pressy>
           );
         })}
       </View>
-      <View style={{ flexDirection: 'row', gap: 8 }}>
+      <View style={{ flexDirection: 'row', gap: space.sm }}>
         {editing ? <View style={{ flex: 1 }}><Button size="sm" label="Annulla" onPress={onCancel} /></View> : null}
         <View style={{ flex: 1 }}>
           <Button size="sm" variant="gold" label={editing ? 'Salva' : 'Aggiungi'} disabled={!name.trim()} onPress={submit}

@@ -12,6 +12,7 @@ import { StandingsTable } from '@/components/StandingsTable';
 import { Txt } from '@/components/Txt';
 import { UpcomingList } from '@/components/UpcomingList';
 import { useData } from '@/store/DataProvider';
+import { space } from '@/theme/colors';
 
 /** In home solo gli ultimi elementi: il resto è nella tab News */
 const HOME_MAX = 10;
@@ -34,23 +35,23 @@ export default function Home() {
       {error ? (
         <Card style={{ borderColor: 'rgba(255,122,136,0.4)' }}>
           <Txt w={700} size={14} color="danger">Dati non aggiornati</Txt>
-          <Txt size={13} color="muted" style={{ marginTop: 4 }}>{error}. Trascina verso il basso per riprovare.</Txt>
+          <Txt size={13} color="muted" style={{ marginTop: space.xs }}>{error}. Trascina verso il basso per riprovare.</Txt>
         </Card>
       ) : null}
       {liveMatch ? <LiveCard /> : null}
 
-      <View style={{ gap: 12 }}>
+      <View style={{ gap: space.md }}>
         <SectionHeader title="Ultime notizie" action={{ label: 'Tutte', onPress: () => router.navigate('/news') }} />
         <NewsSlider items={news.slice(0, HOME_MAX)} onPressItem={(n) => router.push({ pathname: '/notizia/[id]', params: { id: n.id } })} />
       </View>
 
-      <View style={{ flexDirection: twoCols ? 'row' : 'column', gap: 16, alignItems: twoCols ? 'stretch' : 'flex-start' }}>
-        <Card style={{ gap: 14, flex: twoCols ? 1 : undefined, width: twoCols ? undefined : '100%' }}>
+      <View style={{ flexDirection: twoCols ? 'row' : 'column', gap: space.md, alignItems: twoCols ? 'stretch' : 'flex-start' }}>
+        <Card style={{ gap: space.md, flex: twoCols ? 1 : undefined, width: twoCols ? undefined : '100%' }}>
           <SectionHeader title="Prossime partite" action={{ label: 'Calendario', onPress: () => router.navigate({ pathname: '/risultati', params: { filter: 'future' } }) }} />
           <UpcomingList matches={next} onPress={() => router.navigate({ pathname: '/risultati', params: { filter: 'future' } })} />
         </Card>
         {twoCols ? null : <View style={{ width: '100%' }}>{sponsorBanner}</View>}
-        <Card style={{ gap: 6, flex: twoCols ? 1 : undefined, width: twoCols ? undefined : '100%' }}>
+        <Card style={{ gap: space.sm, flex: twoCols ? 1 : undefined, width: twoCols ? undefined : '100%' }}>
           <SectionHeader title="Classifica" subtitle="Serie A3, girone B" />
           <StandingsTable rows={standings} />
         </Card>
@@ -58,7 +59,7 @@ export default function Home() {
       {twoCols ? sponsorBanner : null}
 
       {media.length ? (
-        <View style={{ gap: 12 }}>
+        <View style={{ gap: space.md }}>
           <SectionHeader title="Video e podcast" action={{ label: 'Tutti', onPress: () => router.navigate({ pathname: '/news', params: { filtro: 'media' } }) }} />
           <MediaStrip items={media.slice(0, HOME_MAX)} />
         </View>

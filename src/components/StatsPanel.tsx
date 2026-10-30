@@ -5,7 +5,7 @@ import { SegmentedControl } from './SegmentedControl';
 import { TeamBadge } from './TeamBadge';
 import { Txt } from './Txt';
 import { setTarget } from '@/lib/volley';
-import { radius } from '@/theme/colors';
+import { radius, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { ImgSrc, LineupPlayer, LiveEvent, PointAction, SetScore } from '@/types';
 
@@ -96,8 +96,8 @@ export function StatsPanel({ events, names, logos, sets, current, totals, home }
   ];
 
   return (
-    <View style={{ gap: 18 }}>
-      <View style={{ gap: 10, padding: 12, borderRadius: radius.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.fill }}>
+    <View style={{ gap: space.md }}>
+      <View style={{ gap: space.sm, padding: space.md, borderRadius: radius.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.fill }}>
         <Txt w={800} size={15}>Andamento della partita</Txt>
         {sets > 1 ? (
           // dal 4° set le etichette non stanno in larghezza: il filtro diventa scorrevole
@@ -106,22 +106,22 @@ export function StatsPanel({ events, names, logos, sets, current, totals, home }
         ) : null}
         <ScoreChart points={progress} names={names} target={setTarget(set)} />
       </View>
-      <View style={{ gap: 4 }}>
+      <View style={{ gap: space.xs }}>
         <Txt w={800} size={15}>Punti</Txt>
         {/* ogni squadra sopra la sua colonna di dati, come nelle formazioni */}
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 6, gap: 8 }}>
-          <View style={{ flex: 1, gap: 4, alignItems: 'flex-start' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', paddingVertical: space.sm, gap: space.sm }}>
+          <View style={{ flex: 1, gap: space.xs, alignItems: 'flex-start' }}>
             <TeamBadge name={names[left]} logo={logos?.[left]} size={28} />
             <Txt w={700} size={12} numberOfLines={2}>{names[left]}</Txt>
           </View>
           <View style={{ flex: 1.2 }} />
-          <View style={{ flex: 1, gap: 4, alignItems: 'flex-end' }}>
+          <View style={{ flex: 1, gap: space.xs, alignItems: 'flex-end' }}>
             <TeamBadge name={names[right]} logo={logos?.[right]} size={28} />
             <Txt w={700} size={12} numberOfLines={2} style={{ textAlign: 'right' }}>{names[right]}</Txt>
           </View>
         </View>
         {rows.map(([label, v], i) => (
-          <View key={label} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 7, gap: 8 }}>
+          <View key={label} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: space.sm, gap: space.sm }}>
             <Txt w={i === 0 ? 800 : 600} size={i === 0 ? 17 : 15} tnum display={false} style={{ flex: 1 }}>{v[left]}</Txt>
             <Txt w={i === 0 ? 700 : 500} size={13} color={i === 0 ? 'text' : 'muted'} center style={{ flex: 1.2 }}>{label}</Txt>
             <Txt w={i === 0 ? 800 : 600} size={i === 0 ? 17 : 15} tnum display={false} style={{ flex: 1, textAlign: 'right' }}>{v[right]}</Txt>

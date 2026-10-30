@@ -12,11 +12,12 @@ import { StreamView } from './StreamView';
 import { Txt } from './Txt';
 import { usePlayer } from '@/store/PlayerProvider';
 import { useTheme } from '@/theme/ThemeProvider';
+import { space } from '@/theme/colors';
 
 /** Altezza della barra dei comandi sotto il video (agganciato / finestrella) */
 const BAR = 40;
 const MINI_BAR = 30;
-const MARGIN = 10;
+const MARGIN = space.sm;
 
 /**
  * Player sopra tutta l'app. La diretta si aggancia allo spazio riservato nella schermata Live; video e podcast
@@ -117,7 +118,7 @@ export function FloatingPlayer() {
     <Animated.View
       {...(mini ? responder.panHandlers : {})}
       style={[{ position: 'absolute', overflow: 'hidden', backgroundColor: c.card, borderWidth: 1, borderColor: c.line },
-        (mini || sheet) && { shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 12 }, frame]}>
+        frame]}>
       {full ? <StatusBar hidden /> : null}
       {/* in finestrella il video non prende i tocchi: si trascina tutta e un tocco la ingrandisce */}
       <View style={video} pointerEvents={mini ? 'none' : 'auto'}>
@@ -134,9 +135,9 @@ export function FloatingPlayer() {
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: MINI_BAR }}>{null}</Pressy>
       ) : null}
       {!full && !pip ? (
-        <View style={{ height: large ? BAR : MINI_BAR, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8 }}>
+        <View style={{ height: large ? BAR : MINI_BAR, flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingHorizontal: space.sm }}>
           {media ? <Headphones size={large ? 15 : 13} color={c.accent} /> : <LiveDot />}
-          <Txt w={700} size={large ? 13 : 11.5} numberOfLines={1} style={{ flex: 1, marginLeft: 4 }}>{title}</Txt>
+          <Txt w={700} size={large ? 13 : 11.5} numberOfLines={1} style={{ flex: 1, marginLeft: space.xs }}>{title}</Txt>
           {large ? (
             <>
               <BarButton label="Apri nel browser" onPress={() => WebBrowser.openBrowserAsync(stream.url).catch(() => undefined)}>
@@ -202,7 +203,7 @@ export function PlayerSlot() {
   if (!stream || minimized || source !== 'live') return null;
   // su schermi larghi il video non deve coprire mezza pagina
   return (
-    <View style={{ width: '100%', maxWidth: 720, alignSelf: 'center', paddingHorizontal: 14, paddingTop: 10 }}>
+    <View style={{ width: '100%', maxWidth: 720, alignSelf: 'center', paddingHorizontal: space.md, paddingTop: space.sm }}>
       {/* il riquadro misurato è quello interno, senza i margini: video 16:9 più la barra dei comandi */}
       <View ref={ref} collapsable={false} onLayout={measure}>
         <View style={{ aspectRatio: 16 / 9 }} />

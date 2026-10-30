@@ -13,7 +13,7 @@ import { Txt } from '@/components/Txt';
 import { GALLERIA, MOVIMENTO, SQUADRE, type SquadraRegionale } from '@/data/giovanili';
 import { shortBirthDate } from '@/lib/format';
 import { useData } from '@/store/DataProvider';
-import { palette } from '@/theme/colors';
+import { palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { ImgSrc } from '@/types';
 
@@ -52,12 +52,12 @@ export default function Giovanili() {
     <Screen onRefresh={refresh} refreshing={loading} scrollRef={scroll}>
       <SectionHeader big title="Giovanili" subtitle="Il movimento giovanile Arena Volley, dalle prime squadre regionali ai più piccoli." />
 
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
         {banners.map((b) => (
           <Pressy key={b.key} onPress={() => goTo(b.key)} scaleTo={0.96} accessibilityRole="button" accessibilityLabel={`Vai a ${b.label}`}
             style={{ flexGrow: 1, flexBasis: width >= 900 ? '22%' : '45%', height: 64, borderRadius: 18, overflow: 'hidden', backgroundColor: palette.navy }}>
             {b.photo ? <Image source={b.photo} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.45 }} contentFit="cover" /> : null}
-            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14 }}>
+            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.md }}>
               {b.Icon ? <b.Icon size={18} color={palette.gold} /> : null}
               <Txt w={800} size={15} color={palette.white} numberOfLines={2} style={{ flex: 1 }}>{b.label}</Txt>
               <ChevronDown size={18} color={palette.gold} />
@@ -72,12 +72,12 @@ export default function Giovanili() {
         </View>
       ))}
 
-      <Card style={{ gap: 14 }} {...mark('movimento')}>
+      <Card style={{ gap: space.md }} {...mark('movimento')}>
         <Txt w={800} size={12} color="accent" style={{ letterSpacing: 1.2, textTransform: 'uppercase' }}>Movimento giovanile</Txt>
         <Txt size={16} style={{ lineHeight: 24 }}>{MOVIMENTO.intro}</Txt>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
           {MOVIMENTO.facts.map((f) => (
-            <View key={f.label} style={{ flexGrow: 1, flexBasis: width >= 900 ? '30%' : '45%', padding: 14, borderRadius: 18, backgroundColor: c.fill2, gap: 2 }}>
+            <View key={f.label} style={{ flexGrow: 1, flexBasis: width >= 900 ? '30%' : '45%', padding: space.md, borderRadius: 18, backgroundColor: c.fill2, gap: space.xs }}>
               <Txt w={900} size={26} color="accent" style={{ letterSpacing: -0.6 }} tnum>{f.value}</Txt>
               <Txt size={13} color="muted">{f.label}</Txt>
             </View>
@@ -88,15 +88,15 @@ export default function Giovanili() {
       <View {...mark('galleria')}>
         <SectionHeader title="Galleria" subtitle="Le nostre squadre giovanili, stagione dopo stagione." />
       </View>
-      <View style={{ gap: 10 }}>
+      <View style={{ gap: space.sm }}>
         {rows.map((row, r) => (
-          <View key={r} style={{ flexDirection: 'row', gap: 10 }}>
+          <View key={r} style={{ flexDirection: 'row', gap: space.sm }}>
             {row.map((g, i) => (
               <Pressy key={i} onPress={() => setViewer({ items: GALLERIA, index: r * cols + i })} scaleTo={0.97} accessibilityRole="imagebutton" accessibilityLabel={g.title ?? `Foto ${r * cols + i + 1}`}
                 style={{ flex: 1, aspectRatio: 3 / 2, borderRadius: 16, overflow: 'hidden', backgroundColor: c.fill }}>
                 <Image source={g.photo} style={{ flex: 1 }} contentFit="cover" transition={200} />
                 {g.title ? (
-                  <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: 'rgba(6,26,58,0.6)' }}>
+                  <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: space.sm, paddingVertical: space.sm, backgroundColor: 'rgba(6,26,58,0.6)' }}>
                     <Txt w={700} size={11.5} color={palette.white} numberOfLines={1}>{g.title}</Txt>
                   </View>
                 ) : null}
@@ -128,7 +128,7 @@ function Squadra({ team: s, onPhoto }: { team: SquadraRegionale; onPhoto: () => 
           <Expand size={16} color={palette.white} />
         </View>
       </Pressy>
-      <View style={{ padding: 18, gap: 14 }}>
+      <View style={{ padding: space.md, gap: space.md }}>
         <Txt w={900} size={28} style={{ letterSpacing: -0.8 }}>{s.name}</Txt>
         <Txt size={15} color="muted" style={{ lineHeight: 22 }}>{s.description}</Txt>
 
@@ -136,8 +136,8 @@ function Squadra({ team: s, onPhoto }: { team: SquadraRegionale; onPhoto: () => 
           <Espandibile title="Giocatrici" count={players.length}>
             <View>
               {players.map((p, i) => (
-                <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 9, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
-                  <View style={{ minWidth: 28, height: 28, paddingHorizontal: 4, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.navy }}>
+                <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
+                  <View style={{ minWidth: 28, height: 28, paddingHorizontal: space.xs, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.navy }}>
                     <Txt w={800} size={12.5} color={palette.gold} tnum>{p.number ?? '–'}</Txt>
                   </View>
                   <Txt w={600} size={14} numberOfLines={1} style={{ flex: 1 }}>{p.name}</Txt>
@@ -152,13 +152,13 @@ function Squadra({ team: s, onPhoto }: { team: SquadraRegionale; onPhoto: () => 
           <Espandibile title="Tecnici" count={staff.length}>
             <View>
               {staff.map((t, i) => (
-                <View key={t.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
+                <View key={t.id} style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
                   <View style={{ width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: c.fill2 }}>
                     <User size={18} color={c.cobalt} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Txt w={700} size={15}>{t.name}</Txt>
-                    <Txt w={700} size={11.5} color="cobalt" style={{ letterSpacing: 0.6, textTransform: 'uppercase', marginTop: 2 }}>{t.role}</Txt>
+                    <Txt w={700} size={11.5} color="cobalt" style={{ letterSpacing: 0.6, textTransform: 'uppercase', marginTop: space.xs }}>{t.role}</Txt>
                   </View>
                 </View>
               ))}
@@ -177,14 +177,14 @@ function Espandibile({ title, count, children }: { title: string; count: number;
   return (
     <View style={{ borderRadius: 16, borderWidth: 1, borderColor: c.line, overflow: 'hidden' }}>
       <Pressable onPress={() => setOpen((o) => !o)} accessibilityRole="button" accessibilityState={{ expanded: open }} accessibilityLabel={`${title}, ${count}`}
-        style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: pressed ? c.fill2 : c.fill })}>
+        style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.md, paddingVertical: space.md, backgroundColor: pressed ? c.fill2 : c.fill })}>
         <Txt w={800} size={13} color="muted" style={{ flex: 1, letterSpacing: 1.4, textTransform: 'uppercase' }}>{title}</Txt>
-        <View style={{ paddingHorizontal: 8, paddingVertical: 1, borderRadius: 999, backgroundColor: c.fill2 }}>
+        <View style={{ paddingHorizontal: space.sm, paddingVertical: 0, borderRadius: 999, backgroundColor: c.fill2 }}>
           <Txt w={700} size={11.5} tnum>{count}</Txt>
         </View>
         <ChevronDown size={18} color={c.muted} style={{ transform: [{ rotate: open ? '180deg' : '0deg' }] }} />
       </Pressable>
-      {open ? <View style={{ paddingHorizontal: 14, paddingBottom: 4 }}>{children}</View> : null}
+      {open ? <View style={{ paddingHorizontal: space.md, paddingBottom: space.xs }}>{children}</View> : null}
     </View>
   );
 }
@@ -199,15 +199,15 @@ function Lightbox({ items, index, onChange }: { items: Foto[]; index: number | n
 
   return (
     <Modal visible={item != null} transparent animationType="fade" onRequestClose={() => onChange(null)} statusBarTranslucent>
-      <View style={{ flex: 1, backgroundColor: 'rgba(3,26,56,0.96)', paddingTop: insets.top + 12, paddingBottom: insets.bottom + 16 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 }}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(3,26,56,0.96)', paddingTop: insets.top + space.md, paddingBottom: insets.bottom + space.md }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.md }}>
           <Txt w={700} size={14} color={palette.white} style={{ flex: 1 }} tnum>{index != null && many ? `${index + 1} / ${items.length}` : ''}</Txt>
           <Pressable onPress={() => onChange(null)} hitSlop={10} accessibilityRole="button" accessibilityLabel="Chiudi" style={arrow}>
             <X size={20} color={palette.white} />
           </Pressable>
         </View>
-        {item ? <Image source={item.photo} style={{ flex: 1, marginVertical: 16 }} contentFit="contain" transition={150} /> : null}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 }}>
+        {item ? <Image source={item.photo} style={{ flex: 1, marginVertical: space.md }} contentFit="contain" transition={150} /> : null}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.md }}>
           {many ? (
             <Pressable onPress={() => go(-1)} hitSlop={8} accessibilityRole="button" accessibilityLabel="Foto precedente" style={arrow}>
               <ChevronLeft size={22} color={palette.white} />

@@ -3,13 +3,13 @@ import { Animated, Platform, Pressable, View, useWindowDimensions } from 'react-
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Settings } from 'lucide-react-native';
 import { IconButton } from './IconButton';
 import { SocialMenu } from './SocialMenu';
 import { LOGO_BRAND, LOGO_BRAND_LIGHT } from '@/data/assets';
 import { useTheme } from '@/theme/ThemeProvider';
+import { space } from '@/theme/colors';
 
 const LOGO_RATIO = 428 / 166;
 const LOGO_MAX_H = 69;
@@ -50,9 +50,8 @@ export function TopBar() {
   const flat = { backgroundColor: 'transparent', borderWidth: 0 };
 
   return (
-    <View pointerEvents="box-none" style={{ paddingTop: insets.top + 6, paddingHorizontal: 14, paddingBottom: 8 }}>
-      <LinearGradient pointerEvents="none" colors={[c.bg, mode === 'dark' ? 'rgba(42,90,165,0)' : 'rgba(238,242,250,0)']}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+    <View pointerEvents="box-none" style={{ paddingTop: insets.top + space.sm, paddingHorizontal: space.md, paddingBottom: space.sm }}>
+      <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: c.bg }} />
       <View pointerEvents="box-none" style={{ height: logo.h, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', maxWidth: 1120, alignSelf: 'center' }}>
         {/* il logo sfuma quando il menu social si apre e gli passa sopra */}
         <Animated.View pointerEvents={social ? 'none' : 'auto'}

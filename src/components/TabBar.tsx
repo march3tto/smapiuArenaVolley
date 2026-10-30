@@ -7,7 +7,7 @@ import type { BottomTabBarProps } from 'expo-router/tabs';
 import { Ellipsis, House, Newspaper, Sparkles, Trophy, Users, type LucideIcon } from 'lucide-react-native';
 import { Pressy } from './Pressy';
 import { Txt } from './Txt';
-import { palette } from '@/theme/colors';
+import { palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
 const ICONS: Record<string, LucideIcon> = {
@@ -44,7 +44,7 @@ export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTab
       {state.routes[state.index]?.name !== 'altro' ? <AssistantFab /> : null}
       <View style={{ width: '100%', maxWidth: 560, borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: c.line }}>
         <BlurView intensity={Platform.OS === 'android' ? 0 : 45} tint={mode === 'dark' ? 'dark' : 'light'} style={{ backgroundColor: Platform.OS === 'android' ? c.card : mode === 'dark' ? 'rgba(34,77,146,0.72)' : 'rgba(255,255,255,0.78)' }}>
-          <View style={{ flexDirection: 'row', padding: 6 }} onLayout={(e) => setWidth(e.nativeEvent.layout.width - 12)}>
+          <View style={{ flexDirection: 'row', padding: space.sm }} onLayout={(e) => setWidth(e.nativeEvent.layout.width - 12)}>
             {width > 0 ? (
               <Animated.View style={{ position: 'absolute', top: 6, bottom: 6, left: 6, width: itemW, borderRadius: 18, backgroundColor: palette.gold, transform: [{ translateX: x }] }} />
             ) : null}
@@ -59,7 +59,7 @@ export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTab
                 if (!focused && !event.defaultPrevented) navigateToTab(route.key);
               };
               return (
-                <Pressable key={route.key} onPress={onPress} accessibilityRole="tab" accessibilityState={{ selected: focused }} accessibilityLabel={label} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 7, gap: 3 }}>
+                <Pressable key={route.key} onPress={onPress} accessibilityRole="tab" accessibilityState={{ selected: focused }} accessibilityLabel={label} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: space.sm, gap: space.xs }}>
                   <Icon size={19} color={color} strokeWidth={focused ? 2.4 : 2} />
                   <Txt w={600} size={10.5} color={color} numberOfLines={1}>
                     {label}
@@ -78,10 +78,10 @@ export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTab
 function AssistantFab() {
   const router = useRouter();
   return (
-    <View pointerEvents="box-none" style={{ width: '100%', maxWidth: 560, alignItems: 'flex-end', marginBottom: 10 }}>
+    <View pointerEvents="box-none" style={{ width: '100%', maxWidth: 560, alignItems: 'flex-end', marginBottom: space.sm }}>
       <Pressy onPress={() => router.push('/assistente')} scaleTo={0.9} accessibilityRole="button" accessibilityLabel="Assistente" hitSlop={6}
         style={{ width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.gold,
-          shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6 }}>
+    }}>
         <Sparkles size={22} color={palette.onGold} />
       </Pressy>
     </View>

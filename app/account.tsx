@@ -12,7 +12,7 @@ import { newsDate } from '@/lib/format';
 import { PROVIDER_LABEL } from '@/lib/auth';
 import { apriInformativa, PRIVACY_POLICY_VERSION, type TipoConsenso } from '@/lib/privacy';
 import { useApp } from '@/store/AppProvider';
-import { palette } from '@/theme/colors';
+import { palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
 const RUOLO_LABEL = { public: 'Tifoso', parent: 'Genitore', staff: 'Staff', admin: 'Amministratore' } as const;
@@ -48,8 +48,8 @@ export default function Account() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <ScrollView contentContainerStyle={{ padding: 14, paddingTop: Platform.OS === 'ios' ? 22 : insets.top + 16, paddingBottom: insets.bottom + 30, gap: 16, width: '100%', maxWidth: 640, alignSelf: 'center' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 4 }}>
+      <ScrollView contentContainerStyle={{ padding: space.md, paddingTop: Platform.OS === 'ios' ? space.lg : insets.top + space.md, paddingBottom: insets.bottom + space.xl, gap: space.md, width: '100%', maxWidth: 640, alignSelf: 'center' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.xs }}>
           <View style={{ width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.navy }}>
             <UserRound size={20} color={palette.gold} />
           </View>
@@ -63,7 +63,7 @@ export default function Account() {
         </View>
 
         {!user ? (
-          <Card style={{ gap: 12 }}>
+          <Card style={{ gap: space.md }}>
             <Txt size={15} color="muted">Non hai effettuato l’accesso.</Txt>
             <Button label="Accedi o registrati" variant="gold" onPress={() => router.replace('/login')} />
             <Row label="Informativa privacy" onPress={apriInformativa} icon={<ExternalLink size={16} color={c.muted} />} />
@@ -79,7 +79,7 @@ export default function Account() {
 
             <Section title="Privacy">
               <Row label="Informativa privacy" sub={`Versione ${PRIVACY_POLICY_VERSION}`} onPress={apriInformativa} icon={<ExternalLink size={16} color={c.muted} />} />
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderTopWidth: 1, borderTopColor: c.line }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm, borderTopWidth: 1, borderTopColor: c.line }}>
                 <View style={{ flex: 1 }}>
                   <Txt w={600} size={14}>Comunicazioni promozionali</Txt>
                   <Txt size={12} color="muted">Della società e dei suoi sponsor. Puoi cambiare idea quando vuoi.</Txt>
@@ -88,12 +88,12 @@ export default function Account() {
                   onValueChange={(v) => run('marketing', () => setMarketing(v), v ? 'Consenso marketing attivato.' : 'Consenso marketing revocato.')}
                   trackColor={{ true: palette.gold, false: c.fill2 }} thumbColor="#fff" />
               </View>
-              <Txt w={700} size={11.5} color="muted" style={{ marginTop: 10, letterSpacing: 0.8, textTransform: 'uppercase' }}>Consensi registrati</Txt>
+              <Txt w={700} size={11.5} color="muted" style={{ marginTop: space.sm, letterSpacing: 0.8, textTransform: 'uppercase' }}>Consensi registrati</Txt>
               {CONSENSI.map(({ tipo, label, si, no }) => {
                 const r = consents[tipo];
                 return (
-                  <View key={tipo} style={{ paddingVertical: 8, borderTopWidth: 1, borderTopColor: c.line }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
+                  <View key={tipo} style={{ paddingVertical: space.sm, borderTopWidth: 1, borderTopColor: c.line }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: space.sm }}>
                       <Txt w={600} size={14}>{label}</Txt>
                       <Txt w={700} size={13} color={r?.concesso ? 'ok' : 'muted'}>{r ? (r.concesso ? si : no) : '—'}</Txt>
                     </View>
@@ -109,7 +109,7 @@ export default function Account() {
 
             <Card padded={false} style={{ overflow: 'hidden' }}>
               <Pressable onPress={() => router.push('/elimina-account')} accessibilityRole="button"
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingVertical: 16 }}>
+                style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.md, paddingVertical: space.md }}>
                 <Trash2 size={18} color={c.danger} />
                 <View style={{ flex: 1 }}>
                   <Txt w={700} size={15} color="danger">Elimina account</Txt>
@@ -127,8 +127,8 @@ export default function Account() {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <Card style={{ gap: 6 }}>
-      <Txt w={700} size={11.5} color="muted" style={{ letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 2 }}>{title}</Txt>
+    <Card style={{ gap: space.sm }}>
+      <Txt w={700} size={11.5} color="muted" style={{ letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: space.xs }}>{title}</Txt>
       {children}
     </Card>
   );
@@ -137,7 +137,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 function Info({ label, value }: { label: string; value: string }) {
   const { c } = useTheme();
   return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 7, borderTopWidth: 1, borderTopColor: c.line }}>
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: space.md, paddingVertical: space.sm, borderTopWidth: 1, borderTopColor: c.line }}>
       <Txt size={14} color="muted">{label}</Txt>
       <Txt w={600} size={14} style={{ flexShrink: 1, textAlign: 'right' }}>{value}</Txt>
     </View>
@@ -147,7 +147,7 @@ function Info({ label, value }: { label: string; value: string }) {
 function Row({ label, sub, onPress, icon }: { label: string; sub?: string; onPress: () => void; icon: ReactNode }) {
   const { c } = useTheme();
   return (
-    <Pressable onPress={onPress} accessibilityRole="link" style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderTopWidth: 1, borderTopColor: c.line }}>
+    <Pressable onPress={onPress} accessibilityRole="link" style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm, borderTopWidth: 1, borderTopColor: c.line }}>
       <View style={{ flex: 1 }}>
         <Txt w={600} size={14}>{label}</Txt>
         {sub ? <Txt size={12} color="muted">{sub}</Txt> : null}

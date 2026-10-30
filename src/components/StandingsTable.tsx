@@ -2,6 +2,7 @@ import { ScrollView, View } from 'react-native';
 import { Txt } from './Txt';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { Standing } from '@/types';
+import { space } from '@/theme/colors';
 
 /**
  * Classifica unica e compatta: prima metà = pool promozione (oro), seconda = pool salvezza (blu).
@@ -22,10 +23,10 @@ export function StandingsTable({ rows, scroll }: { rows: Standing[]; scroll?: bo
           backgroundColor: r.isUs ? 'rgba(255,213,3,0.10)' : undefined,
         }}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingLeft: 10, paddingRight: 4 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: space.sm, paddingLeft: space.sm, paddingRight: space.xs }}>
           <Txt w={800} size={15} color={r.isUs ? 'text' : 'muted'} style={{ width: 24 }} tnum>{i + 1}</Txt>
-          <View style={{ flex: 1, paddingRight: 8 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <View style={{ flex: 1, paddingRight: space.sm }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
               <Txt w={r.isUs ? 800 : 500} size={teamFontSize(r.team)} numberOfLines={scroll ? 1 : undefined} style={{ flexShrink: 1 }}>{r.team}</Txt>
               {r.penalty ? <Txt w={700} size={10.5} color="danger" tnum>−{r.penalty}</Txt> : null}
             </View>
@@ -41,7 +42,7 @@ export function StandingsTable({ rows, scroll }: { rows: Standing[]; scroll?: bo
 
   return (
     <View style={scroll ? { flex: 1 } : undefined}>
-      <View style={{ flexDirection: 'row', paddingVertical: 8, paddingLeft: 10, paddingRight: 4 }}>
+      <View style={{ flexDirection: 'row', paddingVertical: space.sm, paddingLeft: space.sm, paddingRight: space.xs }}>
         <Txt w={600} size={11} color="muted" style={{ width: 24 }}>#</Txt>
         <Txt w={600} size={11} color="muted" style={{ flex: 1 }}>Squadra</Txt>
         {['Pt', 'G', 'V', 'P'].map((h) => (

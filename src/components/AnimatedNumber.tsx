@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { Animated } from 'react-native';
-import { DISPLAY, DISPLAY_SCALE, FONT, palette } from '@/theme/colors';
+import { Animated, Platform } from 'react-native';
+import { DISPLAY, DISPLAY_LINE, DISPLAY_SCALE, displayIosShift, FONT, palette } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
 /** Numero che "salta" e si colora d'oro quando cambia */
@@ -23,13 +23,14 @@ export function AnimatedNumber({ value, size, weight = 800 }: { value: number; s
       style={{
         fontFamily: display ? DISPLAY[weight === 900 ? 900 : 800] : FONT[weight],
         fontSize,
-        lineHeight: fontSize * 1.05,
+        lineHeight: display ? Math.round(fontSize * DISPLAY_LINE) : fontSize * 1.05,
         letterSpacing: display ? 0 : -size * 0.03,
-        paddingRight: display ? Math.ceil(fontSize * 0.05) : 0,
         fontVariant: ['tabular-nums'],
         color: anim.interpolate({ inputRange: [0, 0.6, 1], outputRange: [palette.gold, palette.gold, c.text] }),
         opacity: anim.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 1, 1] }),
-        transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [size * 0.4, 0] }) }],
+        // su iOS il numero in Saira va abbassato per restare centrato nella riga (vedi DISPLAY_LINE)
+        transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [size * 0.4, 0] }) },
+          { translateY: display && Platform.OS === 'ios' ? Math.round(fontSize * displayIosShift(DISPLAY_LINE)) : 0 }],
       }}
     >
       {value}

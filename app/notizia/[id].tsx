@@ -1,7 +1,6 @@
 import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { X } from 'lucide-react-native';
 import { CoverImage } from '@/components/CoverImage';
 import { IconButton } from '@/components/IconButton';
@@ -9,6 +8,7 @@ import { Txt } from '@/components/Txt';
 import { newsDate } from '@/lib/format';
 import { useData } from '@/store/DataProvider';
 import { useTheme } from '@/theme/ThemeProvider';
+import { space } from '@/theme/colors';
 
 /** Notizia completa: copertina, categoria, data, titolo e testo diviso in paragrafi */
 export default function NewsScreen() {
@@ -31,23 +31,22 @@ export default function NewsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.card }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 30 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + space.xl }}>
         <View style={{ height: 420, backgroundColor: c.fill }}>
           {n.image ? <CoverImage source={n.image} style={{ flex: 1 }} /> : null}
-          <LinearGradient colors={['rgba(6,26,58,0.35)', 'transparent']} locations={[0, 0.25]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
           <IconButton label="Chiudi" onPress={() => router.back()} style={{ position: 'absolute', top: insets.top > 30 ? 16 : insets.top + 12, right: 14, backgroundColor: 'rgba(6,26,58,0.55)' }}>
             <X size={18} color="#fff" />
           </IconButton>
         </View>
-        <View style={{ paddingHorizontal: 22, marginTop: 12, gap: 6, width: '100%', maxWidth: 680, alignSelf: 'center' }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <View style={{ paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, backgroundColor: c.fill2 }}>
+        <View style={{ paddingHorizontal: space.lg, marginTop: space.md, gap: space.sm, width: '100%', maxWidth: 680, alignSelf: 'center' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+            <View style={{ paddingHorizontal: space.sm, paddingVertical: space.xs, borderRadius: 999, backgroundColor: c.fill2 }}>
               <Txt w={700} size={12} color="accent">{n.category}</Txt>
             </View>
             <Txt size={13} color="muted">{newsDate(n.date)}</Txt>
           </View>
-          <Txt w={900} size={26} style={{ letterSpacing: -0.6, marginTop: 4 }}>{n.title}</Txt>
-          <View style={{ gap: 14, marginTop: 14 }}>
+          <Txt w={900} size={26} style={{ letterSpacing: -0.6, marginTop: space.xs }}>{n.title}</Txt>
+          <View style={{ gap: space.md, marginTop: space.md }}>
             {paragraphs.map((p, i) => (
               <Txt key={i} size={16} style={{ lineHeight: 25 }}>{p}</Txt>
             ))}

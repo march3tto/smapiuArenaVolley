@@ -1,5 +1,5 @@
-import { StyleSheet, Text, type TextProps } from 'react-native';
-import { DISPLAY, DISPLAY_MIN_SIZE, DISPLAY_SCALE, FONT, type Colors, type Weight } from '@/theme/colors';
+import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
+import { DISPLAY, DISPLAY_LINE, DISPLAY_MIN_SIZE, DISPLAY_SCALE, displayIosShift, FONT, type Colors, type Weight } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
 export interface TxtProps extends TextProps {
@@ -9,7 +9,7 @@ export interface TxtProps extends TextProps {
   color?: keyof Colors | (string & {});
   center?: boolean;
   tnum?: boolean;
-  /** Font dei titoli (Barlow Condensed corsivo maiuscolo). Di default: pesi 800/900 da DISPLAY_MIN_SIZE in su */
+  /** Font dei titoli (Saira Condensed maiuscolo). Di default: pesi 800/900 da DISPLAY_MIN_SIZE in su */
   display?: boolean;
 }
 
@@ -22,16 +22,18 @@ export function Txt({ w = 400, size = 15, color, center, tnum, display, style, .
     const fontSize = Math.round(size * DISPLAY_SCALE);
     // le spaziature negative pensate per Inter fanno toccare le lettere del condensato
     const { letterSpacing, lineHeight } = StyleSheet.flatten(style) ?? {};
+    // mai sotto DISPLAY_LINE: altrimenti la cima delle maiuscole viene tagliata
+    const line = Math.max(Math.round(fontSize * DISPLAY_LINE), lineHeight != null ? Math.round(lineHeight * DISPLAY_SCALE) : 0);
     return (
       <Text
         {...rest}
         style={[
-          { fontFamily: DISPLAY[w >= 900 ? 900 : 800], fontSize, color: resolved, lineHeight: Math.round(fontSize * 1.1), textTransform: 'uppercase', paddingRight: Math.ceil(fontSize * 0.05) },
+          { fontFamily: DISPLAY[w >= 900 ? 900 : 800], fontSize, color: resolved, textTransform: 'uppercase' },
           center && { textAlign: 'center' },
           tnum && { fontVariant: ['tabular-nums'] },
           style,
-          { letterSpacing: Math.max(0, letterSpacing ?? 0) },
-          lineHeight != null && { lineHeight: Math.round(lineHeight * DISPLAY_SCALE) },
+          { letterSpacing: Math.max(0, letterSpacing ?? 0), lineHeight: line },
+          Platform.OS === 'ios' && { transform: [{ translateY: Math.round(fontSize * displayIosShift(line / fontSize)) }] },
         ]}
       />
     );

@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 import { Txt } from './Txt';
-import { palette } from '@/theme/colors';
+import { blue, palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { PlayerRole } from '@/types';
 
@@ -25,13 +25,13 @@ const ROLE_ZONES: Record<PlayerRole, { main: Zone[]; also: Zone[]; text: string 
 export function CourtPosition({ role, size = 168 }: { role: PlayerRole; size?: number }) {
   const { c } = useTheme();
   const { main, also, text } = ROLE_ZONES[role];
-  const court = palette.blueDeep;
+  const court = blue[800];
   const lineColor = 'rgba(255,255,255,0.9)';
   // il campo è 9x9 m: la linea dei 3 metri divide prima linea (1/3) e seconda linea (2/3)
   const front = size / 3;
 
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
       <View accessibilityLabel={`Zone in campo: ${[...main, ...also].join(', ')}`}>
         {/* rete */}
         <View style={{ height: 6, marginHorizontal: -6, borderRadius: 3, backgroundColor: c.text, opacity: 0.85 }} />
@@ -51,14 +51,14 @@ export function CourtPosition({ role, size = 168 }: { role: PlayerRole; size?: n
           ))}
         </View>
       </View>
-      <View style={{ flex: 1, gap: 6 }}>
+      <View style={{ flex: 1, gap: space.sm }}>
         <Txt w={600} size={14} style={{ lineHeight: 20 }}>{text}</Txt>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
           <View style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: palette.gold }} />
           <Txt size={12} color="muted">Zona principale</Txt>
         </View>
         {also.length ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
             <View style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: SOFT }} />
             <Txt size={12} color="muted">Zona secondaria</Txt>
           </View>

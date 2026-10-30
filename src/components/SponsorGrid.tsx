@@ -6,6 +6,7 @@ import { Txt } from './Txt';
 import { TIER_LABEL, TIER_ORDER } from '@/constants';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { Sponsor, SponsorTier } from '@/types';
+import { space } from '@/theme/colors';
 
 /** Corpo dei titoli delle categorie sponsor */
 const SPONSOR_TITLE_SIZE = 24;
@@ -20,7 +21,7 @@ export function SponsorGrid({ sponsors }: { sponsors: Sponsor[] }) {
   const wide = width >= 760;
 
   return (
-    <View style={{ gap: 22 }}>
+    <View style={{ gap: space.lg }}>
       {TIER_ORDER.map((tier) => {
         const list = sponsors.filter((s) => s.tier === tier);
         if (!list.length) return null;
@@ -29,18 +30,18 @@ export function SponsorGrid({ sponsors }: { sponsors: Sponsor[] }) {
         const tileW = (contentW - gap * (cols - 1)) / cols;
         const big = tier === 'title' || tier === 'main';
         return (
-          <View key={tier} style={{ gap: 12 }}>
-            {/* titolo della categoria come sul sito: corsivo maiuscolo blu */}
+          <View key={tier} style={{ gap: space.md }}>
+            {/* titolo della categoria come sul sito: maiuscolo blu */}
             <Txt w={900} size={SPONSOR_TITLE_SIZE} display color="cobalt">{TIER_LABEL[tier]}</Txt>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap }}>
               {list.map((s) => (
                 <Pressy key={s.id} onPress={s.url ? () => Linking.openURL(s.url!) : undefined} disabled={!s.url} scaleTo={0.97}
                   accessibilityRole={s.url ? 'link' : undefined} accessibilityLabel={s.name}
                   style={{ width: tileW, borderRadius: 18, overflow: 'hidden', backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
-                  <View style={{ height: big ? 120 : 92, backgroundColor: '#fff', padding: big ? 10 : 6 }}>
+                  <View style={{ height: big ? 120 : 92, backgroundColor: '#fff', padding: big ? space.sm : space.sm }}>
                     <Image source={s.logo} style={{ flex: 1 }} contentFit="contain" />
                   </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 9 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingHorizontal: space.sm, paddingVertical: space.sm }}>
                     <Txt w={600} size={12.5} numberOfLines={2} style={{ flexShrink: 1 }}>{s.name}</Txt>
                     {s.url ? <ExternalLink size={11} color={c.accent} /> : null}
                   </View>

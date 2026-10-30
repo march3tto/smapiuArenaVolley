@@ -3,7 +3,7 @@ import { Animated, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Info } from 'lucide-react-native';
 import { Txt } from './Txt';
-import { palette } from '@/theme/colors';
+import { palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
 type IconComp = typeof Info;
@@ -43,7 +43,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             opacity: anim, transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) }, { scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) }],
           }}
         >
-          <View style={{ maxWidth: 440, width: '100%', backgroundColor: c.card, borderRadius: 18, borderWidth: 1, borderColor: c.lineStrong, paddingVertical: 13, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 20, shadowOffset: { width: 0, height: 10 } }}>
+          <View style={{ maxWidth: 440, width: '100%', backgroundColor: c.card, borderRadius: 18, borderWidth: 1, borderColor: c.lineStrong, paddingVertical: space.md, paddingHorizontal: space.md, flexDirection: 'row', alignItems: 'center', gap: space.md, overflow: 'hidden' }}>
             <toast.Icon size={18} color={c.accent} />
             <Txt size={14} w={500} style={{ flex: 1 }}>
               {toast.msg}

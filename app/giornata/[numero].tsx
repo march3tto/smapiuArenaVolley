@@ -13,6 +13,7 @@ import { fetchGiornata } from '@/lib/api';
 import { longDate, timeOf } from '@/lib/format';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { LeagueGame } from '@/types';
+import { space } from '@/theme/colors';
 
 /** Tutte le gare di una giornata del girone caricate su Supabase (tabella partite, anche tra avversarie) */
 export default function Giornata() {
@@ -54,7 +55,7 @@ export default function Giornata() {
       <Stack.Screen options={{ title: Number.isFinite(numero) ? `${numero}ª giornata` : 'Giornata' }} />
       <ScrollView
         style={{ flex: 1, backgroundColor: c.bg }}
-        contentContainerStyle={{ padding: 14, gap: 12, paddingBottom: insets.bottom + 30, width: '100%', maxWidth: 600, alignSelf: 'center' }}
+        contentContainerStyle={{ padding: space.md, gap: space.md, paddingBottom: insets.bottom + space.xl, width: '100%', maxWidth: 600, alignSelf: 'center' }}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={c.accent} colors={[c.accent]} />}
       >
         <Txt size={13} color="muted" center>
@@ -62,13 +63,13 @@ export default function Giornata() {
         </Txt>
         {error ? <Txt size={12.5} color="danger" center>{error}</Txt> : null}
         {games == null ? (
-          error ? null : <ActivityIndicator color={c.accent} style={{ marginTop: 30 }} />
+          error ? null : <ActivityIndicator color={c.accent} style={{ marginTop: space.xl }} />
         ) : games.length ? (
           games.map((g) => (
             <GameRow key={g.id} game={g} onPress={g.matchId && g.status === 'live' ? () => router.push('/live') : undefined} />
           ))
         ) : (
-          <Card style={{ alignItems: 'center', gap: 8, paddingVertical: 30 }}>
+          <Card style={{ alignItems: 'center', gap: space.sm, paddingVertical: space.xl }}>
             <CalendarDays size={26} color={c.accent} />
             <Txt color="muted" center>Nessuna partita caricata per questa giornata.</Txt>
           </Card>
@@ -87,8 +88,8 @@ function GameRow({ game: g, onPress }: { game: LeagueGame; onPress?: () => void 
   const border = live ? 'rgba(255,77,94,0.45)' : ours ? 'rgba(255,213,3,0.45)' : c.line;
 
   return (
-    <Pressy onPress={onPress} disabled={!onPress} scaleTo={0.98} style={{ borderRadius: 22, backgroundColor: c.card, borderWidth: 1, borderColor: border, padding: 12, gap: 10 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 7 }}>
+    <Pressy onPress={onPress} disabled={!onPress} scaleTo={0.98} style={{ borderRadius: 22, backgroundColor: c.card, borderWidth: 1, borderColor: border, padding: space.md, gap: space.sm }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: space.sm }}>
         {live ? <LiveDot size={7} /> : null}
         <Txt w={600} size={13} color="muted" center>
           {longDate(g.date)} · {timeOf(g.date)}
@@ -96,7 +97,7 @@ function GameRow({ game: g, onPress }: { game: LeagueGame; onPress?: () => void 
         </Txt>
       </View>
 
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
         <Team name={g.home} logo={g.homeLogo} won={hasScore && (g.homeSets ?? 0) > (g.awaySets ?? 0) && played} />
         <View style={{ minWidth: 72, alignItems: 'center' }}>
           {hasScore ? (
@@ -111,9 +112,9 @@ function GameRow({ game: g, onPress }: { game: LeagueGame; onPress?: () => void 
       </View>
 
       {g.sets && g.sets.length && (played || live) ? (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 5 }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space.xs }}>
           {g.sets.map((s, i) => (
-            <View key={i} style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: c.fill }}>
+            <View key={i} style={{ paddingHorizontal: space.sm, paddingVertical: space.xs, borderRadius: 8, backgroundColor: c.fill }}>
               <Txt w={600} size={12} tnum>{s.home}–{s.away}</Txt>
             </View>
           ))}
@@ -125,7 +126,7 @@ function GameRow({ game: g, onPress }: { game: LeagueGame; onPress?: () => void 
 
 function Team({ name, logo, won }: { name: string; logo?: LeagueGame['homeLogo']; won: boolean }) {
   return (
-    <View style={{ flex: 1, alignItems: 'center', gap: 6 }}>
+    <View style={{ flex: 1, alignItems: 'center', gap: space.sm }}>
       <TeamBadge name={name} logo={logo} size={44} />
       <Txt w={won ? 800 : 700} size={11.5} center numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>{name}</Txt>
     </View>

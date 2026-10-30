@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Animated, Pressable, ScrollView, View, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
 import { Txt } from './Txt';
-import { palette, radius } from '@/theme/colors';
+import { palette, radius, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
 interface Props<T extends string> {
-  /** dot: colore di un puntino prima dell'etichetta */
-  options: { value: T; label: string; dot?: string }[];
+  /** dot: colore di un puntino prima dell'etichetta; icon: elemento al posto del puntino (es. stemma) */
+  options: { value: T; label: string; dot?: string; icon?: ReactNode }[];
   /** null: nessuna opzione selezionata (indicatore nascosto) */
   value: T | null;
   onChange: (v: T) => void;
@@ -42,7 +42,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange, s
   };
 
   const inner = (
-    <View style={{ flexDirection: 'row', padding: 4, flex: stretch ? 1 : undefined }}>
+    <View style={{ flexDirection: 'row', padding: space.xs, flex: stretch ? 1 : undefined }}>
       <Animated.View style={{ position: 'absolute', top: 4, bottom: 4, left: x, width: w, borderRadius: radius.pill, backgroundColor: palette.gold }} />
       {options.map((o) => {
         const active = o.value === value;
@@ -53,10 +53,10 @@ export function SegmentedControl<T extends string>({ options, value, onChange, s
             onPress={() => onChange(o.value)}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
-            style={{ paddingHorizontal: 14, height: 34, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', flex: stretch ? 1 : undefined }}
+            style={{ paddingHorizontal: space.md, height: 34, flexDirection: 'row', gap: space.sm, alignItems: 'center', justifyContent: 'center', flex: stretch ? 1 : undefined }}
           >
             {/* bordo sottile: i colori chiari (es. bianco) restano visibili anche sulla pillola */}
-            {o.dot ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: o.dot, borderWidth: 1, borderColor: c.lineStrong }} /> : null}
+            {o.icon ?? (o.dot ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: o.dot, borderWidth: 1, borderColor: c.lineStrong }} /> : null)}
             <Txt w={600} size={13} color={active ? palette.onGold : 'muted'}>
               {o.label}
             </Txt>

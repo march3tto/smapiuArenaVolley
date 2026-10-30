@@ -8,7 +8,7 @@ import { Txt } from './Txt';
 import { loadJSON, saveJSON } from '@/lib/storage';
 import { useApp } from '@/store/AppProvider';
 import { useData } from '@/store/DataProvider';
-import { palette } from '@/theme/colors';
+import { palette, space } from '@/theme/colors';
 import type { Ad } from '@/types';
 
 /** Pausa minima tra due pubblicità diverse, perché non compaiano una dopo l'altra */
@@ -105,21 +105,20 @@ function AdCard({ ad, anim, onClose }: { ad: Ad; anim: Animated.Value; onClose: 
   };
   return (
     // il resto dello schermo resta utilizzabile: solo il riquadro riceve i tocchi
-    <Animated.View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', padding: 20, opacity: anim }}>
+    <Animated.View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', padding: space.lg, opacity: anim }}>
       <Animated.View accessibilityRole="alert" style={{
         width: '100%', maxWidth: 340, borderRadius: 22, overflow: 'hidden', backgroundColor: palette.gold,
-        shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 10,
         transform: [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }],
       }}>
         <Pressable onPress={open} disabled={!ad.url} accessibilityRole={ad.url ? 'link' : undefined} accessibilityLabel={`${ad.title}: ${ad.linkLabel ?? 'scopri di più'}`}
-          style={{ flexDirection: 'row', gap: 12, padding: 12, paddingRight: 40 }}>
+          style={{ flexDirection: 'row', gap: space.md, padding: space.md, paddingRight: space.xxl }}>
           {ad.image ? <Image source={ad.image} style={{ width: 64, aspectRatio: 2 / 3, borderRadius: 6 }} contentFit="cover" transition={200} /> : null}
-          <View style={{ flex: 1, gap: 3, justifyContent: 'center' }}>
+          <View style={{ flex: 1, gap: space.xs, justifyContent: 'center' }}>
             {ad.subtitle ? <Txt w={800} size={12} color={INK} numberOfLines={2}>{ad.subtitle}</Txt> : null}
             <Txt display w={900} size={18} color={INK} numberOfLines={2}>{ad.title}</Txt>
             {ad.text ? <Txt size={12.5} color={INK} style={{ lineHeight: 17, textAlign: 'left' }}>{ad.text}</Txt> : null}
             {ad.url ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 2 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs, marginTop: space.xs }}>
                 <Txt w={800} size={12.5} color={INK} numberOfLines={1} style={{ flexShrink: 1, textDecorationLine: 'underline' }}>{ad.linkLabel ?? 'Scopri di più'}</Txt>
                 <ChevronRight size={14} color={INK} />
               </View>

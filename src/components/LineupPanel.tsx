@@ -8,7 +8,7 @@ import { TeamBadge } from './TeamBadge';
 import { Txt } from './Txt';
 import { rotationName } from '@/lib/rotations';
 import { STARTERS, type Lineup } from '@/store/useLineup';
-import { brand, palette, radius } from '@/theme/colors';
+import { blue, palette, radius, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { ImgSrc, LineupPlayer, PlayerRole } from '@/types';
 
@@ -17,7 +17,7 @@ const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI'];
 /** Metà campo vista da dietro: rete in alto, prima linea 4-3-2, seconda linea 5-6-1 */
 const ROWS = [[4, 3, 2], [5, 6, 1]];
 /** Campo color panna */
-const COURT = { bg: '#F6EFDF', line: 'rgba(11,49,102,0.28)', zone: 'rgba(11,49,102,0.4)', net: brand.bluScuro, text: brand.inchiostro };
+const COURT = { bg: '#F6EFDF', line: 'rgba(11,49,102,0.28)', zone: 'rgba(11,49,102,0.4)', net: blue[800], text: blue[900] };
 
 const surname = (name: string) => name.split(' ').slice(-1)[0] ?? name;
 
@@ -31,8 +31,8 @@ interface TeamProps {
 /** Formazioni delle due squadre affiancate, nello stesso ordine del tabellone: giocatrici a referto e Starting Six sul campo */
 export function LineupPanel({ lineup, teams }: { lineup: Lineup; teams: TeamProps[] }) {
   return (
-    <View style={{ gap: 16 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+    <View style={{ gap: space.md }}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: space.sm }}>
         {teams.map((t) => (
           <TeamLineup key={t.team} {...t} lineup={lineup} />
         ))}
@@ -74,9 +74,9 @@ function TeamLineup({ players, team, name, logo, lineup }: TeamProps & { lineup:
     ? () => router.push({ pathname: '/player/[id]', params: { id: p.playerId! } })
     : undefined);
   return (
-    <View style={{ flex: 1, minWidth: 0, gap: 10 }}>
+    <View style={{ flex: 1, minWidth: 0, gap: space.sm }}>
       {/* altezza fissa (due righe di nome): i due elenchi e i campi partono alla stessa altezza */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, height: 36 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, height: 36 }}>
         <TeamBadge name={name} logo={logo} size={28} />
         <Txt w={700} size={13} numberOfLines={2} style={{ flex: 1 }}>{name}</Txt>
       </View>
@@ -100,8 +100,8 @@ function TeamLineup({ players, team, name, logo, lineup }: TeamProps & { lineup:
           onPress={() => router.push({ pathname: '/formazione/[squadra]', params: { squadra: team === 'us' ? 'nostra' : 'avversaria' } })} />
       ) : null}
 
-      <View style={{ gap: 6, marginTop: 4 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 28 }}>
+      <View style={{ gap: space.sm, marginTop: space.xs }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm, minHeight: 28 }}>
           <Txt w={700} size={11.5} color={starters === STARTERS ? 'accent' : 'muted'} tnum>
             Starting Six {starters}/{STARTERS}{rotation ? ` · ${rotation}` : ''}
           </Txt>
@@ -149,7 +149,7 @@ export function Court({ players, big, selectedId, onPick, onZone }: { players: L
                 <Pressable key={z} disabled={!press} onPress={press}
                   accessibilityRole={press ? 'button' : undefined} accessibilityState={onPick || onZone ? { selected: on } : undefined}
                   accessibilityLabel={p ? `${p.name}, posizione ${ROMAN[z]}` : `Posizione ${ROMAN[z]} libera`}
-                  style={({ pressed }) => ({ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2, paddingHorizontal: 2, margin: 2, borderRadius: 8,
+                  style={({ pressed }) => ({ flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.xs, paddingHorizontal: space.xs, margin: space.xs, borderRadius: 8,
                     borderWidth: 1.5, borderStyle: 'dashed', borderColor: target ? COURT.zone : 'transparent',
                     backgroundColor: on ? 'rgba(255,213,3,0.45)' : pressed ? 'rgba(11,49,102,0.08)' : undefined })}>
                   <Txt w={700} size={8.5} color={COURT.zone} style={{ position: 'absolute', top: 0, left: 2 }}>{ROMAN[z]}</Txt>
@@ -174,7 +174,7 @@ export function Court({ players, big, selectedId, onPick, onZone }: { players: L
 /** Libero sotto il campo: entra al posto delle giocatrici di seconda linea */
 function LiberoLine({ player }: { player?: LineupPlayer }) {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 24 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm, minHeight: 24 }}>
       <Txt w={700} size={11} color="muted">Libero</Txt>
       {player ? (
         <>
@@ -192,7 +192,7 @@ function LiberoLine({ player }: { player?: LineupPlayer }) {
 export function NumberTag({ value, variant, size = 26 }: { value: number | null; variant: TagVariant; size?: number }) {
   const { c } = useTheme();
   const look = {
-    court: { bg: brand.bluScuro, border: brand.bluScuro, fg: palette.gold },
+    court: { bg: blue[800], border: blue[800], fg: palette.gold },
     starter: { bg: palette.gold, border: palette.gold, fg: palette.onGold },
     bench: { bg: 'transparent', border: c.lineStrong, fg: c.text },
     // il libero ha la maglia di un altro colore
@@ -201,7 +201,7 @@ export function NumberTag({ value, variant, size = 26 }: { value: number | null;
     captain: { bg: palette.navy, border: palette.gold, fg: palette.gold },
   }[variant];
   return (
-    <View style={{ minWidth: size, height: size, paddingHorizontal: 3, borderRadius: Math.round(size * 0.3), borderWidth: 1.5, borderColor: look.border, backgroundColor: look.bg, alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ minWidth: size, height: size, paddingHorizontal: space.xs, borderRadius: Math.round(size * 0.3), borderWidth: 1.5, borderColor: look.border, backgroundColor: look.bg, alignItems: 'center', justifyContent: 'center' }}>
       <Txt w={800} display size={Math.round(size * 0.56)} color={look.fg} tnum style={{ lineHeight: Math.round(size * 0.62) }}>{value ?? '–'}</Txt>
     </View>
   );
@@ -216,9 +216,9 @@ export const tagVariant = (p: LineupPlayer): TagVariant =>
 /** Legenda dei colori del numero di maglia */
 export function TagLegend() {
   return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.md }}>
       {([['starter', 'Titolare'], ['captain', 'Capitana'], ['libero', 'Libero']] as const).map(([v, label]) => (
-        <View key={v} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+        <View key={v} style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
           <NumberTag value={null} variant={v} size={16} />
           <Txt size={11.5} color="muted">{label}</Txt>
         </View>
@@ -241,11 +241,11 @@ export function PlayerRow({ p, first, onPress, pressRole, selected, onLibero, on
   const captainButton = !!onCaptain && (p.isCaptain || !captainSet);
   // i pulsanti C, L e X stanno accanto alla parte toccabile, non dentro (sul web un pulsante non può contenerne un altro)
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingRight: 8, borderTopWidth: first ? 0 : 1, borderTopColor: c.line,
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingRight: space.sm, borderTopWidth: first ? 0 : 1, borderTopColor: c.line,
       backgroundColor: selected ? 'rgba(255,213,3,0.14)' : starter ? c.fill : undefined }}>
       <Pressable onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? pressRole ?? 'button' : undefined} accessibilityState={selected != null ? { selected } : undefined}
         accessibilityLabel={`${p.name}${p.isCaptain ? ', capitana' : ''}${p.isLibero ? ', libero' : ''}${starter ? `, titolare in posizione ${ROMAN[p.zone ?? 0]}` : ''}`}
-        style={({ pressed }) => ({ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 8, paddingVertical: 8, backgroundColor: pressed ? c.fill2 : undefined })}>
+        style={({ pressed }) => ({ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingLeft: space.sm, paddingVertical: space.sm, backgroundColor: pressed ? c.fill2 : undefined })}>
         <NumberTag value={p.number} variant={tagVariant(p)} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Txt w={600} size={13} numberOfLines={1}>{p.name}</Txt>
@@ -263,7 +263,7 @@ export function PlayerRow({ p, first, onPress, pressRole, selected, onLibero, on
           a11y={p.isLibero ? `Togli ${p.name} dal ruolo di libero` : `Scegli ${p.name} come libero`} />
       ) : null}
       {onRemove ? (
-        <Pressy onPress={onRemove} scaleTo={0.85} accessibilityRole="button" accessibilityLabel={`Togli ${p.name}`} style={{ padding: 4 }}>
+        <Pressy onPress={onRemove} scaleTo={0.85} accessibilityRole="button" accessibilityLabel={`Togli ${p.name}`} style={{ padding: space.xs }}>
           <X size={16} color={c.muted} />
         </Pressy>
       ) : null}

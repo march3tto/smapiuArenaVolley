@@ -9,6 +9,7 @@ import { US } from '@/constants';
 import { longDate, timeOf } from '@/lib/format';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { Match } from '@/types';
+import { space } from '@/theme/colors';
 
 interface Props {
   match: Match;
@@ -50,11 +51,11 @@ export function MatchRow({ match: m, liveSets, onPress, onGiornataPress }: Props
           accessibilityRole={onGiornataPress ? 'button' : undefined}
           accessibilityLabel={`${m.giornata}ª giornata, ${ritorno ? 'ritorno' : 'andata'}`}
           accessibilityHint={onGiornataPress ? 'Mostra tutte le partite della giornata' : undefined}
-          style={{ width: 60, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, backgroundColor: c.fill }}
+          style={{ width: 60, alignItems: 'center', justifyContent: 'center', paddingVertical: space.md, backgroundColor: c.fill }}
         >
           <Txt w={800} size={28} tnum style={{ letterSpacing: -1, lineHeight: 30 }}>{m.giornata}</Txt>
           <Txt w={600} size={10} color="muted">giornata</Txt>
-          <View style={{ marginTop: 8, width: 24, height: 24, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: ritorno ? 'rgba(124,155,255,0.18)' : 'rgba(255,213,3,0.16)' }}>
+          <View style={{ marginTop: space.sm, width: 24, height: 24, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: ritorno ? 'rgba(124,155,255,0.18)' : 'rgba(255,213,3,0.16)' }}>
             <Txt w={800} size={11.5} color={ritorno ? 'cobalt' : 'accent'}>{ritorno ? 'R' : 'A'}</Txt>
           </View>
         </Pressy>
@@ -64,20 +65,20 @@ export function MatchRow({ match: m, liveSets, onPress, onGiornataPress }: Props
 
       <Perforation color={border} />
 
-      <View style={{ flex: 1, padding: 12, gap: 10 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 7 }}>
+      <View style={{ flex: 1, padding: space.md, gap: space.sm }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: space.sm }}>
           {live ? <LiveDot size={7} /> : null}
           <Txt w={600} size={13} color="muted" center>{longDate(m.date)} · {timeOf(m.date)}</Txt>
         </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
           <Team name={homeName} logo={homeIsUs ? null : m.opponentLogo} />
           <View style={{ minWidth: 72, alignItems: 'center' }}>
             {hasScore ? (
               <>
                 <Txt w={800} size={22} tnum style={{ letterSpacing: 0.5 }}>{homeScore} – {awayScore}</Txt>
                 {played ? (
-                  <View style={{ marginTop: 4, paddingHorizontal: 8, height: 22, borderRadius: 7, alignItems: 'center', justifyContent: 'center', backgroundColor: won ? 'rgba(61,220,151,0.18)' : 'rgba(255,122,136,0.18)' }}>
+                  <View style={{ marginTop: space.xs, paddingHorizontal: space.sm, height: 22, borderRadius: 7, alignItems: 'center', justifyContent: 'center', backgroundColor: won ? 'rgba(61,220,151,0.18)' : 'rgba(255,122,136,0.18)' }}>
                     <Txt w={800} size={11} color={won ? 'ok' : 'danger'}>{won ? 'Vinta' : 'Persa'}</Txt>
                   </View>
                 ) : null}
@@ -91,13 +92,13 @@ export function MatchRow({ match: m, liveSets, onPress, onGiornataPress }: Props
           <Team name={awayName} logo={homeIsUs ? m.opponentLogo : null} />
         </View>
 
-        <View style={{ alignItems: 'center', gap: 8 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+        <View style={{ alignItems: 'center', gap: space.sm }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
             {homeIsUs ? <House size={12} color={c.accent} fill={c.accent} accessibilityLabel="In casa" /> : <Bus size={12} color={c.accent} accessibilityLabel="In trasferta" />}
             <Txt size={12.5} color="muted">{m.venue}</Txt>
           </View>
           {m.sets && m.sets.length && played ? (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 5 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space.xs }}>
               {m.sets.map((s, i) => {
                 // set vinto: in grassetto i punti di Smapiù, la casella resta uguale per tutti i set
                 const w = s.our > s.opp;
@@ -105,7 +106,7 @@ export function MatchRow({ match: m, liveSets, onPress, onGiornataPress }: Props
                 const theirs = <Txt w={500} size={12} tnum>{s.opp}</Txt>;
                 return (
                   <View key={i} accessibilityLabel={`Set ${i + 1}: ${homeIsUs ? s.our : s.opp}–${homeIsUs ? s.opp : s.our}${w ? ', vinto' : ', perso'}`}
-                    style={{ flexDirection: 'row', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: c.fill }}>
+                    style={{ flexDirection: 'row', paddingHorizontal: space.sm, paddingVertical: space.xs, borderRadius: 8, backgroundColor: c.fill }}>
                     {homeIsUs ? ours : theirs}
                     <Txt w={500} size={12}>–</Txt>
                     {homeIsUs ? theirs : ours}
@@ -148,7 +149,7 @@ function Perforation({ color }: { color: string }) {
   return (
     <View style={{ width: 1.5 }}>
       {/* assoluta: i trattini non devono contribuire all'altezza della card */}
-      <View style={{ position: 'absolute', top: NOTCH / 2 + 3, bottom: NOTCH / 2 + 3, left: 0, right: 0, gap: 4, overflow: 'hidden' }}>
+      <View style={{ position: 'absolute', top: NOTCH / 2 + 3, bottom: NOTCH / 2 + 3, left: 0, right: 0, gap: space.xs, overflow: 'hidden' }}>
         {Array.from({ length: 40 }, (_, i) => (
           <View key={i} style={{ height: 5, backgroundColor: color }} />
         ))}
@@ -194,7 +195,7 @@ function SeasonLabel({ label }: { label: string }) {
 
 function Team({ name, logo }: { name: string; logo?: string | number | null }) {
   return (
-    <View style={{ flex: 1, alignItems: 'center', gap: 6 }}>
+    <View style={{ flex: 1, alignItems: 'center', gap: space.sm }}>
       <TeamBadge name={name} logo={logo} size={44} />
       <Txt w={700} size={11.5} center numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>{name}</Txt>
     </View>

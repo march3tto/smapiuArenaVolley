@@ -5,6 +5,7 @@ import { Card } from './Card';
 import { Pressy } from './Pressy';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { Sponsor } from '@/types';
+import { space } from '@/theme/colors';
 
 /** Banner home: loghi di tutti gli sponsor (title sponsor compreso) che scorrono */
 export function SponsorBanner({ sponsors, onPress }: { sponsors: Sponsor[]; onPress?: () => void }) {
@@ -22,14 +23,14 @@ export function SponsorBanner({ sponsors, onPress }: { sponsors: Sponsor[]; onPr
 
   const chips = (keyPrefix: string) =>
     sponsors.map((s) => (
-      <View key={keyPrefix + s.id} style={{ height: 46, width: 104, marginRight: 10, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center', padding: 3 }}>
+      <View key={keyPrefix + s.id} style={{ height: 46, width: 104, marginRight: space.sm, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center', padding: space.xs }}>
         <Image source={s.logo} style={{ width: '100%', height: '100%' }} contentFit="contain" accessibilityLabel={s.name} />
       </View>
     ));
 
   return (
     <Pressy onPress={onPress} scaleTo={0.98} accessibilityRole="button" accessibilityLabel="Sponsor">
-      <Card style={{ padding: 14, gap: 12 }}>
+      <Card style={{ padding: space.md, gap: space.md }}>
         <View style={{ overflow: 'hidden' }}>
           <Animated.View style={{ flexDirection: 'row', transform: [{ translateX: x }] }}>
             <View style={{ flexDirection: 'row' }} onLayout={(e) => setRowW(e.nativeEvent.layout.width)}>

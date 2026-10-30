@@ -10,7 +10,7 @@ import { ThemeSwitch } from '@/components/ThemeSwitch';
 import { Txt } from '@/components/Txt';
 import { useToast } from '@/components/Toast';
 import { useApp } from '@/store/AppProvider';
-import { palette } from '@/theme/colors';
+import { palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { NotifPrefs } from '@/types';
 
@@ -57,12 +57,12 @@ export default function Settings() {
       {/* tocco fuori dal riquadro = chiudi */}
       <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Chiudi" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(3,26,56,0.55)' }} />
       <Animated.View style={{
-        maxHeight: height * 0.85, width: '100%', maxWidth: 520, alignSelf: 'center', marginBottom: insets.bottom + 10, paddingHorizontal: 10,
+        maxHeight: height * 0.85, width: '100%', maxWidth: 520, alignSelf: 'center', marginBottom: insets.bottom + space.sm, paddingHorizontal: space.sm,
         transform: [{ translateY: rise }],
       }}>
         <View style={{ flexShrink: 1, borderRadius: 28, overflow: 'hidden', backgroundColor: c.bg, borderWidth: 1, borderColor: c.line }}>
-          <ScrollView contentContainerStyle={{ padding: 14, gap: 12 }} showsVerticalScrollIndicator={false}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 4 }}>
+          <ScrollView contentContainerStyle={{ padding: space.md, gap: space.md }} showsVerticalScrollIndicator={false}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.xs }}>
               <View style={{ width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.gold }}>
                 <SettingsIcon size={17} color={palette.onGold} />
               </View>
@@ -126,8 +126,8 @@ export default function Settings() {
 function Block({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
   const { c } = useTheme();
   return (
-    <View style={{ borderRadius: 20, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 4 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 4 }}>
+    <View style={{ borderRadius: 20, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, paddingHorizontal: space.md, paddingTop: space.md, paddingBottom: space.xs }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, marginBottom: space.xs }}>
         {icon}
         <Txt w={700} size={11.5} color="muted" style={{ letterSpacing: 0.8, textTransform: 'uppercase' }}>{title}</Txt>
       </View>
@@ -139,7 +139,7 @@ function Block({ icon, title, children }: { icon: ReactNode; title: string; chil
 function Item({ title, sub, right, first }: { title: string; sub?: string; right: ReactNode; first?: boolean }) {
   const { c } = useTheme();
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 9, borderTopWidth: first ? 0 : 1, borderTopColor: c.line }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm, borderTopWidth: first ? 0 : 1, borderTopColor: c.line }}>
       <View style={{ flex: 1 }}>
         <Txt w={600} size={14}>{title}</Txt>
         {sub ? <Txt size={12} color="muted">{sub}</Txt> : null}

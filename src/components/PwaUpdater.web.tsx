@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RefreshCw } from 'lucide-react-native';
 import { Button } from './Button';
 import { Txt } from './Txt';
-import { palette } from '@/theme/colors';
+import { palette, space } from '@/theme/colors';
 
 /** Ogni quanto si controlla se è uscita una nuova versione mentre l'app resta aperta */
 const CHECK_MS = 30 * 60 * 1000;
@@ -57,8 +57,8 @@ export function PwaUpdater() {
   if (!waiting) return null;
   return (
     <View pointerEvents="box-none" style={{ position: 'absolute', top: insets.top + 10, left: 12, right: 12, alignItems: 'center', zIndex: 1000 }}>
-      <View accessibilityRole="alert" style={{ width: '100%', maxWidth: 520, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, paddingLeft: 16, borderRadius: 18,
-        backgroundColor: palette.navy, borderWidth: 1, borderColor: 'rgba(255,213,3,0.55)', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } }}>
+      <View accessibilityRole="alert" style={{ width: '100%', maxWidth: 520, flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md, paddingLeft: space.md, borderRadius: 18,
+        backgroundColor: palette.navy, borderWidth: 1, borderColor: 'rgba(255,213,3,0.55)' }}>
         <RefreshCw size={18} color={palette.gold} />
         <Txt w={600} size={14} color={palette.white} style={{ flex: 1 }}>Nuova versione disponibile</Txt>
         <Button size="sm" variant="gold" label="Aggiorna" onPress={() => waiting.postMessage({ type: 'SKIP_WAITING' })} />
