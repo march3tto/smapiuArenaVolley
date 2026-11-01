@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, ScrollView, View, useWindowDimensions, type HostInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MonitorPlay, Plus, RotateCcw, Trophy, Volleyball } from 'lucide-react-native';
+import { MonitorPlay, Plus, RotateCcw, Timer, Trophy, Volleyball } from 'lucide-react-native';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -14,12 +14,13 @@ import { Pressy } from '@/components/Pressy';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { StatsPanel } from '@/components/StatsPanel';
 import { TeamBadge } from '@/components/TeamBadge';
+import { VoiceCommentary } from '@/components/VoiceCommentary';
 import { Txt } from '@/components/Txt';
 import { US } from '@/constants';
 import { hasSupabase } from '@/lib/supabase';
 import { rotateZone } from '@/lib/volley';
 import { useApp } from '@/store/AppProvider';
-import { PHASE_LABEL, ZONE_LABEL, actionLabel, useLive } from '@/store/LiveProvider';
+import { PHASE_LABEL, TIMEOUT_MS, ZONE_LABEL, actionLabel, useLive } from '@/store/LiveProvider';
 import { useLiveLineup } from '@/store/LineupProvider';
 import { usePlayer } from '@/store/PlayerProvider';
 import { palette, space } from '@/theme/colors';
@@ -72,6 +73,11 @@ export default function Live() {
   // un set che non c'è più (es. demo ricominciata) torna a tutti
   const shownSet = feedSet !== 'all' && Number(feedSet) <= rowsSets.length ? Number(feedSet) : null;
   const feed = shownSet ? live.events.filter((e) => e.set === shownSet) : live.events;
+  // chi entra prende la zona dello Starting Six di chi esce (le rotazioni del set restano)
+  const substitute = (sub: { in: LineupPlayer; out: LineupPlayer }) => {
+    const base = (sub.out.team === 'us' ? lineup.us : lineup.opp).find((p) => p.id === sub.out.id)?.zone;
+    if (base != null) lineup.moveToZone(sub.in, base);
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
@@ -87,7 +93,7 @@ export default function Live() {
           <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
             <Side {...L} flash={live.lastPoint?.side === L.side ? live.lastPoint.key : 0} serving={L.serving && !live.finished} server={serverOf(L.side)}
               onServe={live.canChooseServe ? () => live.chooseServe(L.side) : undefined}
-              onPlus={live.canScore ? (anchor) => setPicker({ side: L.side, name: L.name, anchor }) : undefined} />
+              onPlus={live.canScore ? (anchor) => setPicker({ side: L.side, name: L.name, anchor }) : undefined} locked={!!live.timeout} />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingTop: space.sm }}>
               <AnimatedNumber value={live.finished ? L.sets : L.pts} size={48} />
               <Txt w={400} size={34} color="accent">:</Txt>
@@ -95,9 +101,11 @@ export default function Live() {
             </View>
             <Side {...R} flash={live.lastPoint?.side === R.side ? live.lastPoint.key : 0} serving={R.serving && !live.finished} server={serverOf(R.side)}
               onServe={live.canChooseServe ? () => live.chooseServe(R.side) : undefined}
-              onPlus={live.canScore ? (anchor) => setPicker({ side: R.side, name: R.name, anchor }) : undefined} />
+              onPlus={live.canScore ? (anchor) => setPicker({ side: R.side, name: R.name, anchor }) : undefined} locked={!!live.timeout} />
           </View>
-  
+
+          {live.timeout ? <TimeoutBanner team={live.timeout.side === L.side ? L.name : R.name} until={live.timeout.until} /> : null}
+
           {live.standing ? (
             <View style={{ flexDirection: 'row', justifyContent: 'center', gap: space.sm, padding: space.md, borderRadius: 16, backgroundColor: c.fill }}>
               <Txt size={13} color="muted">Punti in classifica</Txt>
@@ -158,6 +166,11 @@ export default function Live() {
             <LineupPanel lineup={lineup} teams={[L, R].map((t) => ({ team: t.side, name: t.name, logo: t.logo, players: t.side === 'us' ? lineup.us : lineup.opp }))} />
           ) : panel === 'cronaca' ? (
             <View style={{ gap: space.sm }}>
+              {/* cronaca dal video: solo chi segna i punti */}
+              {live.canScore ? (
+                <VoiceCommentary onPublish={live.addNote} disabled={!!live.timeout}
+                  context={`${L.name} contro ${R.name}. Giocatrici: ${[...lineup.us, ...lineup.opp].map((p) => p.name).join(', ')}.`} />
+              ) : null}
               {rowsSets.length > 1 ? (
                 // dal 4° set le etichette non stanno in larghezza: il filtro diventa scorrevole
                 <SegmentedControl stretch={rowsSets.length <= 3} value={shownSet ? String(shownSet) : 'all'} onChange={setFeedSet}
@@ -186,7 +199,12 @@ export default function Live() {
         {picker ? (
           <PointPicker anchor={picker.anchor} side={picker.side} team={picker.name} names={{ us, opp: m.opponent }}
             players={onCourt(picker.side)} rotation={live.rotation[picker.side]} score={{ set: live.set, our: live.our, opp: live.opp }} ai={ai}
-            onScore={(detail) => live.addPoint(picker.side, detail)} onClose={() => setPicker(null)} />
+            onScore={(detail) => live.addPoint(picker.side, detail)} onClose={() => setPicker(null)}
+            notes={lineup.canEdit ? ['timeout', 'cambio'] : ['timeout']}
+            onNote={(kind, text, sub) => {
+              if (kind === 'timeout') live.callTimeout(text, picker.side);
+              else if (live.addNote(text, picker.side) && sub) substitute(sub);
+            }} />
         ) : null}
       </ScrollView>
     </View>
@@ -194,7 +212,8 @@ export default function Live() {
 }
 
 /** onServe: sullo 0-0 del set (admin) il tocco sullo stemma mette la squadra al servizio */
-function Side({ name, logo, serving, server, flash, onPlus, onServe }: { name: string; logo?: string | number | null; serving: boolean; server: LineupPlayer | null; flash: number; onPlus?: (anchor: Anchor) => void; onServe?: () => void }) {
+/** locked: timeout in corso, il + resta visibile ma non si tocca */
+function Side({ name, logo, serving, server, flash, onPlus, onServe, locked }: { name: string; logo?: string | number | null; serving: boolean; server: LineupPlayer | null; flash: number; onPlus?: (anchor: Anchor) => void; onServe?: () => void; locked?: boolean }) {
   const { c } = useTheme();
   const plusRef = useRef<HostInstance>(null);
   const plus = useRef(new Animated.Value(0)).current;
@@ -236,9 +255,9 @@ function Side({ name, logo, serving, server, flash, onPlus, onServe }: { name: s
       {onPlus ? (
         // la posizione del + in finestra serve al riquadro del punto per aprirsi da lì
         <View ref={plusRef} collapsable={false}>
-          <Pressy onPress={() => plusRef.current?.measureInWindow((x, y, w, h) => onPlus({ x, y, w, h }))} scaleTo={0.88}
-            accessibilityRole="button" accessibilityLabel={`Punto ${name}`}
-            style={{ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.gold }}>
+          <Pressy onPress={() => plusRef.current?.measureInWindow((x, y, w, h) => onPlus({ x, y, w, h }))} scaleTo={0.88} disabled={locked}
+            accessibilityRole="button" accessibilityLabel={`Punto ${name}`} accessibilityState={{ disabled: !!locked }}
+            style={{ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.gold, opacity: locked ? 0.35 : 1 }}>
             <Plus size={22} color={palette.onGold} strokeWidth={3} />
           </Pressy>
         </View>
@@ -276,5 +295,29 @@ function FeedItem({ meta, text, detail, us, first, last }: { meta: string; text:
         ) : null}
       </View>
     </Animated.View>
+  );
+}
+
+/** Timeout in corso: secondi che mancano e barra che si svuota; intanto punti e cronaca sono bloccati */
+function TimeoutBanner({ team, until }: { team: string; until: number }) {
+  const { c } = useTheme();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(t);
+  }, []);
+  const left = Math.max(0, until - now);
+  return (
+    <View accessibilityLiveRegion="polite" style={{ gap: space.sm, padding: space.md, borderRadius: 16, backgroundColor: 'rgba(255,213,3,0.12)', borderWidth: 1, borderColor: palette.gold }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+        <Timer size={16} color={c.accent} />
+        <Txt w={700} size={13} numberOfLines={1} style={{ flex: 1 }}>Timeout {team}</Txt>
+        <Txt w={800} size={15} tnum>0:{String(Math.ceil(left / 1000)).padStart(2, '0')}</Txt>
+      </View>
+      <View style={{ height: 4, borderRadius: 2, backgroundColor: c.fill, overflow: 'hidden' }}>
+        <View style={{ height: 4, width: `${(left / TIMEOUT_MS) * 100}%`, backgroundColor: palette.gold }} />
+      </View>
+      <Txt size={12} color="muted">Fino alla fine del timeout non si possono inserire punti, timeout o cambi.</Txt>
+    </View>
   );
 }

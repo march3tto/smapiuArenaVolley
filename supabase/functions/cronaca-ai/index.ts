@@ -1,4 +1,4 @@
-// Frasi di cronaca scritte dall'AI (Groq) per un punto della diretta.
+// Frasi di cronaca scritte dall'AI (Groq) per un punto della diretta, un timeout o un cambio.
 // L'AI racconta soltanto: chi ha conquistato il punto, azione, giocatrice e punteggio arrivano già decisi dall'app.
 // Segreti: GROQ_API_KEY (obbligatorio), GROQ_MODEL (facoltativo, provato per primo).
 //   supabase secrets set GROQ_API_KEY=...
@@ -13,11 +13,15 @@ const CORS = {
 
 const AZIONI: Record<string, string> = {
   schiacciata: 'schiacciata',
+  parallela: 'attacco in parallela (lungo la linea laterale)',
+  mani_fuori: 'mani fuori (attacco che tocca il muro avversario e finisce fuori)',
   pipe: 'pipe (attacco da seconda linea in zona centrale)',
   primo_tempo: 'primo tempo (attacco veloce della centrale)',
+  fast: 'fast (attacco veloce della centrale in spostamento, dietro la palleggiatrice)',
   pallonetto: 'pallonetto',
   ace: 'ace in battuta',
   muro: 'muro punto',
+  battuta_out: 'battuta out della squadra avversaria (servizio finito fuori)',
   errore_avversario: 'errore della squadra avversaria',
 };
 const ZONE = ['', 'I', 'II', 'III', 'IV', 'V', 'VI'];
@@ -26,10 +30,15 @@ const ZONE = ['', 'I', 'II', 'III', 'IV', 'V', 'VI'];
 const MODELLI = ['openai/gpt-oss-120b', 'llama-3.3-70b-versatile', 'openai/gpt-oss-20b', 'llama-3.1-8b-instant'];
 
 interface Richiesta {
+  /** punto (predefinito), timeout o cambio: timeout e cambio non cambiano il punteggio */
+  tipo?: 'punto' | 'timeout' | 'cambio';
   squadra: string;
   avversaria: string;
-  /** squadra che ha conquistato il punto: decisa dall'app */
+  /** squadra che ha conquistato il punto (o chiede timeout/cambio): decisa dall'app */
   puntoA: 'us' | 'opp';
+  /** cambio: giocatrice che entra e che esce */
+  entra?: string | null;
+  esce?: string | null;
   azione: string;
   fase: 'attacco' | 'difesa';
   zona?: number | null;
@@ -65,10 +74,24 @@ Deno.serve(async (req) => {
   } catch {
     return json({ error: 'Richiesta non valida' }, 400);
   }
-  if (!AZIONI[r.azione] || (r.puntoA !== 'us' && r.puntoA !== 'opp')) return json({ error: 'Azione non valida' }, 400);
+  const tipo = r.tipo ?? 'punto';
+  if (r.puntoA !== 'us' && r.puntoA !== 'opp') return json({ error: 'Squadra non valida' }, 400);
+  if (tipo === 'punto' && !AZIONI[r.azione]) return json({ error: 'Azione non valida' }, 400);
+  if (tipo === 'cambio' && (!r.entra || !r.esce)) return json({ error: 'Cambio senza giocatrici' }, 400);
+  if (tipo !== 'punto' && tipo !== 'timeout' && tipo !== 'cambio') return json({ error: 'Tipo non valido' }, 400);
 
   const vincente = r.puntoA === 'us' ? r.squadra : r.avversaria;
-  const fatti = [
+  const momento = [
+    `Set: ${r.set === 5 ? 'tie-break' : `${r.set}° set`}`,
+    `Punteggio attuale (non cambia): ${r.squadra} ${r.nostri} – ${r.loro} ${r.avversaria}`,
+  ];
+  const fatti = tipo === 'timeout' ? [
+    `Timeout chiesto da: ${vincente}`,
+    ...momento,
+  ].join('\n') : tipo === 'cambio' ? [
+    `Cambio di ${vincente}: entra ${r.entra}, esce ${r.esce}`,
+    ...momento,
+  ].join('\n') : [
     `Punto conquistato da: ${vincente}`,
     `Azione: ${AZIONI[r.azione]}, in fase di ${r.fase}`,
     r.giocatrice ? `Giocatrice: ${r.giocatrice} (${r.puntoA === 'us' ? r.squadra : r.avversaria})` : 'Giocatrice: non indicata, non inventarne una',
@@ -82,14 +105,15 @@ Deno.serve(async (req) => {
     `Sei il telecronista della diretta testuale di ${r.squadra}, squadra di pallavolo femminile.`,
     'Scrivi in italiano frasi di cronaca brevi (massimo 140 caratteri), vivaci ma corrette, tifando con garbo per la tua squadra.',
     'Usa SOLO i fatti forniti: non cambiare chi ha fatto punto, il punteggio, l\'azione o il nome della giocatrice, e non aggiungere nomi o dettagli inventati.',
+    tipo === 'punto' ? null : 'Questa volta non c\'è un punto: racconta il timeout o il cambio, senza inventare il motivo.',
     'Ogni frase deve essere diversa dalle altre per struttura e lessico. Niente emoji, niente hashtag.',
     'Rispondi solo con JSON: {"frasi": ["...", "...", "..."]}',
-  ].join(' ');
+  ].filter(Boolean).join(' ');
   const evita = r.evita?.length ? `\n\nNon ripetere queste frasi già proposte:\n- ${r.evita.slice(0, 12).join('\n- ')}` : '';
 
   const messages = [
     { role: 'system', content: system },
-    { role: 'user', content: `Fatti del punto:\n${fatti}${evita}\n\nScrivi 3 frasi di cronaca.` },
+    { role: 'user', content: `Fatti ${tipo === 'punto' ? 'del punto' : tipo === 'timeout' ? 'del timeout' : 'del cambio'}:\n${fatti}${evita}\n\nScrivi 3 frasi di cronaca.` },
   ];
   const scelto = Deno.env.get('GROQ_MODEL');
   let out: { choices?: { message?: { content?: string } }[] } | null = null;

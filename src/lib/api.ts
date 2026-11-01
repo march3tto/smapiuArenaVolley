@@ -487,7 +487,9 @@ function withSides(desc: Row[]): LiveEvent[] {
   });
 }
 
-const AZIONI: PointAction[] = ['schiacciata', 'pipe', 'primo_tempo', 'pallonetto', 'ace', 'muro', 'errore_avversario'];
+const AZIONI: PointAction[] = [
+  'schiacciata', 'parallela', 'mani_fuori', 'pipe', 'primo_tempo', 'fast', 'pallonetto', 'ace', 'muro', 'battuta_out', 'errore_avversario', 'punto',
+];
 
 /** Riga di azioni_punto → evento (id) + chi ha fatto punto + azione */
 export interface LiveAction {
@@ -683,6 +685,15 @@ export async function pushLivePoint(
   }
 }
 
+/** Admin: riga di cronaca senza punto (es. dettata a voce), col punteggio del momento */
+export async function pushLiveNote(matchId: string, e: LiveEvent): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from(T.eventiLive).insert({
+    id: e.id, partita_id: matchId, numero_set: e.set, punteggio_nostro: e.our, punteggio_avversario: e.opp, descrizione: e.text,
+  });
+  if (error) throw error;
+}
+
 /** Azione tecnica del punto: se non si salva (es. migrazione non eseguita) il punto e la cronaca restano validi */
 async function pushAction(matchId: string, e: LiveEvent): Promise<void> {
   if (!supabase || !e.detail) return;
@@ -719,6 +730,45 @@ export async function suggestCommentary(req: CommentaryRequest): Promise<string[
   if (error) throw error;
   const frasi = (data as { frasi?: unknown } | null)?.frasi;
   return Array.isArray(frasi) ? frasi.filter((f): f is string => typeof f === 'string') : [];
+}
+
+/** Timeout o cambio: riga di cronaca senza punto. puntoA è la squadra che chiede il timeout o fa il cambio */
+export interface NoteCommentaryRequest {
+  tipo: 'timeout' | 'cambio';
+  squadra: string;
+  avversaria: string;
+  puntoA: 'us' | 'opp';
+  entra?: string | null;
+  esce?: string | null;
+  set: number;
+  nostri: number;
+  loro: number;
+  evita?: string[];
+}
+
+/** Frasi di cronaca dall'AI per un timeout o un cambio (stessa Edge Function cronaca-ai) */
+export async function suggestNoteCommentary(req: NoteCommentaryRequest): Promise<string[]> {
+  if (!supabase) throw new Error('Supabase non configurato');
+  const { data, error } = await supabase.functions.invoke('cronaca-ai', { body: req });
+  if (error) throw error;
+  const frasi = (data as { frasi?: unknown } | null)?.frasi;
+  return Array.isArray(frasi) ? frasi.filter((f): f is string => typeof f === 'string') : [];
+}
+
+/**
+ * Testo di un pezzo dell'audio della diretta (Edge Function trascrivi-audio: Groq Whisper e correzione AI, solo staff/admin).
+ * previous: fine del testo del pezzo prima, per ricucire le parole tagliate.
+ */
+export async function transcribeAudio(audio: Blob, fileName: string, context: string, previous = ''): Promise<string> {
+  if (!supabase) throw new Error('Supabase non configurato');
+  const body = new FormData();
+  body.append('audio', audio, fileName);
+  body.append('contesto', context);
+  body.append('precedente', previous);
+  const { data, error } = await supabase.functions.invoke('trascrivi-audio', { body, timeout: 30000 });
+  if (error) throw error;
+  const testo = (data as { testo?: unknown } | null)?.testo;
+  return typeof testo === 'string' ? testo : '';
 }
 
 // ---------- assistente ----------

@@ -1,16 +1,18 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Animated, Modal, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Modal, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronLeft, RefreshCw, Sparkles, X } from 'lucide-react-native';
+import { ArrowLeftRight, ChevronLeft, RefreshCw, Sparkles, Timer, X } from 'lucide-react-native';
 import { Button } from './Button';
 import { Court } from './LineupPanel';
+import { NoteFlow, type NoteKind } from './NotePicker';
+import { Field, PhraseList } from './PhraseList';
 import { Pressy } from './Pressy';
 import { SegmentedControl } from './SegmentedControl';
 import { Txt } from './Txt';
 import { US } from '@/constants';
 import { suggestCommentary } from '@/lib/api';
 import { setWinner } from '@/lib/volley';
-import { PHASE_LABEL, POINT_ACTIONS, ZONE_LABEL, actionLabel, detailLine, type PointAction, type PointDetail, type PointPhase } from '@/store/LiveProvider';
+import { ACTION_ROLE, PHASE_LABEL, POINT_ACTIONS, ZONE_LABEL, actionLabel, detailLine, type PointAction, type PointDetail, type PointPhase } from '@/store/LiveProvider';
 import { palette, radius, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { LineupPlayer } from '@/types';
@@ -31,7 +33,7 @@ const GUTTER = space.md;
  * 2. Cronaca: frasi proposte dall'AI (se disponibile) o predefinita; si sceglie e si assegna il punto.
  * Chi conquista il punto è deciso qui (side), l'AI scrive solo la frase.
  */
-export function PointPicker({ anchor, side, team, names, players, rotation = 0, score, ai, onScore, onClose }: {
+export function PointPicker({ anchor, side, team, names, players, rotation = 0, score, ai, onScore, onClose, notes = [], onNote }: {
   anchor: Anchor;
   side: 'us' | 'opp';
   team: string;
@@ -47,12 +49,17 @@ export function PointPicker({ anchor, side, team, names, players, rotation = 0, 
   ai: boolean;
   onScore: (detail?: PointDetail) => void;
   onClose: () => void;
+  /** Timeout e cambio della squadra, senza punto: righe di cronaca col punteggio attuale (sub: chi entra e chi esce) */
+  notes?: NoteKind[];
+  onNote?: (kind: NoteKind, text: string, sub?: { in: LineupPlayer; out: LineupPlayer }) => void;
 }) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const win = useWindowDimensions();
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   const [step, setStep] = useState<'azione' | 'cronaca'>('azione');
+  // timeout o cambio aperti da qui: stesso riquadro, senza punto
+  const [note, setNote] = useState<NoteKind | null>(null);
   const [picked, setPicked] = useState<LineupPlayer | null>(null);
   const [phase, setPhase] = useState<PointPhase>('attacco');
   const [action, setAction] = useState<PointAction | null>(null);
@@ -88,7 +95,14 @@ export function PointPicker({ anchor, side, team, names, players, rotation = 0, 
     Animated.timing(t, { toValue: 0, duration: 160, useNativeDriver: true }).start(() => onClose());
   };
 
-  const pickPlayer = (p: LineupPlayer) => setPicked((cur) => (cur?.id === p.id ? null : p));
+  // azione riservata a un ruolo (fast: solo la centrale) non disponibile per la giocatrice scelta
+  const blocked = (a: PointAction, p = picked) => !!p && !!ACTION_ROLE[a] && p.role !== ACTION_ROLE[a];
+
+  const pickPlayer = (p: LineupPlayer) => {
+    const next = picked?.id === p.id ? null : p;
+    setPicked(next);
+    if (action && blocked(action, next)) setAction(null);
+  };
 
   const pickAction = (a: (typeof POINT_ACTIONS)[number]) => {
     setAction(a.value);
@@ -147,6 +161,11 @@ export function PointPicker({ anchor, side, team, names, players, rotation = 0, 
     close(() => onScore({ ...d, text: options[pick], aiText: pick < phrases.length }));
   };
 
+  // senza dettagli: se è scelta una giocatrice il punto resta suo (cronaca e statistiche)
+  const quick = () => close(() => onScore(picked
+    ? { action: 'punto', phase, zone, player: { lineupId: picked.id, playerId: picked.playerId ?? null, name: picked.name, number: picked.number } }
+    : undefined));
+
   const chip = (on: boolean) => ({
     borderRadius: radius.sm, alignItems: 'center' as const, justifyContent: 'center' as const,
     backgroundColor: on ? palette.gold : c.fill, borderWidth: 1, borderColor: on ? palette.gold : c.line,
@@ -181,111 +200,104 @@ export function PointPicker({ anchor, side, team, names, players, rotation = 0, 
             const l = e.nativeEvent.layout;
             setSize((s) => (s && s.h === l.height ? s : { w: l.width, h: l.height }));
           }} style={{ gap: space.md, padding: space.md }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-              {step === 'cronaca' ? (
-                <Pressy onPress={() => { request.current++; setLoading(false); setStep('azione'); }} scaleTo={0.85} accessibilityRole="button" accessibilityLabel="Torna all'azione"
-                  style={{ width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: c.fill2 }}>
-                  <ChevronLeft size={18} color={c.text} />
-                </Pressy>
-              ) : null}
-              <View style={{ flex: 1 }}>
-                <Txt w={700} size={15} numberOfLines={1}>Punto {team}</Txt>
-                <Txt size={12} color="muted" numberOfLines={1}>
-                  {step === 'cronaca'
-                    ? `${score.set === 5 ? 'Tie-break' : `${score.set}° set`}, ${after.our}–${after.opp}`
-                    : picked ? `${picked.number != null ? `#${picked.number} ` : ''}${picked.name}${zone ? ` · Pos. ${ZONE_LABEL[zone]}` : ''}` : starters.length ? 'Chi ha fatto punto? (facoltativo)' : 'Starting Six non inserito'}
-                </Txt>
-              </View>
-              <Pressy onPress={() => close()} scaleTo={0.85} accessibilityRole="button" accessibilityLabel="Chiudi"
-                style={{ width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: c.fill2 }}>
-                <X size={16} color={c.text} />
-              </Pressy>
-            </View>
-
-            {step === 'azione' ? (
-              <>
-                {starters.length ? (
-                  <Field label={rotation ? `In campo adesso: ${rotation} ${rotation === 1 ? 'rotazione' : 'rotazioni'} nel set` : 'In campo adesso: formazione di inizio set'}>
-                    <Court big players={starters} selectedId={picked?.id} onPick={pickPlayer} />
-                  </Field>
-                ) : null}
-
-                <Field label="Fase">
-                  <SegmentedControl stretch value={phase} onChange={setPhase}
-                    options={[{ value: 'attacco', label: PHASE_LABEL.attacco }, { value: 'difesa', label: PHASE_LABEL.difesa }]} />
-                </Field>
-
-                <Field label="Azione">
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
-                    {POINT_ACTIONS.map((a) => (
-                      <Pressy key={a.value} scaleTo={0.94} onPress={() => pickAction(a)}
-                        accessibilityRole="button" accessibilityState={{ selected: action === a.value }} accessibilityLabel={a.label}
-                        style={[chip(action === a.value), { flexGrow: 1, flexBasis: '30%', height: 40, paddingHorizontal: space.sm }]}>
-                        <Txt w={700} size={13} numberOfLines={1} color={action === a.value ? palette.onGold : 'text'}>{a.label}</Txt>
-                      </Pressy>
-                    ))}
-                  </View>
-                </Field>
-
-                <Button variant="gold" label={ai ? 'Avanti: cronaca AI' : 'Avanti: cronaca'} disabled={!action} onPress={toCronaca}
-                  icon={ai ? <Sparkles size={16} color={palette.onGold} /> : undefined} />
-                <Pressy onPress={() => close(() => onScore())} scaleTo={0.96} accessibilityRole="button" style={{ alignSelf: 'center', paddingVertical: space.xs, paddingHorizontal: space.sm }}>
-                  <Txt w={600} size={12.5} color="muted">Solo punto, senza dettagli</Txt>
-                </Pressy>
-              </>
+            {note && onNote ? (
+              <NoteFlow kind={note} side={side} team={team} names={names} ai={ai}
+                players={{
+                  court: starters,
+                  // il libero non entra con un cambio
+                  bench: players.filter((p) => p.zone == null && !p.isLibero && p.role !== 'libero'),
+                }}
+                score={score} onBack={() => setNote(null)} onClose={() => close()}
+                onPublish={(text, sub) => close(() => onNote(note, text, sub))} />
             ) : (
               <>
-                <View style={{ padding: space.sm, borderRadius: radius.sm, backgroundColor: c.fill }}>
-                  <Txt w={600} size={12.5}>{summary}</Txt>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+                  {step === 'cronaca' ? (
+                    <Pressy onPress={() => { request.current++; setLoading(false); setStep('azione'); }} scaleTo={0.85} accessibilityRole="button" accessibilityLabel="Torna all'azione"
+                      style={{ width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: c.fill2 }}>
+                      <ChevronLeft size={18} color={c.text} />
+                    </Pressy>
+                  ) : null}
+                  <View style={{ flex: 1 }}>
+                    <Txt w={700} size={15} numberOfLines={1}>Punto {team}</Txt>
+                    <Txt size={12} color="muted" numberOfLines={1}>
+                      {step === 'cronaca'
+                        ? `${score.set === 5 ? 'Tie-break' : `${score.set}° set`}, ${after.our}–${after.opp}`
+                        : picked ? `${picked.number != null ? `#${picked.number} ` : ''}${picked.name}${zone ? ` · Pos. ${ZONE_LABEL[zone]}` : ''}` : starters.length ? 'Chi ha fatto punto? (facoltativo)' : 'Starting Six non inserito'}
+                    </Txt>
+                  </View>
+                  {step === 'azione' ? (
+                    <Pressy onPress={quick} scaleTo={0.94} accessibilityRole="button"
+                      accessibilityLabel={picked ? `Solo punto di ${picked.name}, senza dettagli` : 'Solo punto, senza dettagli'}
+                      style={{ height: 32, paddingHorizontal: space.sm + 2, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: c.fill2 }}>
+                      <Txt w={700} size={12} numberOfLines={1}>Solo punto</Txt>
+                    </Pressy>
+                  ) : null}
+                  <Pressy onPress={() => close()} scaleTo={0.85} accessibilityRole="button" accessibilityLabel="Chiudi"
+                    style={{ width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: c.fill2 }}>
+                    <X size={16} color={c.text} />
+                  </Pressy>
                 </View>
 
-                <Field label="Scegli la frase per la cronaca">
-                  <View style={{ gap: space.sm }}>
-                    {loading ? (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.md }}>
-                        <ActivityIndicator color={c.accent} />
-                        <Txt size={13} color="muted">L&apos;AI sta scrivendo la cronaca…</Txt>
+                {step === 'azione' ? (
+                  <>
+                    {starters.length ? (
+                      <Field label={rotation ? `In campo adesso: ${rotation} ${rotation === 1 ? 'rotazione' : 'rotazioni'} nel set` : 'In campo adesso: formazione di inizio set'}>
+                        <Court big players={starters} selectedId={picked?.id} onPick={pickPlayer} />
+                      </Field>
+                    ) : null}
+
+                    <Field label="Fase">
+                      <SegmentedControl stretch value={phase} onChange={setPhase}
+                        options={[{ value: 'attacco', label: PHASE_LABEL.attacco }, { value: 'difesa', label: PHASE_LABEL.difesa }]} />
+                    </Field>
+
+                    <Field label="Azione">
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
+                        {POINT_ACTIONS.map((a) => (
+                          <Pressy key={a.value} scaleTo={0.94} onPress={() => pickAction(a)} disabled={blocked(a.value)}
+                            accessibilityRole="button" accessibilityState={{ selected: action === a.value, disabled: blocked(a.value) }} accessibilityLabel={a.label}
+                            style={[chip(action === a.value), { flexGrow: 1, flexBasis: '30%', height: 40, paddingHorizontal: space.sm, opacity: blocked(a.value) ? 0.35 : 1 }]}>
+                            <Txt w={700} size={13} numberOfLines={1} color={action === a.value ? palette.onGold : 'text'}>{a.label}</Txt>
+                          </Pressy>
+                        ))}
+                      </View>
+                    </Field>
+
+                    <Button variant="gold" label={ai ? 'Avanti: cronaca AI' : 'Avanti: cronaca'} disabled={!action} onPress={toCronaca}
+                      icon={ai ? <Sparkles size={16} color={palette.onGold} /> : undefined} />
+                    {onNote && notes.length ? (
+                      <View style={{ flexDirection: 'row', gap: space.sm, paddingTop: space.sm, borderTopWidth: 1, borderTopColor: c.line }}>
+                        {notes.includes('timeout') ? (
+                          <Button size="sm" label="Timeout" icon={<Timer size={16} color={c.text} />} style={{ flex: 1 }}
+                            accessibilityLabel={`Timeout ${team}`} onPress={() => setNote('timeout')} />
+                        ) : null}
+                        {notes.includes('cambio') ? (
+                          <Button size="sm" label="Cambio" icon={<ArrowLeftRight size={16} color={c.text} />} style={{ flex: 1 }}
+                            accessibilityLabel={`Cambio ${team}`} onPress={() => setNote('cambio')} />
+                        ) : null}
                       </View>
                     ) : null}
-                    {options.map((f, i) => {
-                      const on = i === Math.min(chosen, options.length - 1);
-                      const isAi = i < phrases.length;
-                      return (
-                        <Pressy key={`${i}-${f}`} scaleTo={0.98} onPress={() => setChosen(i)}
-                          accessibilityRole="radio" accessibilityState={{ selected: on }}
-                          style={{ flexDirection: 'row', gap: space.sm, padding: space.sm, borderRadius: radius.sm, borderWidth: 1.5, borderColor: on ? palette.gold : c.line, backgroundColor: on ? 'rgba(255,213,3,0.12)' : undefined }}>
-                          <View style={{ width: 18, height: 18, borderRadius: 9, marginTop: 0, borderWidth: 2, borderColor: on ? palette.gold : c.lineStrong, alignItems: 'center', justifyContent: 'center' }}>
-                            {on ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: palette.gold }} /> : null}
-                          </View>
-                          <View style={{ flex: 1, gap: space.xs }}>
-                            <Txt size={13.5}>{f}</Txt>
-                            <Txt w={600} size={11} color="muted">{isAi ? 'Proposta AI' : 'Frase standard'}</Txt>
-                          </View>
-                        </Pressy>
-                      );
-                    })}
-                    {aiError ? <Txt size={12} color="live">{aiError}</Txt> : null}
-                  </View>
-                </Field>
+                  </>
+                ) : (
+                  <>
+                    <View style={{ padding: space.sm, borderRadius: radius.sm, backgroundColor: c.fill }}>
+                      <Txt w={600} size={12.5}>{summary}</Txt>
+                    </View>
 
-                {ai ? (
-                  <Button size="sm" label="Altre frasi" disabled={loading} onPress={() => generate(seen)} icon={<RefreshCw size={14} color={c.text} />} />
-                ) : null}
-                <Button variant="gold" label={`Assegna punto a ${team}`} onPress={assign} />
+                    <PhraseList options={options} aiCount={phrases.length} chosen={chosen} onChoose={setChosen} loading={loading} error={aiError} />
+
+                    {ai ? (
+                      <Button size="sm" label="Altre frasi" disabled={loading} onPress={() => generate(seen)} icon={<RefreshCw size={14} color={c.text} />} />
+                    ) : null}
+                    <Button variant="gold" label={`Assegna punto a ${team}`} onPress={assign} />
+                  </>
+                )}
               </>
             )}
           </View>
         </ScrollView>
       </Animated.View>
     </Modal>
-  );
-}
-
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <View style={{ gap: space.sm }}>
-      <Txt w={600} size={12} color="muted">{label}</Txt>
-      {children}
-    </View>
   );
 }

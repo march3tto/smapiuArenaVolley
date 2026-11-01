@@ -196,7 +196,11 @@ export interface Venue {
   kind: 'arena' | 'palasport' | 'palestra';
 }
 
-export type PointAction = 'schiacciata' | 'pipe' | 'primo_tempo' | 'pallonetto' | 'ace' | 'muro' | 'errore_avversario';
+export type PointAction =
+  | 'schiacciata' | 'parallela' | 'mani_fuori' | 'pipe' | 'primo_tempo' | 'fast' | 'pallonetto'
+  | 'ace' | 'muro' | 'battuta_out' | 'errore_avversario'
+  /** "Solo punto" con la giocatrice scelta: punto senza fondamentale */
+  | 'punto';
 export type PointPhase = 'attacco' | 'difesa';
 
 /** Azione tecnica di un punto (tabella azioni_punto), separata dalla frase di cronaca */

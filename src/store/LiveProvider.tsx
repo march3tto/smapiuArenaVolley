@@ -1,14 +1,14 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
-import { LIVE_EVENTS_MAX, demoRevision, fetchLive, newId, pushLivePoint, setFirstServe, subscribeDemo, subscribeLive, type DemoChannel, withAction } from '@/lib/api';
+import { LIVE_EVENTS_MAX, demoRevision, fetchLive, newId, pushLiveNote, pushLivePoint, setFirstServe, subscribeDemo, subscribeLive, type DemoChannel, withAction } from '@/lib/api';
 import { hasSupabase } from '@/lib/supabase';
 import { demoLive as demoInitial } from '@/data/mock';
 import { firstServer, pointWinners, rotationState } from '@/lib/rotations';
 import { isSideSwitch, matchWinner, setWinner, setsWon, standingPoints } from '@/lib/volley';
 import { useApp } from './AppProvider';
 import { useData } from './DataProvider';
-import type { LiveEvent, Match, PointAction, PointDetail, PointPhase, SetScore } from '@/types';
+import type { LiveEvent, Match, PlayerRole, PointAction, PointDetail, PointPhase, SetScore } from '@/types';
 
 interface LiveState {
   set: number;
@@ -43,6 +43,12 @@ interface LiveCtx extends LiveState {
   rotation: { us: number; opp: number };
   /** detail: azione, posizione, fase, giocatrice e frase scelta; chi fa punto lo dice side, non l'AI */
   addPoint: (side: 'us' | 'opp', detail?: PointDetail) => void;
+  /** Riga di cronaca senza punto (dettata a voce, timeout, cambio), col punteggio attuale; side: squadra a cui si riferisce. false se non inserita */
+  addNote: (text: string, side?: 'us' | 'opp') => boolean;
+  /** Timeout in corso su questo dispositivo: fino a until non si inseriscono punti né altre righe di cronaca */
+  timeout: { side: 'us' | 'opp'; until: number } | null;
+  /** Riga di cronaca del timeout e blocco di TIMEOUT_MS */
+  callTimeout: (text: string, side: 'us' | 'opp') => void;
   /** Riporta la partita demo allo stato iniziale */
   resetDemo: () => void;
   /** Sullo 0-0 del set: si può scegliere chi serve per primo */
@@ -53,26 +59,36 @@ interface LiveCtx extends LiveState {
 
 const Ctx = createContext<LiveCtx | null>(null);
 
+/** Durata di un timeout: 30 secondi */
+export const TIMEOUT_MS = 30000;
+
 export type { PointAction, PointDetail, PointPhase };
 
 /** Azioni di gioco con la fase proposta di default (modificabile nel riquadro del punto) */
 export const POINT_ACTIONS: { value: PointAction; label: string; phase: PointPhase }[] = [
   { value: 'schiacciata', label: 'Schiacciata', phase: 'attacco' },
+  { value: 'parallela', label: 'Parallela', phase: 'attacco' },
+  { value: 'mani_fuori', label: 'Mani fuori', phase: 'attacco' },
   { value: 'pipe', label: 'Pipe', phase: 'attacco' },
   { value: 'primo_tempo', label: 'Primo tempo', phase: 'attacco' },
+  { value: 'fast', label: 'Fast', phase: 'attacco' },
   { value: 'pallonetto', label: 'Pallonetto', phase: 'attacco' },
   { value: 'ace', label: 'Ace', phase: 'attacco' },
   { value: 'muro', label: 'Muro', phase: 'difesa' },
+  { value: 'battuta_out', label: 'Battuta out', phase: 'difesa' },
   { value: 'errore_avversario', label: 'Errore avv.', phase: 'difesa' },
 ];
+/** Azioni riservate a un ruolo: la fast la esegue solo la centrale */
+export const ACTION_ROLE: Partial<Record<PointAction, PlayerRole>> = { fast: 'centrale' };
 export const PHASE_LABEL: Record<PointPhase, string> = { attacco: 'Attacco', difesa: 'Difesa' };
 export const ZONE_LABEL = ['', 'I', 'II', 'III', 'IV', 'V', 'VI'];
 
 const ACTION_TEXT: Record<PointAction, string> = {
   schiacciata: 'Schiacciata vincente', pipe: 'Pipe vincente', primo_tempo: 'Primo tempo vincente', pallonetto: 'Pallonetto vincente',
-  ace: 'Ace in battuta', muro: 'Muro vincente', errore_avversario: 'Errore avversario',
+  parallela: 'Parallela vincente', mani_fuori: 'Mani fuori', fast: 'Fast vincente',
+  ace: 'Ace in battuta', muro: 'Muro vincente', battuta_out: 'Battuta out', errore_avversario: 'Errore avversario', punto: 'Punto',
 };
-export const actionLabel = (a: PointAction) => POINT_ACTIONS.find((x) => x.value === a)?.label ?? a;
+export const actionLabel = (a: PointAction) => POINT_ACTIONS.find((x) => x.value === a)?.label ?? ACTION_TEXT[a];
 
 /** Nomi delle due squadre, solo nella partita demo tra due avversarie (altrimenti la cronaca parla di Smapiù) */
 export type TeamNames = { us: string; opp: string };
@@ -84,10 +100,18 @@ export const teamNames = (m: Match | null): TeamNames | undefined => (m?.usName 
 export function detailLine(side: 'us' | 'opp', d: PointDetail, names?: TeamNames): string {
   const where = d.zone ? ` da zona ${ZONE_LABEL[d.zone]}` : '';
   const what = `${ACTION_TEXT[d.action]}${d.player ? ` di ${d.player.name}` : ''}${where}`;
+  // solo punto: conta la giocatrice, nessun fondamentale da raccontare
+  if (d.action === 'punto') {
+    const by = d.player ? ` firmato da ${d.player.name}` : '';
+    if (names) return `Punto ${names[side]}${by}!`;
+    return side === 'us' ? `Punto Smapiù${by}!` : `Punto per le avversarie${by}.`;
+  }
   if (names) {
     const other = side === 'us' ? names.opp : names.us;
+    if (d.action === 'battuta_out') return `Battuta out ${other}, punto ${names[side]}!`;
     return d.action === 'errore_avversario' ? `Errore ${other}, punto ${names[side]}!` : `${what}, punto ${names[side]}!`;
   }
+  if (d.action === 'battuta_out') return side === 'us' ? 'Battuta out delle avversarie, punto Smapiù!' : 'Battuta out Smapiù, punto per le avversarie.';
   if (d.action === 'errore_avversario') return side === 'us' ? 'Errore delle avversarie, punto Smapiù!' : 'Errore Smapiù, punto per le avversarie.';
   return side === 'us' ? `${what}, punto Smapiù!` : `Punto per le avversarie: ${what.charAt(0).toLowerCase()}${what.slice(1)}.`;
 }
@@ -154,6 +178,14 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<LiveState>(EMPTY);
   const [lastPoint, setLastPoint] = useState<LiveCtx['lastPoint']>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [timeout, setTimeoutLock] = useState<LiveCtx['timeout']>(null);
+  // fine del timeout letta da addPoint e addNote (il blocco vale anche prima che lo stato si aggiorni)
+  const timeoutUntil = useRef(0);
+  useEffect(() => {
+    if (!timeout) return;
+    const t = setTimeout(() => setTimeoutLock(null), Math.max(0, timeout.until - Date.now()));
+    return () => clearTimeout(t);
+  }, [timeout]);
   const isDemo = !!liveMatch?.demoLive;
   const scoringLive = !!liveMatch && !isDemo && user?.role === 'admin';
   // con Supabase la demo è condivisa tra i dispositivi e la segna solo l'admin; senza, ognuno la prova per conto suo
@@ -235,7 +267,8 @@ export function LiveProvider({ children }: { children: ReactNode }) {
           if (s.events.some((x) => x.id === e.id)) return s;
           const side: 'us' | 'opp' = e.set === s.set && e.opp > s.opp ? 'opp' : 'us';
           const ev = { ...e, side };
-          setLastPoint({ side, key: Date.now() });
+          // le righe senza punto (cronaca a voce) ripetono il punteggio: niente +1
+          if (e.set !== s.set || e.our + e.opp > s.our + s.opp) setLastPoint({ side, key: Date.now() });
           return { ...s, set: e.set, our: e.our, opp: e.opp, serving: side, events: [ev, ...s.events] };
         }),
       // durante i propri salvataggi il database è indietro rispetto allo stato locale
@@ -261,6 +294,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addPoint = useCallback((side: 'us' | 'opp', detail?: PointDetail) => {
+    if (Date.now() < timeoutUntil.current) return;
     const prev = stateRef.current;
     const next = scorePoint(prev, side, scoringLive, detail, teamNames(liveMatch));
     if (next === prev) return;
@@ -299,6 +333,42 @@ export function LiveProvider({ children }: { children: ReactNode }) {
         }
       });
   }, [isDemo, scoringLive, liveMatch, shareDemo]);
+
+  const addNote = useCallback((text: string, side?: 'us' | 'opp') => {
+    const s = stateRef.current;
+    if (!(scoringDemo || scoringLive) || !text.trim() || Date.now() < timeoutUntil.current) return false;
+    // stesso punteggio dell'ultima riga: rotazioni, grafico e statistiche la saltano
+    const note: LiveEvent = { id: scoringLive ? newId() : `sim-${Date.now()}-n`, set: s.set, our: s.our, opp: s.opp, side: side ?? s.events[0]?.side ?? s.serving, text: text.trim() };
+    const next = { ...s, events: [note, ...s.events].slice(0, LIVE_EVENTS_MAX) };
+    stateRef.current = next;
+    setState(next);
+    if (isDemo) shareDemo(next);
+    if (!scoringLive || !liveMatch) return true;
+    setSaveError(null);
+    pending.current += 1;
+    saveQueue.current = saveQueue.current
+      .then(() => pushLiveNote(liveMatch.id, note))
+      .catch((err: unknown) => {
+        console.warn('Cronaca non salvata', err);
+        failed.current = true;
+        setSaveError('Cronaca non salvata: controlla la connessione e riprova.');
+      })
+      .finally(() => {
+        pending.current -= 1;
+        if (pending.current === 0 && failed.current) {
+          failed.current = false;
+          reload.current();
+        }
+      });
+    return true;
+  }, [isDemo, scoringDemo, scoringLive, liveMatch, shareDemo]);
+
+  const callTimeout = useCallback((text: string, side: 'us' | 'opp') => {
+    if (!addNote(text, side)) return;
+    const until = Date.now() + TIMEOUT_MS;
+    timeoutUntil.current = until;
+    setTimeoutLock({ side, until });
+  }, [addNote]);
 
   const resetDemo = useCallback(() => {
     if (!scoringDemo) return;
@@ -352,11 +422,14 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       saveError,
       rotation: setRotations(state.events, state.set, state.firstServe),
       addPoint,
+      addNote,
+      timeout,
+      callTimeout,
       resetDemo,
       canChooseServe: (scoringDemo || scoringLive) && atStart,
       chooseServe,
     };
-  }, [state, liveMatch, lastPoint, scoringDemo, scoringLive, saveError, addPoint, resetDemo, chooseServe]);
+  }, [state, liveMatch, lastPoint, scoringDemo, scoringLive, saveError, addPoint, addNote, timeout, callTimeout, resetDemo, chooseServe]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

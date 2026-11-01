@@ -9,7 +9,7 @@ import { radius, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { ImgSrc, LineupPlayer, LiveEvent, PointAction, SetScore } from '@/types';
 
-const ATTACKS: PointAction[] = ['schiacciata', 'pipe', 'primo_tempo', 'pallonetto'];
+const ATTACKS: PointAction[] = ['schiacciata', 'parallela', 'mani_fuori', 'pipe', 'primo_tempo', 'fast', 'pallonetto'];
 
 export interface PlayerStats {
   key: string;
@@ -61,7 +61,7 @@ function teamBreakdown(events: LiveEvent[], side: 'us' | 'opp') {
     attacks: d.filter((a) => ATTACKS.includes(a)).length,
     aces: d.filter((a) => a === 'ace').length,
     blocks: d.filter((a) => a === 'muro').length,
-    errors: d.filter((a) => a === 'errore_avversario').length,
+    errors: d.filter((a) => a === 'errore_avversario' || a === 'battuta_out').length,
   };
 }
 
