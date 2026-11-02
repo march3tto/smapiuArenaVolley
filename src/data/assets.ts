@@ -28,6 +28,8 @@ export const CARD_PHOTO: number = require('../../assets/brand/arena-card.jpg');
 export const ORGANIGRAMMA_PHOTO: number = require('../../assets/brand/organigramma.jpg');
 /** Immagine della schermata di caricamento all'avvio */
 export const LOADING_IMAGE: number = require('../../assets/brand/caricamento.jpg');
+/** Pallone 3D della schermata di caricamento: 36 fotogrammi in griglia 6x6 (generato da scripts/ball-sprite.py) */
+export const BALL_SPRITE: number = require('../../assets/brand/ball-sprite.png');
 
 export const PLAYER_PHOTOS: Record<string, number> = {
   'alice-trampus': require('../../assets/players/alice-trampus.jpg'),

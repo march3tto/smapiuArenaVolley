@@ -14,8 +14,10 @@ export default function TabsLayout() {
   const { c } = useTheme();
   // l'immagine di caricamento si mostra solo al primo avvio, non a ogni aggiornamento dei dati
   const [started, setStarted] = useState(false);
-  if (!started && ready && !loading) setStarted(true);
-  if (!started) return <LoadingScreen />;
+  // l'animazione d'ingresso arriva sempre fino in fondo, anche se i dati sono già pronti
+  const [introDone, setIntroDone] = useState(false);
+  if (!started && ready && !loading && introDone) setStarted(true);
+  if (!started) return <LoadingScreen onIntroEnd={() => setIntroDone(true)} />;
   // al primo avvio si apre la finestra di accesso/registrazione (o si entra come ospite)
   if (!user && !guest) return <Redirect href="/login" />;
 
