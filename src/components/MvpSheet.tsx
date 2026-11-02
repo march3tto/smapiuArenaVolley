@@ -9,7 +9,7 @@ import type { LiveEvent, Match } from '@/types';
 import { space } from '@/theme/colors';
 
 /** Pannello dal basso con il voto MVP (lo stesso della scheda "Vota MVP" della diretta), aperto sopra la schermata attuale */
-export function MvpSheet({ open, onClose, match, awayMatch, events, finished, teams }: { open: boolean; onClose: () => void; match: Match; awayMatch: boolean; events: LiveEvent[]; finished: boolean; teams: MvpTeam[] }) {
+export function MvpSheet({ open, onClose, match, awayMatch, events, set, finished, teams }: { open: boolean; onClose: () => void; match: Match; awayMatch: boolean; events: LiveEvent[]; set: number; finished: boolean; teams: MvpTeam[] }) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   return (
@@ -28,7 +28,7 @@ export function MvpSheet({ open, onClose, match, awayMatch, events, finished, te
               </Pressable>
             </View>
             <ScrollView contentContainerStyle={{ padding: space.md, paddingTop: space.sm }}>
-              <MvpPanel key={match.id} match={match} awayMatch={awayMatch} events={events} finished={finished} teams={teams} onLeave={onClose} />
+              <MvpPanel key={match.id} match={match} awayMatch={awayMatch} events={events} set={set} finished={finished} teams={teams} onLeave={onClose} />
             </ScrollView>
           </View>
         </View>

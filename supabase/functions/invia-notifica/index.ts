@@ -1,6 +1,7 @@
-// Notifiche push (Expo Push API) per: promemoria pre-partita, inizio partita, fine set (con il risultato finale sul set decisivo),
-// nuove notizie, video e podcast. La chiamano i trigger e il cron del database (migration 20261015_notifiche_push.sql).
-// Riceve { tipo, id }: prepartita / inizio → id partita; fine_set → id della riga di set_partita; notizia/video/podcast → id del contenuto.
+// Notifiche push (Expo Push API) per: game day (4 ore prima), promemoria pre-partita, inizio partita, voto MVP aperto,
+// fine set (con il risultato finale sul set decisivo), nuove notizie, video e podcast.
+// La chiamano i trigger e il cron del database (migration 20261015_notifiche_push.sql e 20261102000100_notifiche_game_day_mvp.sql).
+// Riceve { tipo, id }: game_day / prepartita / inizio / mvp → id partita; fine_set → id della riga di set_partita; notizia/video/podcast → id del contenuto.
 // Ogni messaggio va solo ai dispositivi con la notifica attiva in Impostazioni (colonne di push_token, migration 20261021000200).
 // Accetta solo richieste con l'header x-notifiche-segreto uguale a NOTIFICHE_SEGRETO (lo stesso valore salvato nel Vault).
 //   supabase secrets set NOTIFICHE_SEGRETO=...
@@ -18,10 +19,12 @@ const BLOCCO = 100;
 /** notizie.categoria → etichetta, come CATEGORIA_NOTIZIA in src/lib/api.ts */
 const CATEGORIA_NOTIZIA: Record<string, string> = { societa: 'Società', prima_squadra: 'Serie A3', giovanili: 'Giovanili', sponsor: 'Sponsor' };
 
-type Tipo = 'prepartita' | 'inizio' | 'fine_set' | 'notizia' | 'video' | 'podcast';
+type Tipo = 'game_day' | 'prepartita' | 'inizio' | 'mvp' | 'fine_set' | 'notizia' | 'video' | 'podcast';
 /** Colonna di push_token con la scelta del dispositivo per questo messaggio */
-type Preferenza = 'inizio_partita' | 'fine_set' | 'risultato_finale' | 'contenuti';
-const TIPI: Tipo[] = ['prepartita', 'inizio', 'fine_set', 'notizia', 'video', 'podcast'];
+type Preferenza = 'game_day' | 'inizio_partita' | 'voto_mvp' | 'fine_set' | 'risultato_finale' | 'contenuti';
+const TIPI: Tipo[] = ['game_day', 'prepartita', 'inizio', 'mvp', 'fine_set', 'notizia', 'video', 'podcast'];
+/** Il voto MVP si apre all'inizio di questo set (come MVP_FROM_SET in src/components/MvpPanel.tsx e voto_mvp_valido) */
+const SET_VOTO_MVP = 3;
 
 interface Messaggio {
   chiave: string;
@@ -30,7 +33,7 @@ interface Messaggio {
   subtitle?: string;
   body?: string;
   /** dati per il tap: tipo della schermata da aprire e id */
-  data: { tipo: 'partita' | 'notizia' | 'video' | 'podcast'; id: string };
+  data: { tipo: 'partita' | 'mvp' | 'notizia' | 'video' | 'podcast'; id: string };
   threadId?: string;
   /** null = tutti i token attivi */
   categoriaId: string | null;
@@ -44,6 +47,8 @@ interface Partita {
   giornata: number | null;
   avversario: string;
   casa_trasferta: 'casa' | 'trasferta';
+  nostra_partita: boolean;
+  livello_squadra: string;
   sede: string | null;
   categoria_giovanile_id: string | null;
   nostri_set_vinti: number | null;
@@ -84,8 +89,10 @@ Deno.serve(async (req) => {
 // ---------- messaggi ----------
 
 async function componi(tipo: Tipo, id: string): Promise<Messaggio | null> {
+  if (tipo === 'game_day') return gameDay(id);
   if (tipo === 'prepartita') return prepartita(id);
   if (tipo === 'inizio') return inizio(id);
+  if (tipo === 'mvp') return votoMvp(id);
   if (tipo === 'fine_set') return fineSet(id);
   if (tipo === 'notizia') {
     const { data: n } = await db.from('notizie').select('id, titolo, categoria, pubblicata').eq('id', id).maybeSingle();
@@ -111,7 +118,7 @@ async function componi(tipo: Tipo, id: string): Promise<Messaggio | null> {
   };
 }
 
-const PARTITA = 'id, stato, data_partita, giornata, avversario, casa_trasferta, sede, categoria_giovanile_id, nostri_set_vinti, set_vinti_avversario, campionati(nome)';
+const PARTITA = 'id, stato, data_partita, giornata, avversario, casa_trasferta, nostra_partita, livello_squadra, sede, categoria_giovanile_id, nostri_set_vinti, set_vinti_avversario, campionati(nome)';
 
 async function nomeCategoria(id: string | null): Promise<string | undefined> {
   if (!id) return undefined;
@@ -157,6 +164,44 @@ async function prepartita(id: string): Promise<Messaggio | null> {
     threadId: `partita-${p.id}`,
     categoriaId: p.categoria_giovanile_id,
     preferenza: 'inizio_partita',
+  };
+}
+
+/** Game day: la mattina (4 ore prima) della partita della prima squadra */
+async function gameDay(id: string): Promise<Messaggio | null> {
+  const { data: p } = await db.from('partite').select(PARTITA).eq('id', id).maybeSingle<Partita>();
+  if (!p || !p.nostra_partita || p.livello_squadra !== 'prima_squadra' || p.stato !== 'programmata' || Date.parse(p.data_partita) <= Date.now()) return null;
+  const squadre = p.casa_trasferta === 'casa' ? `${SQUADRA} - ${p.avversario}` : `${p.avversario} - ${SQUADRA}`;
+  return {
+    chiave: `game_day:${p.id}:${Math.floor(Date.parse(p.data_partita) / 1000)}`,
+    riferimentoId: p.id,
+    title: '🔥 GAME DAY!',
+    subtitle: intestazione(p, undefined),
+    body: `Oggi alle ${ora(p.data_partita)} ${squadre}${p.sede ? ` · ${p.sede}` : ''}. Forza ragazze!`,
+    data: { tipo: 'partita', id: p.id },
+    threadId: `partita-${p.id}`,
+    categoriaId: null,
+    preferenza: 'game_day',
+  };
+}
+
+/** Voto MVP aperto: inizio del 3° set di una nostra partita in casa (in trasferta il voto non c'è) */
+async function votoMvp(id: string): Promise<Messaggio | null> {
+  const { data: p } = await db.from('partite').select(PARTITA).eq('id', id).maybeSingle<Partita>();
+  if (!p || !p.nostra_partita || p.casa_trasferta !== 'casa' || p.stato !== 'live') return null;
+  const { count } = await db.from('set_partita').select('id', { count: 'exact', head: true }).eq('partita_id', p.id).eq('completato', true);
+  if ((count ?? 0) < SET_VOTO_MVP - 1) return null;
+  return {
+    chiave: `mvp:${p.id}`,
+    riferimentoId: p.id,
+    title: '🏆 Vota la tua MVP!',
+    subtitle: await nomeCategoria(p.categoria_giovanile_id),
+    body: `Il voto è aperto: chi è la migliore in campo in ${sfida(p)}?`,
+    // al tocco l'app apre la diretta sulla scheda del voto
+    data: { tipo: 'mvp', id: p.id },
+    threadId: `partita-${p.id}`,
+    categoriaId: p.categoria_giovanile_id,
+    preferenza: 'voto_mvp',
   };
 }
 

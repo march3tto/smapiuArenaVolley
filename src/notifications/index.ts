@@ -12,12 +12,12 @@ import type { NotifPrefs } from '@/types';
  * - registra il token del dispositivo con la RPC registra_push_token (anche senza login);
  * - salva le scelte di Impostazioni con la RPC preferenze_push_token: il server invia solo i tipi attivati;
  * - mostra il banner anche ad app aperta;
- * - al tocco apre la schermata giusta in base a data.tipo (partita, notizia, video, podcast).
+ * - al tocco apre la schermata giusta in base a data.tipo (partita, mvp, notizia, video, podcast).
  */
 
 /** Dati allegati a ogni notifica dalla function */
 interface DatiNotifica {
-  tipo?: 'partita' | 'notizia' | 'video' | 'podcast';
+  tipo?: 'partita' | 'mvp' | 'notizia' | 'video' | 'podcast';
   id?: string;
 }
 
@@ -73,9 +73,10 @@ async function registraToken(token: string, userId: string | null) {
 /** Scelte di Impostazioni sul server: notifiche spente o singoli tipi esclusi non vengono inviati a questo dispositivo */
 async function salvaPreferenze(token: string, p: Omit<NotifPrefs, 'youth'>) {
   if (!supabase) return;
-  const { error } = await supabase.rpc('preferenze_push_token', {
-    p_token: token, p_attive: p.enabled, p_inizio: p.start, p_set: p.sets, p_finale: p.final, p_contenuti: p.news,
-  });
+  const base = { p_token: token, p_attive: p.enabled, p_inizio: p.start, p_set: p.sets, p_finale: p.final, p_contenuti: p.news };
+  let { error } = await supabase.rpc('preferenze_push_token', { ...base, p_game_day: p.gameDay, p_mvp: p.mvp });
+  // funzione senza game day e MVP (migrazione 20261102000100 non eseguita): si salvano almeno le altre scelte
+  if (error?.code === 'PGRST202') ({ error } = await supabase.rpc('preferenze_push_token', base));
   if (error) console.warn('Notifiche push: preferenze non salvate', error.message);
 }
 
@@ -89,6 +90,10 @@ async function apri(router: ReturnType<typeof useRouter>, d: DatiNotifica) {
       else router.navigate({ pathname: '/risultati', params: data?.stato === 'programmata' ? { filter: 'future' } : {} });
       break;
     }
+    case 'mvp':
+      // si apre la diretta direttamente sulla scheda del voto
+      router.push({ pathname: '/live', params: { scheda: 'mvp' } });
+      break;
     case 'notizia':
       router.push({ pathname: '/notizia/[id]', params: { id: d.id } });
       break;
@@ -105,12 +110,12 @@ async function apri(router: ReturnType<typeof useRouter>, d: DatiNotifica) {
  */
 export function useNotifichePush({ userId, prefs, ready }: { userId: string | null; prefs: NotifPrefs; ready: boolean }) {
   const router = useRouter();
-  const { enabled, start, sets, final, news } = prefs;
+  const { enabled, start, sets, final, news, gameDay, mvp } = prefs;
 
   useEffect(() => {
     if (!attive || !ready) return;
     let annullato = false;
-    const scelte = { enabled, start, sets, final, news };
+    const scelte = { enabled, start, sets, final, news, gameDay, mvp };
     // spente: niente richiesta di permesso, si avvisa solo il server (se il dispositivo era già registrato)
     ottieniPushToken(enabled)
       .then(async (token) => {
@@ -122,7 +127,7 @@ export function useNotifichePush({ userId, prefs, ready }: { userId: string | nu
     return () => {
       annullato = true;
     };
-  }, [userId, ready, enabled, start, sets, final, news]);
+  }, [userId, ready, enabled, start, sets, final, news, gameDay, mvp]);
 
   useEffect(() => {
     if (!attive) return;

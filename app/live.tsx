@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, ScrollView, View, useWindowDimensions, type HostInstance } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MonitorPlay, Plus, RotateCcw, Timer, Trophy, Volleyball } from 'lucide-react-native';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { PlayerSlot } from '@/components/FloatingPlayer';
+import { HiddenScore } from '@/components/HiddenScore';
 import { LineupPanel } from '@/components/LineupPanel';
 import { LiveDot } from '@/components/LiveDot';
 import { MvpPanel } from '@/components/MvpPanel';
@@ -20,12 +22,15 @@ import { US } from '@/constants';
 import { hasSupabase } from '@/lib/supabase';
 import { rotateZone } from '@/lib/volley';
 import { useApp } from '@/store/AppProvider';
-import { PHASE_LABEL, TIMEOUT_MS, ZONE_LABEL, actionLabel, useLive } from '@/store/LiveProvider';
+import { PHASE_LABEL, TIMEOUT_MS, ZONE_LABEL, actionLabel, detailLine, teamNames, useLive } from '@/store/LiveProvider';
 import { useLiveLineup } from '@/store/LineupProvider';
-import { usePlayer } from '@/store/PlayerProvider';
+import { usePlayer, useScoreHidden } from '@/store/PlayerProvider';
 import { palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { LineupPlayer, PointDetail } from '@/types';
+
+/** Partite di cui la diretta video si è già aperta da sola: chiusa a mano, non si riapre tornando sulla schermata */
+const autoOpened = new Set<string>();
 
 export default function Live() {
   const { c } = useTheme();
@@ -35,15 +40,33 @@ export default function Live() {
   const lineup = useLiveLineup();
   const { user } = useApp();
   const player = usePlayer();
+  // video della diretta aperto: il punteggio non si legge (video e livescore FIPAV sono spesso sfasati, niente spoiler)
+  const hidden = useScoreHidden();
   // la funzione cronaca-ai accetta solo staff e admin
   const ai = hasSupabase && (user?.role === 'admin' || user?.role === 'staff');
-  const [panel, setPanel] = useState<'formazioni' | 'cronaca' | 'mvp' | 'statistiche'>('formazioni');
+  // dalla notifica "Vota MVP" la diretta si apre sulla scheda del voto
+  const { scheda } = useLocalSearchParams<{ scheda?: string }>();
+  const [panel, setPanel] = useState<'formazioni' | 'cronaca' | 'mvp' | 'statistiche'>(scheda === 'mvp' ? 'mvp' : 'formazioni');
+  // schermata già aperta e nuova notifica: si passa alla scheda del voto
+  const [seenScheda, setSeenScheda] = useState(scheda);
+  if (scheda !== seenScheda) {
+    setSeenScheda(scheda);
+    if (scheda === 'mvp') setPanel('mvp');
+  }
   // quattro schede: a larghezza piena solo se le etichette ci stanno, altrimenti scorrono
   const wide = useWindowDimensions().width >= 480;
   // riquadro del punto aperto dal pulsante + di una squadra
   const [picker, setPicker] = useState<{ side: 'us' | 'opp'; name: string; anchor: Anchor } | null>(null);
   // cronaca: azioni filtrate per set ('all' = tutti)
   const [feedSet, setFeedSet] = useState('all');
+  // diretta YouTube attiva: il video si apre da solo sopra il punteggio (una volta per partita)
+  const streamId = m && !live.finished ? m.youtubeLiveId : null;
+  const openStream = player.open;
+  useEffect(() => {
+    if (!m || !streamId || autoOpened.has(m.id)) return;
+    autoOpened.add(m.id);
+    openStream(streamId, `${m.homeAway === 'casa' ? m.usName ?? US : m.opponent} – ${m.homeAway === 'casa' ? m.opponent : m.usName ?? US}`);
+  }, [m, streamId, openStream]);
 
   if (!m) {
     return (
@@ -91,22 +114,22 @@ export default function Live() {
             <Txt size={13} color="muted" numberOfLines={1} style={{ flexShrink: 1 }}>· {m.venue}</Txt>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-            <Side {...L} flash={live.lastPoint?.side === L.side ? live.lastPoint.key : 0} serving={L.serving && !live.finished} server={serverOf(L.side)}
+            <Side {...L} flash={!hidden && live.lastPoint?.side === L.side ? live.lastPoint.key : 0} serving={L.serving && !live.finished} server={serverOf(L.side)}
               onServe={live.canChooseServe ? () => live.chooseServe(L.side) : undefined}
               onPlus={live.canScore ? (anchor) => setPicker({ side: L.side, name: L.name, anchor }) : undefined} locked={!!live.timeout} />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingTop: space.sm }}>
-              <AnimatedNumber value={live.finished ? L.sets : L.pts} size={48} />
+              {hidden ? <HiddenScore width={52} height={56} radius={12} /> : <AnimatedNumber value={live.finished ? L.sets : L.pts} size={48} />}
               <Txt w={400} size={34} color="accent">:</Txt>
-              <AnimatedNumber value={live.finished ? R.sets : R.pts} size={48} />
+              {hidden ? <HiddenScore width={52} height={56} radius={12} /> : <AnimatedNumber value={live.finished ? R.sets : R.pts} size={48} />}
             </View>
-            <Side {...R} flash={live.lastPoint?.side === R.side ? live.lastPoint.key : 0} serving={R.serving && !live.finished} server={serverOf(R.side)}
+            <Side {...R} flash={!hidden && live.lastPoint?.side === R.side ? live.lastPoint.key : 0} serving={R.serving && !live.finished} server={serverOf(R.side)}
               onServe={live.canChooseServe ? () => live.chooseServe(R.side) : undefined}
               onPlus={live.canScore ? (anchor) => setPicker({ side: R.side, name: R.name, anchor }) : undefined} locked={!!live.timeout} />
           </View>
 
           {live.timeout ? <TimeoutBanner team={live.timeout.side === L.side ? L.name : R.name} until={live.timeout.until} /> : null}
 
-          {live.standing ? (
+          {live.standing && !hidden ? (
             <View style={{ flexDirection: 'row', justifyContent: 'center', gap: space.sm, padding: space.md, borderRadius: 16, backgroundColor: c.fill }}>
               <Txt size={13} color="muted">Punti in classifica</Txt>
               <Txt w={800} size={13} tnum>{pts(L.side)} – {pts(R.side)}</Txt>
@@ -127,8 +150,12 @@ export default function Live() {
                   const mine = t.side === 'us' ? s.our : s.opp;
                   const theirs = t.side === 'us' ? s.opp : s.our;
                   const current = i === rowsSets.length - 1 && !live.finished;
-                  return (
-                    <Txt key={i} w={!current && mine > theirs ? 800 : current ? 800 : 400} size={13} center tnum color={!current && mine > theirs ? 'accent' : 'text'}
+                  // oscurato: niente punti né set vinti evidenziati
+                  const won = !hidden && !current && mine > theirs;
+                  return hidden ? (
+                    <View key={i} style={{ width: 34, alignItems: 'center' }}><HiddenScore width={26} height={22} radius={6} /></View>
+                  ) : (
+                    <Txt key={i} w={won || current ? 800 : 400} size={13} center tnum color={won ? 'accent' : 'text'}
                       style={{ width: 34, backgroundColor: current ? c.fill : undefined, paddingVertical: space.xs, borderRadius: 6 }}>{mine}</Txt>
                   );
                 })}
@@ -138,7 +165,7 @@ export default function Live() {
   
           <View style={{ gap: space.sm, alignItems: 'center' }}>
             {m.youtubeLiveId ? (
-              <Button label={player.stream ? 'Diretta aperta' : 'Guarda la diretta'} variant="gold" icon={<MonitorPlay size={18} color={palette.onGold} />}
+              <Button label={hidden ? 'Diretta aperta' : 'Guarda la diretta'} sublabel={hidden ? '(punteggio oscurato)' : undefined} variant="gold" icon={<MonitorPlay size={18} color={palette.onGold} />}
                 onPress={() => player.open(m.youtubeLiveId!, `${L.name} – ${R.name}`)} />
             ) : null}
             {live.canChooseServe ? (
@@ -146,7 +173,9 @@ export default function Live() {
             ) : null}
             {live.canScore ? (
               <Txt size={12} color="muted" center>
-                {live.scoringLive ? 'Admin: tocca + per assegnare il punto e scegliere l\'azione, lo vedono tutti in diretta.' : 'Partita dimostrativa: tocca + per assegnare il punto e scegliere l\'azione.'}
+                {live.autoScore
+                  ? 'Punteggio automatico dal livescore FIPAV. Admin: tocca + per raccontare un\'azione in cronaca, senza assegnare punti.'
+                  : 'Partita dimostrativa: tocca + per assegnare il punto e scegliere l\'azione.'}
               </Txt>
             ) : null}
             {live.saveError ? <Txt size={12} color="live" center>{live.saveError}</Txt> : null}
@@ -188,7 +217,7 @@ export default function Live() {
               )}
             </View>
           ) : panel === 'mvp' ? (
-            <MvpPanel key={m.id} match={m} awayMatch={!home} events={live.events} finished={live.finished}
+            <MvpPanel key={m.id} match={m} awayMatch={!home} events={live.events} set={live.set} finished={live.finished}
               teams={[L, R].map((t) => ({ side: t.side, name: t.name, logo: t.logo, players: t.side === 'us' ? lineup.us : lineup.opp }))} />
           ) : (
             <StatsPanel events={live.events} names={{ us, opp: m.opponent }} logos={{ us: null, opp: m.opponentLogo }} totals={totals} home={home ? 'us' : 'opp'}
@@ -198,8 +227,9 @@ export default function Live() {
   
         {picker ? (
           <PointPicker anchor={picker.anchor} side={picker.side} team={picker.name} names={{ us, opp: m.opponent }}
-            players={onCourt(picker.side)} rotation={live.rotation[picker.side]} score={{ set: live.set, our: live.our, opp: live.opp }} ai={ai}
-            onScore={(detail) => live.addPoint(picker.side, detail)} onClose={() => setPicker(null)}
+            players={onCourt(picker.side)} rotation={live.rotation[picker.side]} score={{ set: live.set, our: live.our, opp: live.opp }} ai={ai} commentOnly={live.autoScore}
+            // punteggio automatico: l'azione diventa una riga di cronaca, senza dettaglio (niente punti alle giocatrici)
+            onScore={(detail) => (live.autoScore ? detail && live.addNote(detail.text?.trim() || detailLine(picker.side, detail, teamNames(m)), picker.side) : live.addPoint(picker.side, detail))} onClose={() => setPicker(null)}
             notes={lineup.canEdit ? ['timeout', 'cambio'] : ['timeout']}
             onNote={(kind, text, sub) => {
               if (kind === 'timeout') live.callTimeout(text, picker.side);

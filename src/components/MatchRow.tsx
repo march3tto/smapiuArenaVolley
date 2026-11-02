@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Bus, House } from 'lucide-react-native';
+import { HiddenScore } from './HiddenScore';
 import { LiveDot } from './LiveDot';
 import { Pressy } from './Pressy';
 import { TeamBadge } from './TeamBadge';
 import { Txt } from './Txt';
 import { US } from '@/constants';
 import { longDate, timeOf } from '@/lib/format';
+import { useScoreHidden } from '@/store/PlayerProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { Match } from '@/types';
 import { space } from '@/theme/colors';
@@ -15,18 +17,19 @@ interface Props {
   match: Match;
   /** Punteggio set della diretta (se live) */
   liveSets?: { our: number; opp: number };
+  /** Tocco sulla card: diretta se è live, altrimenti tutte le gare della giornata */
   onPress?: () => void;
-  /** Tocco sulla matrice con la giornata: apre tutte le gare di quella giornata */
-  onGiornataPress?: () => void;
 }
 
-/** Riga partita: giornata a sinistra (se presente), A/R, data e ora centrate, stemmi, risultato e parziali */
-export function MatchRow({ match: m, liveSets, onPress, onGiornataPress }: Props) {
+/** Riga partita: giornata e andata/ritorno in verticale a sinistra (se presente), data e ora centrate, stemmi, risultato e parziali */
+export function MatchRow({ match: m, liveSets, onPress }: Props) {
   const { c } = useTheme();
   const homeIsUs = m.homeAway === 'casa';
   const homeName = homeIsUs ? US : m.opponent;
   const awayName = homeIsUs ? m.opponent : US;
   const live = m.status === 'live';
+  // video della diretta aperto: il risultato della partita live resta coperto
+  const hidden = useScoreHidden() && live;
   const played = m.status === 'finished';
   const our = live ? liveSets?.our ?? 0 : m.ourSets ?? null;
   const opp = live ? liveSets?.opp ?? 0 : m.oppSets ?? null;
@@ -37,31 +40,14 @@ export function MatchRow({ match: m, liveSets, onPress, onGiornataPress }: Props
   const ritorno = m.phase === 'ritorno';
   // Amichevole = partita senza girone; una partita di campionato può non avere ancora il numero di giornata
   const friendly = m.giornata == null && !m.girone;
-  const label = m.season || (friendly ? 'Amichevole' : 'Campionato');
+  const label = m.giornata != null ? `${m.giornata}ª giornata · ${ritorno ? 'ritorno' : 'andata'}` : m.season || (friendly ? 'Amichevole' : 'Campionato');
+  // giornata: oro all'andata, blu al ritorno; stagione e amichevoli: colore fisso dal nome
+  const stubColor = m.giornata != null ? (ritorno ? GIORNATA_COLORS.ritorno : GIORNATA_COLORS.andata) : seasonColor(label);
   const border = live ? 'rgba(255,77,94,0.45)' : c.line;
-  const stubWidth = m.giornata != null ? 60 : STUB_WIDTH;
 
   return (
     <Pressy onPress={onPress} disabled={!onPress} scaleTo={0.98} style={{ flexDirection: 'row', borderRadius: 22, overflow: 'hidden', backgroundColor: c.card, borderWidth: 1, borderColor: border }}>
-      {m.giornata != null ? (
-        <Pressy
-          onPress={onGiornataPress}
-          disabled={!onGiornataPress}
-          scaleTo={0.92}
-          accessibilityRole={onGiornataPress ? 'button' : undefined}
-          accessibilityLabel={`${m.giornata}ª giornata, ${ritorno ? 'ritorno' : 'andata'}`}
-          accessibilityHint={onGiornataPress ? 'Mostra tutte le partite della giornata' : undefined}
-          style={{ width: 60, alignItems: 'center', justifyContent: 'center', paddingVertical: space.md, backgroundColor: c.fill }}
-        >
-          <Txt w={800} size={28} tnum style={{ letterSpacing: -1, lineHeight: 30 }}>{m.giornata}</Txt>
-          <Txt w={600} size={10} color="muted">giornata</Txt>
-          <View style={{ marginTop: space.sm, width: 24, height: 24, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: ritorno ? 'rgba(124,155,255,0.18)' : 'rgba(255,213,3,0.16)' }}>
-            <Txt w={800} size={11.5} color={ritorno ? 'cobalt' : 'accent'}>{ritorno ? 'R' : 'A'}</Txt>
-          </View>
-        </Pressy>
-      ) : (
-        <SeasonLabel label={label} />
-      )}
+      <SeasonLabel label={label} col={stubColor} />
 
       <Perforation color={border} />
 
@@ -74,7 +60,13 @@ export function MatchRow({ match: m, liveSets, onPress, onGiornataPress }: Props
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
           <Team name={homeName} logo={homeIsUs ? null : m.opponentLogo} />
           <View style={{ minWidth: 72, alignItems: 'center' }}>
-            {hasScore ? (
+            {hidden ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
+                <HiddenScore width={22} height={26} radius={6} />
+                <Txt w={800} size={22}>–</Txt>
+                <HiddenScore width={22} height={26} radius={6} />
+              </View>
+            ) : hasScore ? (
               <>
                 <Txt w={800} size={22} tnum style={{ letterSpacing: 0.5 }}>{homeScore} – {awayScore}</Txt>
                 {played ? (
@@ -119,8 +111,8 @@ export function MatchRow({ match: m, liveSets, onPress, onGiornataPress }: Props
       </View>
 
       {/* tacche del biglietto ai due capi della perforazione */}
-      <Notch left={stubWidth} top border={border} />
-      <Notch left={stubWidth} border={border} />
+      <Notch left={STUB_WIDTH} top border={border} />
+      <Notch left={STUB_WIDTH} border={border} />
     </Pressy>
   );
 }
@@ -134,6 +126,11 @@ const SEASON_COLORS = [
   { fg: '#C9A2FF', bg: 'rgba(201,162,255,0.16)' },
   { fg: '#FFA94D', bg: 'rgba(255,169,77,0.16)' },
 ];
+
+const GIORNATA_COLORS = {
+  andata: { fg: '#F2B800', bg: 'rgba(255,213,3,0.16)' },
+  ritorno: { fg: '#7C9BFF', bg: 'rgba(124,155,255,0.18)' },
+};
 
 function seasonColor(label: string) {
   let h = 0;
@@ -172,10 +169,9 @@ function Notch({ left, top, border }: { left: number; top?: boolean; border: str
   );
 }
 
-/** Matrice del biglietto con la stagione scritta in verticale: occupa l'altezza della card senza allungarla */
-function SeasonLabel({ label }: { label: string }) {
+/** Matrice del biglietto con giornata o stagione scritta in verticale: occupa l'altezza della card senza allungarla */
+function SeasonLabel({ label, col }: { label: string; col: { fg: string; bg: string } }) {
   const [h, setH] = useState(0);
-  const col = seasonColor(label);
   return (
     <View
       onLayout={(e) => setH(e.nativeEvent.layout.height)}

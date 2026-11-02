@@ -32,8 +32,9 @@ const GUTTER = space.md;
  * 1. Azione: giocatrice (facoltativa, la posizione è quella che occupa in campo), attacco o difesa, tipo di azione.
  * 2. Cronaca: frasi proposte dall'AI (se disponibile) o predefinita; si sceglie e si assegna il punto.
  * Chi conquista il punto è deciso qui (side), l'AI scrive solo la frase.
+ * commentOnly: punteggio automatico, l'azione va solo in cronaca (nessun punto, nemmeno alla giocatrice).
  */
-export function PointPicker({ anchor, side, team, names, players, rotation = 0, score, ai, onScore, onClose, notes = [], onNote }: {
+export function PointPicker({ anchor, side, team, names, players, rotation = 0, score, ai, commentOnly = false, onScore, onClose, notes = [], onNote }: {
   anchor: Anchor;
   side: 'us' | 'opp';
   team: string;
@@ -47,6 +48,7 @@ export function PointPicker({ anchor, side, team, names, players, rotation = 0, 
   score: { set: number; our: number; opp: number };
   /** Frasi dall'AI (solo staff/admin con Supabase) */
   ai: boolean;
+  commentOnly?: boolean;
   onScore: (detail?: PointDetail) => void;
   onClose: () => void;
   /** Timeout e cambio della squadra, senza punto: righe di cronaca col punteggio attuale (sub: chi entra e chi esce) */
@@ -113,8 +115,8 @@ export function PointPicker({ anchor, side, team, names, players, rotation = 0, 
     ? { action, phase, zone, player: picked ? { lineupId: picked.id, playerId: picked.playerId ?? null, name: picked.name, number: picked.number } : null }
     : null;
 
-  // il punteggio dopo il punto lo calcola l'app, non l'AI
-  const after = { our: score.our + (side === 'us' ? 1 : 0), opp: score.opp + (side === 'opp' ? 1 : 0) };
+  // il punteggio dopo il punto lo calcola l'app, non l'AI; solo cronaca: quello attuale (dell'agente)
+  const after = commentOnly ? { our: score.our, opp: score.opp } : { our: score.our + (side === 'us' ? 1 : 0), opp: score.opp + (side === 'opp' ? 1 : 0) };
   const standard = (() => {
     const d = detail();
     return d ? detailLine(side, d, names.us === US ? undefined : names) : '';
@@ -130,7 +132,7 @@ export function PointPicker({ anchor, side, team, names, players, rotation = 0, 
       const frasi = await suggestCommentary({
         squadra: names.us, avversaria: names.opp, puntoA: side, azione: action, fase: phase, zona: zone,
         giocatrice: picked?.name ?? null, set: score.set, nostri: after.our, loro: after.opp,
-        chiudeSet: setWinner(score.set, after) !== null, evita: avoid,
+        chiudeSet: !commentOnly && setWinner(score.set, after) !== null, evita: avoid,
       });
       if (id !== request.current) return;
       setPhrases(frasi);
@@ -219,14 +221,14 @@ export function PointPicker({ anchor, side, team, names, players, rotation = 0, 
                     </Pressy>
                   ) : null}
                   <View style={{ flex: 1 }}>
-                    <Txt w={700} size={15} numberOfLines={1}>Punto {team}</Txt>
+                    <Txt w={700} size={15} numberOfLines={1}>{commentOnly ? 'Cronaca' : 'Punto'} {team}</Txt>
                     <Txt size={12} color="muted" numberOfLines={1}>
                       {step === 'cronaca'
                         ? `${score.set === 5 ? 'Tie-break' : `${score.set}° set`}, ${after.our}–${after.opp}`
                         : picked ? `${picked.number != null ? `#${picked.number} ` : ''}${picked.name}${zone ? ` · Pos. ${ZONE_LABEL[zone]}` : ''}` : starters.length ? 'Chi ha fatto punto? (facoltativo)' : 'Starting Six non inserito'}
                     </Txt>
                   </View>
-                  {step === 'azione' ? (
+                  {step === 'azione' && !commentOnly ? (
                     <Pressy onPress={quick} scaleTo={0.94} accessibilityRole="button"
                       accessibilityLabel={picked ? `Solo punto di ${picked.name}, senza dettagli` : 'Solo punto, senza dettagli'}
                       style={{ height: 32, paddingHorizontal: space.sm + 2, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: c.fill2 }}>
@@ -290,7 +292,7 @@ export function PointPicker({ anchor, side, team, names, players, rotation = 0, 
                     {ai ? (
                       <Button size="sm" label="Altre frasi" disabled={loading} onPress={() => generate(seen)} icon={<RefreshCw size={14} color={c.text} />} />
                     ) : null}
-                    <Button variant="gold" label={`Assegna punto a ${team}`} onPress={assign} />
+                    <Button variant="gold" label={commentOnly ? 'Pubblica in cronaca' : `Assegna punto a ${team}`} onPress={assign} />
                   </>
                 )}
               </>

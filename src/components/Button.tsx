@@ -7,6 +7,8 @@ import { useTheme } from '@/theme/ThemeProvider';
 
 interface Props {
   label: string;
+  /** Seconda riga in piccolo sotto l'etichetta */
+  sublabel?: string;
   onPress?: () => void;
   variant?: 'gold' | 'ghost' | 'ok' | 'danger';
   size?: 'sm' | 'md' | 'lg';
@@ -17,7 +19,7 @@ interface Props {
   accessibilityLabel?: string;
 }
 
-export function Button({ label, onPress, variant = 'ghost', size = 'md', icon, loading, disabled, style, accessibilityLabel }: Props) {
+export function Button({ label, sublabel, onPress, variant = 'ghost', size = 'md', icon, loading, disabled, style, accessibilityLabel }: Props) {
   const { c } = useTheme();
   const h = size === 'sm' ? 38 : size === 'lg' ? 54 : 46;
   const bg = variant === 'gold' ? palette.gold : variant === 'ok' ? c.ok : variant === 'danger' ? c.danger : c.fill;
@@ -26,11 +28,14 @@ export function Button({ label, onPress, variant = 'ghost', size = 'md', icon, l
     <Pressy
       onPress={disabled || loading ? undefined : onPress}
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityLabel={accessibilityLabel ?? (sublabel ? `${label}, ${sublabel}` : label)}
       accessibilityState={{ disabled: !!disabled, busy: !!loading }}
       style={[
         {
-          height: h,
+          // con la seconda riga il pulsante cresce quanto serve
+          height: sublabel ? undefined : h,
+          minHeight: h,
+          paddingVertical: sublabel ? space.xs : 0,
           borderRadius: radius.pill,
           paddingHorizontal: size === 'sm' ? space.md : space.lg,
           backgroundColor: bg,
@@ -46,9 +51,12 @@ export function Button({ label, onPress, variant = 'ghost', size = 'md', icon, l
       ]}
     >
       {loading ? <ActivityIndicator color={fg} size="small" /> : icon ? <View>{icon}</View> : null}
-      <Txt w={700} size={size === 'sm' ? 13 : 15} color={fg}>
-        {label}
-      </Txt>
+      <View style={{ alignItems: 'center' }}>
+        <Txt w={700} size={size === 'sm' ? 13 : 15} color={fg}>
+          {label}
+        </Txt>
+        {sublabel ? <Txt w={600} size={size === 'sm' ? 10.5 : 11.5} color={fg} style={{ opacity: 0.75 }}>{sublabel}</Txt> : null}
+      </View>
     </Pressy>
   );
 }

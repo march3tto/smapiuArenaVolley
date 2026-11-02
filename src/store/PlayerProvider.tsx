@@ -45,6 +45,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
+/** Video della diretta aperto (anche a finestrella): i punteggi della partita live si coprono in tutta l'app */
+export function useScoreHidden() {
+  const { stream, source } = usePlayer();
+  return !!stream && source === 'live';
+}
+
 export function usePlayer() {
   const v = useContext(Ctx);
   if (!v) throw new Error('usePlayer fuori da PlayerProvider');

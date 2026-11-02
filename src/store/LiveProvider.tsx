@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
-import { LIVE_EVENTS_MAX, demoRevision, fetchLive, newId, pushLiveNote, pushLivePoint, setFirstServe, subscribeDemo, subscribeLive, type DemoChannel, withAction } from '@/lib/api';
+import { LIVE_EVENTS_MAX, demoRevision, fetchLive, newId, pushLiveNote, setFirstServe, subscribeDemo, subscribeLive, type DemoChannel, withAction } from '@/lib/api';
 import { hasSupabase } from '@/lib/supabase';
 import { demoLive as demoInitial } from '@/data/mock';
 import { firstServer, pointWinners, rotationState } from '@/lib/rotations';
@@ -21,6 +21,8 @@ interface LiveState {
   finished: boolean;
   /** Squadra al servizio sullo 0-0, per set, se scelta dall'admin toccando lo stemma */
   firstServe: Record<number, 'us' | 'opp'>;
+  /** Punteggio automatico: letture del punteggio del set in corso (con chi ha fatto punto), per rotazioni e servizio */
+  readings: LiveEvent[];
 }
 
 interface LiveCtx extends LiveState {
@@ -31,11 +33,13 @@ interface LiveCtx extends LiveState {
   lastPoint: { side: 'us' | 'opp'; key: number } | null;
   /** Punti in classifica a partita finita */
   standing: { our: number; opp: number } | null;
-  /** Il punteggio si cambia a mano nella partita demo (con Supabase solo l'admin), o da un admin nella diretta vera, finché non è finita */
+  /** Il + si usa nella partita demo (con Supabase solo l'admin) e da un admin nella diretta vera, finché non è finita */
   canScore: boolean;
+  /** Diretta vera (casa e trasferta): il punteggio lo scrive l'agente a3live, il + aggiunge solo cronaca senza punti */
+  autoScore: boolean;
   /** La partita demo si può far ripartire da questo dispositivo */
   canResetDemo: boolean;
-  /** Diretta vera: i punti assegnati qui vengono salvati su Supabase */
+  /** Diretta vera con admin: la cronaca scritta qui viene salvata su Supabase */
   scoringLive: boolean;
   /** Ultimo salvataggio non riuscito (il punteggio torna quello del database) */
   saveError: string | null;
@@ -124,25 +128,45 @@ const US_LINES = [
   'Pallonetto di Aurora Piron, punto Smapiù!',
 ];
 
-const EMPTY: LiveState = { set: 1, our: 0, opp: 0, history: [], events: [], serving: 'us', finished: false, firstServe: {} };
+const EMPTY: LiveState = { set: 1, our: 0, opp: 0, history: [], events: [], serving: 'us', finished: false, firstServe: {}, readings: [] };
 
 const DEMO_START = (): LiveState => ({
   set: demoInitial.set, our: demoInitial.our, opp: demoInitial.opp, history: demoInitial.history, events: demoInitial.events,
-  serving: demoInitial.events[0]?.side ?? 'us', finished: false, firstServe: {},
+  serving: demoInitial.events[0]?.side ?? 'us', finished: false, firstServe: {}, readings: [],
 });
 
+/** Punti giocati in tutta la partita */
+const played = (x: LiveState) => x.history.reduce((n, h) => n + h.our + h.opp, 0) + (x.finished ? 0 : x.our + x.opp);
+
 /**
- * Applica un punto secondo il regolamento: chiusura set, cambio campo nel tie-break, fine partita.
- * real: diretta vera, cronaca neutra (niente azioni inventate) e id uuid salvabili nel database.
+ * Punteggio automatico: chi ha fatto l'ultimo punto tra due letture del database.
+ * null se non è cambiato niente o se l'agente ha scritto più punti insieme (di entrambe le squadre).
+ */
+function lastScorer(prev: LiveState, next: LiveState): 'us' | 'opp' | null {
+  if (played(next) <= played(prev)) return null;
+  if (next.set === prev.set && !next.finished) {
+    const us = next.our - prev.our;
+    const opp = next.opp - prev.opp;
+    return us > 0 && opp === 0 ? 'us' : opp > 0 && us === 0 ? 'opp' : null;
+  }
+  // set chiuso: l'ultimo punto è di chi l'ha vinto (se il nuovo set non è già cominciato)
+  const closed = next.history[next.history.length - 1];
+  if (!closed || (!next.finished && next.our + next.opp > 0)) return null;
+  return closed.our > closed.opp ? 'us' : 'opp';
+}
+
+/**
+ * Partita demo: applica un punto secondo il regolamento (chiusura set, cambio campo nel tie-break, fine partita).
+ * Nelle partite vere il punteggio lo scrive l'agente a3live.
  * names: partita senza Smapiù, la cronaca usa i nomi delle due squadre.
  */
-function scorePoint(s: LiveState, side: 'us' | 'opp', real = false, detail?: PointDetail, names?: TeamNames): LiveState {
+function scorePoint(s: LiveState, side: 'us' | 'opp', detail?: PointDetail, names?: TeamNames): LiveState {
   if (s.finished) return s;
   const before = { our: s.our, opp: s.opp };
   const after = { our: s.our + (side === 'us' ? 1 : 0), opp: s.opp + (side === 'opp' ? 1 : 0) };
   const stamp = Date.now();
-  const event = (text: string, who: 'us' | 'opp', n = 0): LiveEvent => ({ id: real ? newId() : `sim-${stamp}-${n}`, set: s.set, our: after.our, opp: after.opp, side: who, text });
-  const usLine = real ? 'Punto Smapiù!' : US_LINES[Math.floor(Math.random() * US_LINES.length)];
+  const event = (text: string, who: 'us' | 'opp', n = 0): LiveEvent => ({ id: `sim-${stamp}-${n}`, set: s.set, our: after.our, opp: after.opp, side: who, text });
+  const usLine = US_LINES[Math.floor(Math.random() * US_LINES.length)];
   const plain = names ? `Punto ${names[side]}!` : side === 'us' ? usLine : 'Punto per le avversarie.';
   const line = detail ? detail.text?.trim() || detailLine(side, detail, names) : plain;
   const events: LiveEvent[] = [{ ...event(line, side), detail: detail ? { ...detail, text: line } : null }];
@@ -167,7 +191,7 @@ function scorePoint(s: LiveState, side: 'us' | 'opp', real = false, detail?: Poi
  * Rotazioni del set in corso: si parte dallo Starting Six e la squadra che fa punto in ricezione (cambio palla)
  * ruota di una posizione. Al primo scambio serve la squadra scelta sullo 0-0, altrimenti quella dell'alternanza FIPAV.
  */
-function setRotations(events: LiveEvent[], set: number, chosen: LiveState['firstServe']): { us: number; opp: number } {
+function setRotations(events: readonly LiveEvent[], set: number, chosen: LiveState['firstServe']): { us: number; opp: number } {
   const r = rotationState(firstServer(set, chosen), pointWinners(events, set));
   return { us: r.usRotations, opp: r.oppRotations };
 }
@@ -187,7 +211,9 @@ export function LiveProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(t);
   }, [timeout]);
   const isDemo = !!liveMatch?.demoLive;
-  const scoringLive = !!liveMatch && !isDemo && user?.role === 'admin';
+  // partite vere: punteggio dall'agente a3live (set_partita), in casa come in trasferta
+  const autoScore = !!liveMatch && !isDemo;
+  const scoringLive = autoScore && user?.role === 'admin';
   // con Supabase la demo è condivisa tra i dispositivi e la segna solo l'admin; senza, ognuno la prova per conto suo
   const scoringDemo = isDemo && (!hasSupabase || user?.role === 'admin');
   // demo condivisa: versione dello stato e canale broadcast
@@ -223,7 +249,6 @@ export function LiveProvider({ children }: { children: ReactNode }) {
           if (rev <= demoRev.current) return;
           demoRev.current = rev;
           // animazione +1 solo se è stato giocato un punto in più
-          const played = (x: LiveState) => x.history.reduce((n, h) => n + h.our + h.opp, 0) + (x.finished ? 0 : x.our + x.opp);
           if (played(next) > played(stateRef.current) && next.events[0]) setLastPoint({ side: next.events[0].side, key: Date.now() });
           stateRef.current = next;
           setState(next);
@@ -240,22 +265,39 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       };
     }
     let active = true;
+    // la prima lettura non ha un punteggio precedente con cui confrontarsi
+    let first = true;
+    // il punteggio è quello di set_partita (lo scrive l'agente): le righe di cronaca non lo cambiano
     const load = async () => {
       const snap = await fetchLive(liveId);
       if (!snap || !active) return;
       const done = snap.sets.filter((_, i) => snap.completed[i]);
       const current = snap.sets.find((_, i) => !snap.completed[i]) ?? { our: 0, opp: 0 };
-      const last = snap.events[0];
-      setState({
+      const prev = stateRef.current;
+      const next: LiveState = {
         set: done.length + 1,
-        our: last && last.set === done.length + 1 ? last.our : current.our,
-        opp: last && last.set === done.length + 1 ? last.opp : current.opp,
+        our: current.our,
+        opp: current.opp,
         history: done,
         events: snap.events,
-        serving: last?.side ?? 'us',
+        serving: prev.serving,
         finished: matchWinner(setsWon(done)) !== null,
         firstServe: snap.firstServe,
-      });
+        readings: first ? [] : prev.readings,
+      };
+      const scorer = first ? null : lastScorer(prev, next);
+      if (scorer) {
+        next.serving = scorer;
+        setLastPoint({ side: scorer, key: Date.now() });
+      } else if (first) next.serving = snap.events[0]?.side ?? 'us';
+      // letture del set in corso: con l'agente ogni 30" sono quasi sempre un punto alla volta
+      if (next.set !== prev.set || first) next.readings = [];
+      if (!first && next.set === prev.set && played(next) > played(prev)) {
+        next.readings = [{ id: `lettura-${Date.now()}`, set: next.set, our: next.our, opp: next.opp, side: scorer ?? next.serving, text: '' }, ...next.readings];
+      }
+      first = false;
+      stateRef.current = next;
+      setState(next);
     };
     reload.current = load;
     load();
@@ -263,18 +305,13 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       liveId,
       (e) =>
         setState((s) => {
-          // eco dei punti assegnati da questo dispositivo: sono già in lista
+          // eco delle righe scritte da questo dispositivo: sono già in lista
           if (s.events.some((x) => x.id === e.id)) return s;
-          const side: 'us' | 'opp' = e.set === s.set && e.opp > s.opp ? 'opp' : 'us';
-          const ev = { ...e, side };
-          // le righe senza punto (cronaca a voce) ripetono il punteggio: niente +1
-          if (e.set !== s.set || e.our + e.opp > s.our + s.opp) setLastPoint({ side, key: Date.now() });
-          return { ...s, set: e.set, our: e.our, opp: e.opp, serving: side, events: [ev, ...s.events] };
+          // solo cronaca: il punteggio arriva da set_partita
+          return { ...s, events: [e, ...s.events].slice(0, LIVE_EVENTS_MAX) };
         }),
-      // durante i propri salvataggi il database è indietro rispetto allo stato locale
-      () => {
-        if (pending.current === 0) load();
-      },
+      // punteggio scritto dall'agente (o primo servizio scelto dall'admin)
+      () => load(),
       // l'azione arriva subito dopo il suo evento: si aggancia alla riga di cronaca
       (a) => setState((s) => (s.events.some((x) => x.id === a.eventId && !x.detail)
         ? { ...s, events: s.events.map((x) => (x.id === a.eventId ? withAction(x, a) : x)) }
@@ -294,45 +331,17 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addPoint = useCallback((side: 'us' | 'opp', detail?: PointDetail) => {
-    if (Date.now() < timeoutUntil.current) return;
+    // partite vere: i punti li assegna solo l'agente
+    if (autoScore || Date.now() < timeoutUntil.current) return;
     const prev = stateRef.current;
-    const next = scorePoint(prev, side, scoringLive, detail, teamNames(liveMatch));
+    const next = scorePoint(prev, side, detail, teamNames(liveMatch));
     if (next === prev) return;
     stateRef.current = next;
     setState(next);
     setLastPoint({ side, key: Date.now() });
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     if (isDemo) shareDemo(next);
-    if (!scoringLive || !liveMatch) return;
-
-    // eventi nuovi in testa alla lista; se il set si è chiuso si salva il punteggio finale del set
-    const added = prev.events.length ? next.events.slice(0, next.events.indexOf(prev.events[0])) : next.events;
-    const closed = next.history.length > prev.history.length;
-    const point = {
-      set: prev.set,
-      score: closed ? next.history[next.history.length - 1] : { our: next.our, opp: next.opp },
-      completed: closed,
-      events: added,
-      final: next.finished ? setsWon(next.history) : null,
-    };
-    setSaveError(null);
-    pending.current += 1;
-    saveQueue.current = saveQueue.current
-      .then(() => pushLivePoint(liveMatch.id, point))
-      .catch((err: unknown) => {
-        console.warn('Salvataggio punto non riuscito', err);
-        failed.current = true;
-        setSaveError('Punto non salvato: controlla la connessione e riprova.');
-      })
-      .finally(() => {
-        pending.current -= 1;
-        // in caso di errore, finiti i salvataggi in coda, si torna allo stato del database
-        if (pending.current === 0 && failed.current) {
-          failed.current = false;
-          reload.current();
-        }
-      });
-  }, [isDemo, scoringLive, liveMatch, shareDemo]);
+  }, [isDemo, autoScore, liveMatch, shareDemo]);
 
   const addNote = useCallback((text: string, side?: 'us' | 'opp') => {
     const s = stateRef.current;
@@ -417,10 +426,12 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       lastPoint,
       standing: state.finished ? standingPoints(won) : null,
       canScore: (scoringDemo || scoringLive) && !state.finished,
+      autoScore,
       canResetDemo: scoringDemo,
       scoringLive,
       saveError,
-      rotation: setRotations(state.events, state.set, state.firstServe),
+      // punteggio automatico: contano le letture del punteggio, poi la cronaca col punteggio del momento
+      rotation: setRotations(autoScore ? [...state.readings, ...state.events] : state.events, state.set, state.firstServe),
       addPoint,
       addNote,
       timeout,
@@ -429,7 +440,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       canChooseServe: (scoringDemo || scoringLive) && atStart,
       chooseServe,
     };
-  }, [state, liveMatch, lastPoint, scoringDemo, scoringLive, saveError, addPoint, addNote, timeout, callTimeout, resetDemo, chooseServe]);
+  }, [state, liveMatch, lastPoint, scoringDemo, autoScore, scoringLive, saveError, addPoint, addNote, timeout, callTimeout, resetDemo, chooseServe]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

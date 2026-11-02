@@ -34,7 +34,7 @@ export default function NewsScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + space.xl }}>
         <View style={{ height: 420, backgroundColor: c.fill }}>
           {n.image ? <CoverImage source={n.image} style={{ flex: 1 }} /> : null}
-          <IconButton label="Chiudi" onPress={() => router.back()} style={{ position: 'absolute', top: insets.top > 30 ? 16 : insets.top + 12, right: 14, backgroundColor: 'rgba(6,26,58,0.55)' }}>
+          <IconButton label="Chiudi" onPress={() => router.back()} style={{ position: 'absolute', top: insets.top + 12, right: 14, backgroundColor: 'rgba(6,26,58,0.55)' }}>
             <X size={18} color="#fff" />
           </IconButton>
         </View>

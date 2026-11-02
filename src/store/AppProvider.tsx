@@ -50,7 +50,7 @@ interface AppCtx {
 const Ctx = createContext<AppCtx | null>(null);
 
 const K = { user: 'av-user', guest: 'av-guest', prefs: 'av-notif', demo: 'av-demo-live', noAds: 'av-no-ads' };
-const DEFAULT_PREFS: NotifPrefs = { enabled: true, start: true, sets: true, final: true, news: true, youth: [] };
+const DEFAULT_PREFS: NotifPrefs = { enabled: true, start: true, sets: true, final: true, news: true, gameDay: true, mvp: true, youth: [] };
 
 /** profili.ruolo (enum ruolo_utente) → ruolo nell'app */
 const RUOLO: Record<string, NonNullable<AppUser['role']>> = { pubblico: 'public', genitore: 'parent', staff: 'staff', admin: 'admin' };

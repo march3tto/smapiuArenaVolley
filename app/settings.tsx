@@ -1,9 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Animated, Platform, Pressable, ScrollView, Switch, View, useWindowDimensions } from 'react-native';
+import { Animated, LayoutAnimation, Platform, Pressable, ScrollView, Switch, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
-import { Bell, ChevronRight, Megaphone, Moon, Settings as SettingsIcon, ShieldCheck, Volleyball, X } from 'lucide-react-native';
+import { Bell, ChevronDown, ChevronRight, Megaphone, Moon, Settings as SettingsIcon, ShieldCheck, Volleyball, X } from 'lucide-react-native';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { ThemeSwitch } from '@/components/ThemeSwitch';
@@ -16,6 +16,16 @@ import type { NotifPrefs } from '@/types';
 
 /** Interruttori ridotti del 15%: i margini negativi recuperano lo spazio lasciato dalla scala */
 const SMALL_SWITCH = { transform: [{ scale: 0.85 }], marginHorizontal: -4, marginVertical: -2 };
+
+/** Singole notifiche, nell'ordine in cui compaiono */
+const NOTIF_TYPES: { key: keyof Omit<NotifPrefs, 'youth' | 'enabled'>; title: string }[] = [
+  { key: 'gameDay', title: 'Game day (4 ore prima)' },
+  { key: 'start', title: 'Inizio partita' },
+  { key: 'mvp', title: 'Vota MVP' },
+  { key: 'sets', title: 'Fine di ogni set' },
+  { key: 'final', title: 'Risultato finale' },
+  { key: 'news', title: 'Nuove news o podcast' },
+];
 
 /** Impostazioni: modalità scura, notifiche, privacy, partita demo e account, in blocchi uno sotto l'altro */
 export default function Settings() {
@@ -39,18 +49,30 @@ export default function Settings() {
     return req.granted;
   };
 
+  // blocco Notifiche chiuso: resta visibile solo l'interruttore generale
+  const [notifOpen, setNotifOpen] = useState(false);
+  const toggleNotif = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setNotifOpen((v) => !v);
+  };
+
   const setEnabled = async (v: boolean) => {
-    updatePrefs({ enabled: v });
+    // riaccese con tutte le singole spente: si riattivano tutte, altrimenti non arriverebbe nulla
+    const allOff = NOTIF_TYPES.every((t) => !prefs[t.key]);
+    updatePrefs(v && allOff ? { enabled: true, ...Object.fromEntries(NOTIF_TYPES.map((t) => [t.key, true])) } : { enabled: v });
     if (v) await askPermission();
+  };
+
+  // spente tutte e sei le singole notifiche: si spegne anche l'interruttore generale
+  const setType = (k: (typeof NOTIF_TYPES)[number]['key'], v: boolean) => {
+    const allOff = NOTIF_TYPES.every((t) => (t.key === k ? !v : !prefs[t.key]));
+    updatePrefs(allOff ? { [k]: v, enabled: false } : { [k]: v });
   };
 
   const toggleSwitch = (value: boolean, onChange: (v: boolean) => void) => (
     <Switch value={value} onValueChange={onChange} trackColor={{ true: palette.gold, false: c.fill2 }} thumbColor="#fff" style={SMALL_SWITCH} />
   );
 
-  const notifRow = (k: keyof Omit<NotifPrefs, 'youth' | 'enabled'>, title: string) => (
-    <Item key={k} title={title} right={toggleSwitch(prefs[k], (v) => updatePrefs({ [k]: v }))} />
-  );
 
   return (
     <View style={{ flex: 1, justifyContent: 'flex-end' }}>
@@ -77,22 +99,29 @@ export default function Settings() {
                 right={<ThemeSwitch dark={mode === 'dark'} onChange={(d) => { if (d !== (mode === 'dark')) toggle(); }} />} />
             </Block>
 
-            <Block icon={<Bell size={16} color={c.accent} />} title="Notifiche">
-              <Item title="Notifiche attive" sub="Spegnile per non ricevere nulla." first right={toggleSwitch(prefs.enabled, setEnabled)} />
-              <View style={{ opacity: prefs.enabled ? 1 : 0.4 }} pointerEvents={prefs.enabled ? 'auto' : 'none'}>
-                {notifRow('start', 'Inizio partita')}
-                {notifRow('sets', 'Fine di ogni set')}
-                {notifRow('final', 'Risultato finale')}
-                {notifRow('news', 'Nuove news o podcast')}
-              </View>
-            </Block>
+            {/* notifiche e privacy: solo per gli utenti registrati */}
+            {user ? (
+              <>
+                <Block icon={<Bell size={16} color={c.accent} />} title="Notifiche" open={notifOpen} onToggle={toggleNotif}>
+                  <Item title="Notifiche attive" sub={notifOpen ? 'Spegnile per non ricevere nulla.' : 'Tocca Notifiche per scegliere quali ricevere.'} first
+                    right={toggleSwitch(prefs.enabled, setEnabled)} />
+                  {notifOpen ? (
+                    <View style={{ opacity: prefs.enabled ? 1 : 0.4 }} pointerEvents={prefs.enabled ? 'auto' : 'none'}>
+                      {NOTIF_TYPES.map((t) => (
+                        <Item key={t.key} title={t.title} right={toggleSwitch(prefs[t.key], (v) => setType(t.key, v))} />
+                      ))}
+                    </View>
+                  ) : null}
+                </Block>
 
-            <Block icon={<ShieldCheck size={16} color={c.accent} />} title="Privacy">
-              <Pressable onPress={() => router.push('/account')} accessibilityRole="button">
-                <Item title="Account e privacy" sub={user ? 'Consensi, informativa, elimina account' : 'Informativa privacy'} first
-                  right={<ChevronRight size={17} color={c.muted} />} />
-              </Pressable>
-            </Block>
+                <Block icon={<ShieldCheck size={16} color={c.accent} />} title="Privacy">
+                  <Pressable onPress={() => router.push('/account')} accessibilityRole="button">
+                    <Item title="Account e privacy" sub="Consensi, informativa, elimina account" first
+                      right={<ChevronRight size={17} color={c.muted} />} />
+                  </Pressable>
+                </Block>
+              </>
+            ) : null}
 
             {/* solo per gli utenti registrati */}
             {user ? (
@@ -122,15 +151,24 @@ export default function Settings() {
   );
 }
 
-/** Blocco dello stack: intestazione con icona e righe dentro un riquadro */
-function Block({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
+/** Blocco dello stack: intestazione con icona e righe dentro un riquadro. Con onToggle l'intestazione apre e chiude il blocco */
+function Block({ icon, title, children, open, onToggle }: { icon: ReactNode; title: string; children: ReactNode; open?: boolean; onToggle?: () => void }) {
   const { c } = useTheme();
+  const head = (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, marginBottom: space.xs }}>
+      {icon}
+      <Txt w={700} size={11.5} color="muted" style={{ flex: 1, letterSpacing: 0.8, textTransform: 'uppercase' }}>{title}</Txt>
+      {onToggle ? <ChevronDown size={16} color={c.muted} style={{ transform: [{ rotate: open ? '180deg' : '0deg' }] }} /> : null}
+    </View>
+  );
   return (
     <View style={{ borderRadius: 20, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, paddingHorizontal: space.md, paddingTop: space.md, paddingBottom: space.xs }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, marginBottom: space.xs }}>
-        {icon}
-        <Txt w={700} size={11.5} color="muted" style={{ letterSpacing: 0.8, textTransform: 'uppercase' }}>{title}</Txt>
-      </View>
+      {onToggle ? (
+        <Pressable onPress={onToggle} hitSlop={8} accessibilityRole="button" accessibilityState={{ expanded: !!open }}
+          accessibilityLabel={`${title}, ${open ? 'chiudi' : 'mostra'} le singole notifiche`}>
+          {head}
+        </Pressable>
+      ) : head}
       {children}
     </View>
   );

@@ -263,6 +263,10 @@ export interface NotifPrefs {
   sets: boolean;
   final: boolean;
   news: boolean;
+  /** Game day, 4 ore prima delle partite della prima squadra */
+  gameDay: boolean;
+  /** Apertura del voto MVP */
+  mvp: boolean;
   youth: string[];
 }
 

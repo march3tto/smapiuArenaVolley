@@ -419,6 +419,19 @@ export async function fetchGiornata(giornata: number, girone: string): Promise<L
   return ((data as Row[] | null) ?? []).map(mapLeagueGame);
 }
 
+/** Numeri delle giornate del girone (stagioni correnti), in ordine: per scorrere da una giornata all'altra */
+export async function fetchGiornateGirone(girone: string): Promise<number[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from(T.partite)
+    .select('giornata, stagione:stagioni!inner(corrente)')
+    .eq('girone', girone)
+    .eq('stagione.corrente', true)
+    .not('giornata', 'is', null);
+  if (error) throw new Error(`partite: ${error.message}`);
+  return [...new Set(((data as Row[] | null) ?? []).map((r) => num(r.giornata)).filter((n): n is number => n != null))].sort((a, b) => a - b);
+}
+
 // ---------- classifica ----------
 
 /** Classifica delle stagioni correnti (calcolata dal database dai risultati, vedi calcola_classifica) */
@@ -468,14 +481,14 @@ function mapEvent(r: Row, side: 'us' | 'opp' = 'us'): LiveEvent {
     our: num(r.punteggio_nostro) ?? 0,
     opp: num(r.punteggio_avversario) ?? 0,
     text: str(r.descrizione),
-    side,
+    // squadra salvata con la riga (cronaca senza punto): vale più di quella dedotta dal punteggio
+    side: r.squadra === 'avversaria' ? 'opp' : r.squadra === 'nostra' ? 'us' : side,
   };
 }
 
 /**
- * La tabella eventi_live non ha una colonna "chi ha fatto punto":
+ * Righe vecchie di eventi_live senza colonna squadra: chi ha fatto punto
  * si deduce confrontando ogni evento con il precedente dello stesso set.
- * (Timeout e cambi non cambiano il punteggio e restano grigi.)
  */
 function withSides(desc: Row[]): LiveEvent[] {
   return desc.map((r, i) => {
@@ -657,54 +670,16 @@ export function newId(): string {
   });
 }
 
-/**
- * Admin: salva un punto della diretta (richiede ruolo staff/admin, policy e_staff()).
- * events: nuovi eventi di cronaca dal più recente; score: punteggio del set `set` dopo il punto.
- */
-export async function pushLivePoint(
-  matchId: string,
-  p: { set: number; score: SetScore; completed: boolean; events: LiveEvent[]; final: { our: number; opp: number } | null },
-): Promise<void> {
-  if (!supabase) return;
-  // uno alla volta, dal più vecchio: creato_il (now() sul server) mantiene l'ordine della cronaca
-  for (const e of [...p.events].reverse()) {
-    const { error } = await supabase.from(T.eventiLive).insert({
-      id: e.id, partita_id: matchId, numero_set: e.set, punteggio_nostro: e.our, punteggio_avversario: e.opp, descrizione: e.text,
-    });
-    if (error) throw error;
-    if (e.detail) await pushAction(matchId, e);
-  }
-  const st = await supabase.from(T.setPartita).upsert(
-    { partita_id: matchId, numero_set: p.set, punti_nostri: p.score.our, punti_avversario: p.score.opp, completato: p.completed },
-    { onConflict: 'partita_id,numero_set' },
-  );
-  if (st.error) throw st.error;
-  if (p.final) {
-    const { error } = await supabase.from(T.partite).update({ nostri_set_vinti: p.final.our, set_vinti_avversario: p.final.opp }).eq('id', matchId);
-    if (error) throw error;
-  }
-}
-
-/** Admin: riga di cronaca senza punto (es. dettata a voce), col punteggio del momento */
+/** Admin: riga di cronaca senza punto (azione dal +, dettata a voce, timeout, cambio), col punteggio del momento */
 export async function pushLiveNote(matchId: string, e: LiveEvent): Promise<void> {
   if (!supabase) return;
-  const { error } = await supabase.from(T.eventiLive).insert({
-    id: e.id, partita_id: matchId, numero_set: e.set, punteggio_nostro: e.our, punteggio_avversario: e.opp, descrizione: e.text,
-  });
-  if (error) throw error;
-}
-
-/** Azione tecnica del punto: se non si salva (es. migrazione non eseguita) il punto e la cronaca restano validi */
-async function pushAction(matchId: string, e: LiveEvent): Promise<void> {
-  if (!supabase || !e.detail) return;
-  const d = e.detail;
-  const { error } = await supabase.from(T.azioniPunto).insert({
-    partita_id: matchId, evento_id: e.id, numero_set: e.set, squadra: e.side === 'opp' ? 'avversaria' : 'nostra',
-    azione: d.action, fase: d.phase, zona: d.zone ?? null,
-    formazione_id: d.player?.lineupId ?? null, giocatrice_id: d.player?.playerId ?? null, nome_giocatrice: d.player?.name ?? null,
-    punteggio_nostro: e.our, punteggio_avversario: e.opp, frase_ai: d.aiText === true,
-  });
-  if (error) console.warn('Azione del punto non salvata', error.message);
+  const row = { id: e.id, partita_id: matchId, numero_set: e.set, punteggio_nostro: e.our, punteggio_avversario: e.opp, descrizione: e.text };
+  const { error } = await supabase.from(T.eventiLive).insert({ ...row, squadra: e.side === 'opp' ? 'avversaria' : 'nostra' });
+  // colonna squadra assente (migrazione 20261101000200 non eseguita): la riga si salva lo stesso
+  if (error?.code === 'PGRST204') {
+    const retry = await supabase.from(T.eventiLive).insert(row);
+    if (retry.error) throw retry.error;
+  } else if (error) throw error;
 }
 
 /** Dati del punto per l'AI: chi ha fatto punto e il punteggio li decide l'app, l'AI scrive solo le frasi */

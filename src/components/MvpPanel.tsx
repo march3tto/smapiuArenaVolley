@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useId, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import Svg, { Defs, Path, Pattern, Rect } from 'react-native-svg';
 import { Crown, Flame, Heart, Info, Lock, Trophy, Users } from 'lucide-react-native';
 import { Button } from './Button';
+import { Mesh } from './HiddenScore';
 import { ROLE_LABEL } from './LineupPanel';
 import { Pressy } from './Pressy';
 import { SearchField, matchesPlayer } from './SearchField';
@@ -21,6 +21,9 @@ import type { ImgSrc, LineupPlayer, LiveEvent, Match } from '@/types';
 
 /** I voti degli altri utenti per la stessa partita si ricaricano mentre il pannello è aperto */
 const REFRESH_MS = 10000;
+/** Finestra del voto: si apre all'inizio di questo set */
+const MVP_FROM_SET = 3;
+const CLOSED_MSG = 'Il voto MVP si apre all\'inizio del 3° set.';
 
 export interface MvpTeam {
   side: 'us' | 'opp';
@@ -35,9 +38,10 @@ export interface MvpTeam {
  * Senza accesso tutto resta visibile ma bloccato: il tocco spiega come votare.
  * Un voto per utente registrato, modificabile; nella partita demo resta solo sul dispositivo.
  * awayMatch: in trasferta il pannello si vede (giocatrici e punti) ma il voto è disattivato.
+ * set: set in corso; il voto si apre dal 3° set (finestra controllata anche dal database, voto_mvp_valido) e resta aperto a partita finita.
  * onLeave: chiude il contenitore (es. il pannello dal basso della diretta) prima di andare all'accesso.
  */
-export function MvpPanel({ match, awayMatch, teams, events, finished, onLeave }: { match: Match; awayMatch?: boolean; teams: MvpTeam[]; events: LiveEvent[]; finished: boolean; onLeave?: () => void }) {
+export function MvpPanel({ match, awayMatch, teams, events, set, finished, onLeave }: { match: Match; awayMatch?: boolean; teams: MvpTeam[]; events: LiveEvent[]; set: number; finished: boolean; onLeave?: () => void }) {
   const { c } = useTheme();
   const router = useRouter();
   const toast = useToast();
@@ -109,10 +113,14 @@ export function MvpPanel({ match, awayMatch, teams, events, finished, onLeave }:
 
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   const best = Math.max(0, ...Object.values(counts));
-  const canVote = !awayMatch && (local || !!uid);
-  // senza accesso anche filtri e ricerca restano bloccati (in trasferta si consultano, ma non si vota)
-  const guest = !local && !uid;
-  const lockMsg = awayMatch ? 'Il voto MVP è attivo solo nelle partite in casa.' : 'Accedi prima al tuo account per poter esprimere il tuo voto';
+  // nella demo si vota subito (resta comunque solo per chi ha un account)
+  const windowOpen = !!match.demoLive || finished || set >= MVP_FROM_SET;
+  // vota solo chi ha un account (anche nella demo, se c'è Supabase); senza accesso anche filtri e ricerca restano bloccati
+  const guest = hasSupabase && !uid;
+  const canVote = !awayMatch && windowOpen && !guest;
+  const lockMsg = awayMatch ? 'Il voto MVP è attivo solo nelle partite in casa.'
+    : !windowOpen ? CLOSED_MSG
+    : 'Accedi prima al tuo account per poter esprimere il tuo voto';
   const warnLocked = () => toast.show(lockMsg, Lock);
 
   const [filter, setFilter] = useState<Filter>('all');
@@ -153,7 +161,16 @@ export function MvpPanel({ match, awayMatch, teams, events, finished, onLeave }:
           <Info size={16} color={c.muted} />
           <Txt size={12.5} color="muted" style={{ flex: 1 }}>Il voto MVP è attivo solo nelle partite in casa.</Txt>
         </View>
-      ) : guest ? (
+      ) : null}
+
+      {!awayMatch && !windowOpen ? (
+        <View accessibilityRole="alert" style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.sm, borderRadius: radius.sm, backgroundColor: c.fill }}>
+          <Info size={16} color={c.muted} />
+          <Txt size={12.5} color="muted" style={{ flex: 1 }}>{CLOSED_MSG}</Txt>
+        </View>
+      ) : null}
+
+      {!awayMatch && guest ? (
         <View style={{ gap: space.md, padding: space.md, borderRadius: radius.md, borderWidth: 1.5, borderColor: palette.gold, backgroundColor: c.card }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
             <View style={{ width: 40, height: 40, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,213,3,0.14)' }}>
@@ -193,7 +210,7 @@ export function MvpPanel({ match, awayMatch, teams, events, finished, onLeave }:
               </View>
             </>
           ) : (
-            <Empty icon={<Heart size={20} color={c.muted} />} text={canVote ? 'Non hai ancora votato: tocca il cuore di una giocatrice.' : guest ? 'Accedi per scegliere la tua MVP.' : 'Voto non disponibile.'} />
+            <Empty icon={<Heart size={20} color={c.muted} />} text={canVote ? 'Non hai ancora votato: tocca il cuore di una giocatrice.' : !awayMatch && !windowOpen ? 'Il voto si apre dal 3° set.' : guest ? 'Accedi per scegliere la tua MVP.' : 'Voto non disponibile.'} />
           )}
         </View>
       </View>
@@ -283,21 +300,6 @@ function HeartButton({ selected, locked, busy, onPress, name, votes }: VoteProps
   );
 }
 
-/** Trama a rete dietro il numero di maglia (linee incrociate, tinta piena) */
-function Mesh({ size, color }: { size: number; color: string }) {
-  const id = useId();
-  return (
-    <Svg width={size} height={size} style={{ position: 'absolute', top: 0, left: 0 }} pointerEvents="none">
-      <Defs>
-        <Pattern id={id} width={6} height={6} patternUnits="userSpaceOnUse">
-          <Path d="M0 6L6 0M-1 1L1 -1M5 7L7 5M0 0L6 6" stroke={color} strokeWidth={0.8} />
-        </Pattern>
-      </Defs>
-      <Rect width={size} height={size} fill={`url(#${id})`} />
-    </Svg>
-  );
-}
-
 /** Numero di maglia grande su trama a rete, con lo stemma della squadra nell'angolo */
 function Jersey({ p, team, size, gold }: { p: LineupPlayer; team: MvpTeam; size: number; gold?: boolean }) {
   const { c } = useTheme();
@@ -305,7 +307,7 @@ function Jersey({ p, team, size, gold }: { p: LineupPlayer; team: MvpTeam; size:
     <View>
       <View style={{ width: size, height: size, borderRadius: Math.round(size * 0.28), overflow: 'hidden', alignItems: 'center', justifyContent: 'center',
         backgroundColor: gold ? palette.gold : c.cardAlt, borderWidth: 1.5, borderColor: gold ? palette.gold : c.lineStrong }}>
-        <Mesh size={size} color={gold ? 'rgba(6,26,58,0.16)' : c.line} />
+        <Mesh width={size} color={gold ? 'rgba(6,26,58,0.16)' : c.line} />
         <Txt w={900} display size={Math.round(size * 0.5)} color={gold ? palette.onGold : c.text} tnum style={{ lineHeight: Math.round(size * 0.56) }}>{p.number ?? '–'}</Txt>
       </View>
       <View style={{ position: 'absolute', right: -6, bottom: -6 }}>

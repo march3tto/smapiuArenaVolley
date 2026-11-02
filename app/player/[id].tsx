@@ -46,7 +46,7 @@ export default function PlayerScreen() {
     <View style={{ flex: 1, backgroundColor: c.card }}>
       <View style={{ flex: 1, minHeight: Math.min(180, height * 0.25), maxHeight: photoMaxH, backgroundColor: blue[800] }}>
         {p.photo !== '' ? <CoverImage source={p.photo} style={{ flex: 1 }} /> : <PlayerPlaceholder number={p.number} size={Math.round(photoW * 0.3)} style={{ flex: 1 }} />}
-        <IconButton label="Chiudi" onPress={() => router.back()} style={{ position: 'absolute', top: insets.top > 30 ? 16 : insets.top + 12, right: 14, backgroundColor: 'rgba(6,26,58,0.55)' }}>
+        <IconButton label="Chiudi" onPress={() => router.back()} style={{ position: 'absolute', top: insets.top + 12, right: 14, backgroundColor: 'rgba(6,26,58,0.55)' }}>
           <X size={18} color="#fff" />
         </IconButton>
       </View>

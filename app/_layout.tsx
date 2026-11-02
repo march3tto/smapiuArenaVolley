@@ -81,8 +81,9 @@ function RootStack() {
         <Stack.Screen name="formazione/[squadra]" options={({ route }) => ({
           ...header, title: (route.params as { squadra?: string } | undefined)?.squadra === 'nostra' ? 'Formazione Smapiù' : 'Formazione avversaria',
         })} />
-        <Stack.Screen name="player/[id]" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="notizia/[id]" options={{ presentation: 'modal' }} />
+        {/* containedModal: su iOS il modal si apre dentro la navigazione e non sopra tutta l'app, così la finestrella del player resta visibile */}
+        <Stack.Screen name="player/[id]" options={{ presentation: 'containedModal' }} />
+        <Stack.Screen name="notizia/[id]" options={{ presentation: 'containedModal' }} />
         {/* riquadro in basso sopra la schermata corrente, non a tutto schermo */}
         <Stack.Screen name="settings" options={{ presentation: 'transparentModal', animation: 'fade', contentStyle: { backgroundColor: 'transparent' } }} />
         <Stack.Screen name="info/[section]" options={{ presentation: 'modal' }} />

@@ -26,6 +26,8 @@ const CARD_H = 168;
 const PEEK = 74;
 /** Sfumature delle card, in ordine: blu del brand, una card in giallo */
 const WALLET = [blue[800], palette.blue, palette.gold, blue[900], palette.blue, blue[800]];
+/** Sezione "La società" nascosta per ora: rimettere true per mostrarla di nuovo */
+const SHOW_SOCIETA = false;
 
 export default function Altro() {
   const { c } = useTheme();
@@ -45,7 +47,7 @@ export default function Altro() {
   return (
     <View style={{ flex: 1 }}>
       <Screen>
-        <SectionHeader big title="Altro" subtitle="Sponsor, società, palestre e contatti." />
+        <SectionHeader big title="Altro" subtitle={SHOW_SOCIETA ? 'Sponsor, società, palestre e contatti.' : 'Assistente, sponsor, media e Arena Volley Card.'} />
 
         <Pressy onPress={() => router.push('/assistente')} scaleTo={0.98} accessibilityRole="button" accessibilityLabel="Assistente, chiedi di partite, squadra e pallavolo">
           <Card style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md }}>
@@ -97,46 +99,48 @@ export default function Altro() {
           <CardPanel />
         </Group>
 
-        <Group title="La società">
-          <View>
-            {SOCIETA.map((k, i) => {
-              const { Icon, title, subtitle } = INFO[k];
-              const on = openKey === k;
-              // la card dopo quella aperta non la copre: parte sotto, staccata
-              const afterOpen = i > 0 && openKey === SOCIETA[i - 1];
-              const bg = WALLET[i % WALLET.length];
-              const gold = bg === palette.gold;
-              const fg = gold ? palette.onGold : palette.white;
-              return (
-                // card del wallet: ognuna copre la precedente lasciando vedere solo la testata
-                <View key={k}
-                  style={{ height: on ? undefined : CARD_H, marginTop: !i ? 0 : afterOpen ? space.md : PEEK - CARD_H, borderRadius: 22, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)' }}>
-                  <View style={{ backgroundColor: bg, flex: on ? undefined : 1, paddingHorizontal: space.md, paddingTop: space.md, paddingBottom: on ? space.md : 0 }}>
-                    <Pressy onPress={() => toggle(k)} scaleTo={0.98} accessibilityRole="button" accessibilityState={{ expanded: on }} accessibilityLabel={`${title}, ${subtitle}`}
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
-                      <View style={{ width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: gold ? 'rgba(6,26,58,0.12)' : 'rgba(255,255,255,0.14)' }}>
-                        <Icon size={20} color={gold ? palette.onGold : palette.gold} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Txt w={800} size={17} color={fg}>{title}</Txt>
-                        <Txt size={13} color={gold ? 'rgba(6,26,58,0.7)' : 'rgba(255,255,255,0.72)'} numberOfLines={1}>{subtitle}</Txt>
-                      </View>
-                      <ChevronDown size={18} color={fg} style={{ transform: [{ rotate: on ? '180deg' : '0deg' }] }} />
-                    </Pressy>
-                    {/* icona grande in filigrana, visibile solo sull'ultima card scoperta (non sopra il contenuto aperto) */}
-                    {on ? null : <Icon size={110} color={gold ? 'rgba(6,26,58,0.1)' : 'rgba(255,255,255,0.08)'} style={{ position: 'absolute', right: -14, bottom: -22 }} />}
-                  </View>
-                  {/* contenuto espanso dentro la card, sotto la testata colorata */}
-                  {on ? (
-                    <View style={{ padding: space.md, backgroundColor: c.bg }}>
-                      <InfoBody section={k} />
+        {SHOW_SOCIETA ? (
+          <Group title="La società">
+            <View>
+              {SOCIETA.map((k, i) => {
+                const { Icon, title, subtitle } = INFO[k];
+                const on = openKey === k;
+                // la card dopo quella aperta non la copre: parte sotto, staccata
+                const afterOpen = i > 0 && openKey === SOCIETA[i - 1];
+                const bg = WALLET[i % WALLET.length];
+                const gold = bg === palette.gold;
+                const fg = gold ? palette.onGold : palette.white;
+                return (
+                  // card del wallet: ognuna copre la precedente lasciando vedere solo la testata
+                  <View key={k}
+                    style={{ height: on ? undefined : CARD_H, marginTop: !i ? 0 : afterOpen ? space.md : PEEK - CARD_H, borderRadius: 22, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)' }}>
+                    <View style={{ backgroundColor: bg, flex: on ? undefined : 1, paddingHorizontal: space.md, paddingTop: space.md, paddingBottom: on ? space.md : 0 }}>
+                      <Pressy onPress={() => toggle(k)} scaleTo={0.98} accessibilityRole="button" accessibilityState={{ expanded: on }} accessibilityLabel={`${title}, ${subtitle}`}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
+                        <View style={{ width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: gold ? 'rgba(6,26,58,0.12)' : 'rgba(255,255,255,0.14)' }}>
+                          <Icon size={20} color={gold ? palette.onGold : palette.gold} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Txt w={800} size={17} color={fg}>{title}</Txt>
+                          <Txt size={13} color={gold ? 'rgba(6,26,58,0.7)' : 'rgba(255,255,255,0.72)'} numberOfLines={1}>{subtitle}</Txt>
+                        </View>
+                        <ChevronDown size={18} color={fg} style={{ transform: [{ rotate: on ? '180deg' : '0deg' }] }} />
+                      </Pressy>
+                      {/* icona grande in filigrana, visibile solo sull'ultima card scoperta (non sopra il contenuto aperto) */}
+                      {on ? null : <Icon size={110} color={gold ? 'rgba(6,26,58,0.1)' : 'rgba(255,255,255,0.08)'} style={{ position: 'absolute', right: -14, bottom: -22 }} />}
                     </View>
-                  ) : null}
-                </View>
-              );
-            })}
-          </View>
-        </Group>
+                    {/* contenuto espanso dentro la card, sotto la testata colorata */}
+                    {on ? (
+                      <View style={{ padding: space.md, backgroundColor: c.bg }}>
+                        <InfoBody section={k} />
+                      </View>
+                    ) : null}
+                  </View>
+                );
+              })}
+            </View>
+          </Group>
+        ) : null}
       </Screen>
       {/* come nella pagina Sponsor: invito a diventare sponsor, sopra la barra delle schede */}
       {mediaOpen === 'sponsor' ? <SponsorPopup bottom={96} /> : null}

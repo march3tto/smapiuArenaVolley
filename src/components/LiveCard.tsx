@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Award } from 'lucide-react-native';
 import { AnimatedNumber } from './AnimatedNumber';
 import { Button } from './Button';
+import { HiddenScore } from './HiddenScore';
 import { LiveSignal } from './LiveDot';
 import { LiveTicker } from './LiveTicker';
 import { type MvpTeam } from './MvpPanel';
@@ -15,7 +16,7 @@ import { YoutubeIcon } from './YoutubeIcon';
 import { US } from '@/constants';
 import { useLiveLineup } from '@/store/LineupProvider';
 import { useLive } from '@/store/LiveProvider';
-import { usePlayer } from '@/store/PlayerProvider';
+import { usePlayer, useScoreHidden } from '@/store/PlayerProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/colors';
 
@@ -25,6 +26,8 @@ export function LiveCard() {
   const router = useRouter();
   const live = useLive();
   const player = usePlayer();
+  // video della diretta aperto: punteggio coperto anche qui
+  const hidden = useScoreHidden();
   const lineup = useLiveLineup();
   // voto MVP aperto dal pulsante della card, sopra la Home
   const [mvpOpen, setMvpOpen] = useState(false);
@@ -62,9 +65,9 @@ export function LiveCard() {
           <TeamCol name={left.name} logo={left.logo} />
           <View style={{ alignItems: 'center', gap: space.xs }} onLayout={(e) => setCenterW(e.nativeEvent.layout.width)}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-              <AnimatedNumber value={left.pts} size={44} />
+              {hidden ? <HiddenScore width={48} height={50} radius={12} /> : <AnimatedNumber value={left.pts} size={44} />}
               <Txt w={800} size={36}>-</Txt>
-              <AnimatedNumber value={right.pts} size={44} />
+              {hidden ? <HiddenScore width={48} height={50} radius={12} /> : <AnimatedNumber value={right.pts} size={44} />}
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
               <Txt w={700} size={12.5}>Set {live.set}</Txt>
@@ -74,9 +77,9 @@ export function LiveCard() {
           <TeamCol name={right.name} logo={right.logo} />
         </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center' }} accessibilityLabel={`Set vinti ${left.sets} a ${right.sets}`}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }} accessibilityLabel={hidden ? 'Set vinti nascosti mentre guardi il video' : `Set vinti ${left.sets} a ${right.sets}`}>
           <View style={{ flex: 1, alignItems: 'center' }}>
-            <AnimatedNumber value={left.sets} size={24} />
+            {hidden ? <HiddenScore width={26} height={28} radius={7} /> : <AnimatedNumber value={left.sets} size={24} />}
           </View>
           <View style={{ width: centerW || undefined, flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
             <View style={{ flex: 1, height: 1, backgroundColor: c.line }} />
@@ -84,29 +87,31 @@ export function LiveCard() {
             <View style={{ flex: 1, height: 1, backgroundColor: c.line }} />
           </View>
           <View style={{ flex: 1, alignItems: 'center' }}>
-            <AnimatedNumber value={right.sets} size={24} />
+            {hidden ? <HiddenScore width={26} height={28} radius={7} /> : <AnimatedNumber value={right.sets} size={24} />}
           </View>
         </View>
 
         <View style={{ flexDirection: 'row', gap: space.sm }}>
           {m.youtubeLiveId ? (
             <Button
-              label="Guarda la diretta"
+              label={hidden ? 'Diretta aperta' : 'Guarda la diretta'}
+              sublabel={hidden ? '(punteggio oscurato)' : undefined}
               size="sm"
               icon={<YoutubeIcon size={22} />}
               // il video si apre nella schermata Live, dentro l'app
-              onPress={() => { player.open(m.youtubeLiveId!, `${left.name} – ${right.name}`); router.push('/live'); }}
-              accessibilityLabel="Guarda la diretta video"
+              // player già aperto: il tocco non fa nulla (no-op esplicito, così non passa alla card che apre la Live)
+              onPress={hidden ? () => {} : () => { player.open(m.youtubeLiveId!, `${left.name} – ${right.name}`); router.push('/live'); }}
+              accessibilityLabel={hidden ? 'Diretta aperta, punteggio oscurato' : 'Guarda la diretta video'}
               style={{ flex: 1, paddingHorizontal: space.sm }}
             />
           ) : null}
           <Button label="Vota la tua MVP" size="sm" icon={<Award size={18} color={c.text} />} onPress={() => setMvpOpen(true)} style={{ flex: 1, paddingHorizontal: space.sm }} />
         </View>
 
-        {last ? <LiveTicker text={`${last.set}° set ${home ? `${last.our}–${last.opp}` : `${last.opp}–${last.our}`} · ${last.text}`} /> : null}
+        {last ? <LiveTicker text={`${last.set}° set${hidden ? '' : ` ${home ? `${last.our}–${last.opp}` : `${last.opp}–${last.our}`}`} · ${last.text}`} /> : null}
       </View>
     </Pressy>
-    <MvpSheet open={mvpOpen} onClose={() => setMvpOpen(false)} match={m} awayMatch={!home} events={live.events} finished={live.finished} teams={mvpTeams} />
+    <MvpSheet open={mvpOpen} onClose={() => setMvpOpen(false)} match={m} awayMatch={!home} events={live.events} set={live.set} finished={live.finished} teams={mvpTeams} />
     </>
   );
 }

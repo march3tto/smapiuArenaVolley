@@ -57,6 +57,8 @@ export function ThemeSwitch({ dark, onChange }: { dark: boolean; onChange: (dark
             <View style={{ position: 'absolute', left: 18, top: 7, width: 4, height: 4, borderRadius: 2, backgroundColor: blue[300] }} />
           </Animated.View>
         </Animated.View>
+        {/* bordo sopra il disegno (non sposta sole e luna): blu di giorno, giallo di notte */}
+        <View pointerEvents="none" style={[fill, { borderRadius: H / 2, borderWidth: 1.5, borderColor: dark ? palette.gold : palette.blue }]} />
       </View>
     </Pressable>
   );
