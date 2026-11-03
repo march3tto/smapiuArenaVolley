@@ -33,6 +33,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
+/** Forza i colori scuri ai figli (es. contenuti sopra una foto), qualunque sia il tema scelto */
+export function DarkTheme({ children }: { children: ReactNode }) {
+  const parent = useTheme();
+  const value = useMemo(() => ({ ...parent, c: dark, mode: 'dark' as const }), [parent]);
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+}
+
 export function useTheme(): ThemeCtx {
   const v = useContext(Ctx);
   if (!v) throw new Error('useTheme deve stare dentro ThemeProvider');

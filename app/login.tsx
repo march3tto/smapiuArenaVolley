@@ -1,24 +1,23 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Animated, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View, useWindowDimensions, type TextInputProps } from 'react-native';
+import { Animated, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View, useWindowDimensions, type TextInputProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import { Check, Eye, EyeOff, Mail, User } from 'lucide-react-native';
-import { Arches } from '@/components/Arches';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Check, Eye, EyeOff, Mail, Settings, User } from 'lucide-react-native';
 import { Button } from '@/components/Button';
 import { Checkbox } from '@/components/Checkbox';
 import { FacebookIcon } from '@/components/FacebookIcon';
 import { GoogleIcon } from '@/components/GoogleIcon';
-import { SegmentedControl } from '@/components/SegmentedControl';
 import { Txt } from '@/components/Txt';
 import { useToast } from '@/components/Toast';
-import { LOGO_AVT } from '@/data/assets';
+import { LOGIN_PHOTO, LOGO_BRAND } from '@/data/assets';
 import { AccessoAnnullato, PROVIDER_LABEL, providerDisponibili, type SocialProvider } from '@/lib/auth';
 import { apriInformativa } from '@/lib/privacy';
 import { useApp } from '@/store/AppProvider';
-import { blue, FONT, palette, space } from '@/theme/colors';
-import { useTheme } from '@/theme/ThemeProvider';
+import { blue, FONT, palette, radius, space } from '@/theme/colors';
+import { DarkTheme, useTheme } from '@/theme/ThemeProvider';
 
 type Mode = 'login' | 'register';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -33,8 +32,16 @@ function strength(p: string): { lv: number; label: string } {
   return { lv, label: ['', 'Debole', 'Discreta', 'Buona', 'Ottima'][lv] };
 }
 
+/** Fondo sotto la foto (mentre si carica) e velatura del cielo dietro i testi */
+const LOGIN_NAVY = '#0E2240';
+
+// la schermata sta sopra una foto scura: sempre colori scuri, anche col tema chiaro
 export default function Login() {
-  const { c, mode: theme } = useTheme();
+  return <DarkTheme><LoginScreen /></DarkTheme>;
+}
+
+function LoginScreen() {
+  const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const router = useRouter();
@@ -138,118 +145,127 @@ export default function Login() {
   const short = !wide && height < 760;
   // altezza dei pulsanti social, uguale a quella di Button (sm 38, md 46)
   const socialH = short ? 38 : 46;
+  const gutter = wide ? space.xl : space.lg;
+
+  const tab = (m: Mode, label: string) => (
+    <Pressable onPress={() => { setMode(m); setErrors({}); }} accessibilityRole="tab" accessibilityState={{ selected: mode === m }}
+      style={{ flex: 1, height: short ? 40 : 46, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: mode === m ? palette.gold : 'transparent' }}>
+      <Txt w={800} size={16} display color={mode === m ? palette.onGold : '#fff'}>{label}</Txt>
+    </Pressable>
+  );
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: c.bg }}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1, flexDirection: wide ? 'row' : 'column' }} keyboardShouldPersistTaps="handled">
-        <View
-          style={{ backgroundColor: blue[900], paddingTop: insets.top + (wide ? space.lg : space.md), paddingHorizontal: space.lg, paddingBottom: wide ? space.xxl : short ? 80 : 88, borderBottomLeftRadius: wide ? 0 : 34, borderBottomRightRadius: 34, borderTopRightRadius: wide ? 34 : 0, overflow: 'hidden', flex: wide ? 1.1 : undefined, justifyContent: 'space-between', gap: wide ? space.lg : space.md }}>
-          <Arches width={wide ? width * 0.55 : width} height={wide ? 240 : 130} />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
-            <View style={{ width: wide ? 56 : 44, height: wide ? 56 : 44, borderRadius: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,213,3,0.6)', backgroundColor: 'rgba(255,255,255,0.08)' }}>
-              <Image source={LOGO_AVT} style={{ width: wide ? 40 : 30, height: wide ? 43 : 32 }} contentFit="contain" />
+    <View style={{ flex: 1, backgroundColor: LOGIN_NAVY }}>
+      {/* foto dell'Arena a tutto schermo, velata in alto per leggere i testi */}
+      <Image source={LOGIN_PHOTO} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="center" />
+      <LinearGradient colors={['rgba(14,34,64,0.75)', 'rgba(14,34,64,0)']} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: height * 0.4 }} />
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between', gap: space.xl, paddingBottom: insets.bottom + space.xxl + space.md }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <View style={{ paddingTop: insets.top + space.lg, paddingHorizontal: gutter, paddingBottom: space.lg, gap: short ? space.md : space.lg, alignItems: wide ? 'center' : 'stretch' }}>
+            <View style={{ width: '100%', maxWidth: wide ? 640 : undefined }}>
+              <Image source={LOGO_BRAND} style={{ width: wide ? 200 : 150, height: wide ? 78 : 58 }} contentFit="contain" contentPosition="left" accessibilityLabel="Arena Volley Team e Smapiù" />
             </View>
-            <View>
-              <Txt w={800} size={15} color="#fff">Smapiù Arena</Txt>
-              <Txt size={12} color="rgba(255,255,255,0.75)">Volley Team, Serie A3</Txt>
-            </View>
-          </View>
-          <View>
-            <Txt w={900} size={wide ? 72 : 32} color="#fff" style={{ letterSpacing: wide ? -3 : -1.2, lineHeight: wide ? 72 : 34 }}>
-              Ogni punto,{'\n'}in diretta.
-            </Txt>
-            {short ? null : (
-              <Txt size={wide ? 15 : 13} color="rgba(255,255,255,0.82)" style={{ marginTop: wide ? space.md : space.sm, maxWidth: 420 }}>
-                Accedi per seguire i match, salvare le giocatrici preferite e ricevere una notifica quando la squadra segna.
+            <View style={{ width: '100%', maxWidth: wide ? 640 : undefined }}>
+              <Txt w={900} size={wide ? 56 : short ? 34 : 40} color="#fff" style={{ textShadowColor: 'rgba(0,0,0,0.35)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 6 }}>
+                Qui sei di casa
               </Txt>
-            )}
-          </View>
-        </View>
-
-        <View style={{ flex: wide ? 1 : undefined, alignItems: 'center', justifyContent: wide ? 'center' : 'flex-start', padding: space.md, paddingBottom: insets.bottom + (wide ? space.lg : space.md), marginTop: wide ? 0 : short ? -56 : -64 }}>
-          <Animated.View style={{ width: '100%', maxWidth: 430, transform: [{ translateX: shake }] }}>
-            <View style={{ backgroundColor: c.card, borderRadius: 28, padding: wide ? space.lg : space.md, borderWidth: 1.5, borderColor: 'rgba(255,213,3,0.5)', gap: wide ? space.md : short ? space.sm : space.sm }}>
-              <SegmentedControl stretch options={[{ value: 'login', label: 'Accedi' }, { value: 'register', label: 'Registrati' }]} value={mode} onChange={(m) => { setMode(m); setErrors({}); }} />
-              {/* su telefono il titolo ripeterebbe il selettore Accedi/Registrati: si omette per guadagnare spazio */}
-              {wide ? <View>
-                <Txt w={900} size={28} style={{ letterSpacing: -0.8 }}>{reg ? 'Crea il tuo account' : 'Accedi'}</Txt>
-                <Txt size={14} color="muted" style={{ marginTop: space.xs }}>{reg ? 'Bastano pochi secondi, ed è gratis.' : 'Inserisci email e password.'}</Txt>
-              </View> : null}
-
-              {reg ? <Field label="Nome e cognome" value={name} onChangeText={(t) => { setName(t); setErrors((e) => ({ ...e, name: undefined })); }} error={errors.name} compact={!wide} autoComplete="name" right={<User size={18} color={c.muted} />} /> : null}
-              <Field label="Email" value={email} onChangeText={(t) => { setEmail(t); setErrors((e) => ({ ...e, email: undefined })); }} error={errors.email} compact={!wide} keyboardType="email-address" autoCapitalize="none" autoComplete="email" right={<Mail size={18} color={c.muted} />} />
-              <Field label="Password" value={pass} onChangeText={(t) => { setPass(t); setErrors((e) => ({ ...e, pass: undefined })); }} error={errors.pass} compact={!wide} secureTextEntry={!show} autoCapitalize="none" autoComplete={reg ? 'new-password' : 'current-password'}
-                right={<Pressable onPress={() => setShow((s) => !s)} hitSlop={10} accessibilityLabel={show ? 'Nascondi password' : 'Mostra password'}>{show ? <EyeOff size={18} color={c.muted} /> : <Eye size={18} color={c.muted} />}</Pressable>} />
-
-              {reg ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-                  <View style={{ flex: 1, flexDirection: 'row', gap: space.xs }}>
-                    {[1, 2, 3, 4].map((i) => (
-                      <View key={i} style={{ flex: 1, height: 4, borderRadius: 4, backgroundColor: i <= st.lv ? [c.danger, c.danger, '#F2994A', palette.gold, c.ok][st.lv] : c.fill2 }} />
-                    ))}
-                  </View>
-                  <Txt size={12} color="muted">{st.label}</Txt>
-                </View>
-              ) : (
-                <Pressable onPress={forgot} style={{ alignSelf: 'flex-end' }} hitSlop={8}>
-                  <Txt w={700} size={14} color="accent">Password dimenticata?</Txt>
-                </Pressable>
-              )}
-
-              {reg ? (
-                <View style={{ gap: space.sm }}>
-                  <Checkbox checked={eta} onChange={(v) => { setEta(v); setErrors((e) => ({ ...e, consents: undefined })); }} error={!!errors.consents && !eta}>
-                    <Txt size={13} style={{ lineHeight: 18 }}>Dichiaro di avere almeno 14 anni</Txt>
-                  </Checkbox>
-                  <Checkbox checked={privacy} onChange={(v) => { setPrivacy(v); setErrors((e) => ({ ...e, consents: undefined })); }} error={!!errors.consents && !privacy}>
-                    <Txt size={13} style={{ lineHeight: 18 }}>
-                      Ho letto l’<Txt size={13} w={700} color="cobalt" style={{ textDecorationLine: 'underline' }} onPress={apriInformativa} accessibilityRole="link">informativa privacy</Txt>
-                    </Txt>
-                  </Checkbox>
-                  <Checkbox checked={marketing} onChange={setMarketing}>
-                    <Txt size={13} style={{ lineHeight: 18 }}>Acconsento a ricevere comunicazioni promozionali della società e dei suoi sponsor (facoltativo)</Txt>
-                  </Checkbox>
-                  {errors.consents ? <Txt size={12.5} color="danger">{errors.consents}</Txt> : null}
-                </View>
-              ) : null}
-
-              {errors.form ? <Txt size={13} color="danger">{errors.form}</Txt> : null}
-
-              <Button label={done ? 'Fatto' : reg ? 'Crea account' : 'Accedi'} variant={done ? 'ok' : 'gold'} size={wide ? 'lg' : 'md'} loading={busy === 'form'} onPress={submit}
-                icon={done ? <Check size={18} color="#fff" /> : undefined} />
-
-              {socials.length ? (
-                <>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
-                    <View style={{ flex: 1, height: 1, backgroundColor: c.line }} />
-                    <Txt size={13} color="muted">oppure</Txt>
-                    <View style={{ flex: 1, height: 1, backgroundColor: c.line }} />
-                  </View>
-                  {/* stessa misura ed evidenza per tutti i provider (App Store, guideline 4.8) */}
-                  <View style={{ gap: space.sm }}>
-                    {socials.map((p) => p === 'apple' ? (
-                      <AppleAuthentication.AppleAuthenticationButton key={p}
-                        buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-                        buttonStyle={theme === 'dark' ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                        cornerRadius={socialH / 2} style={{ width: '100%', height: socialH, opacity: busy && busy !== p ? 0.5 : 1 }} onPress={() => provider(p)} />
-                    ) : (
-                      <Button key={p} label={`Continua con ${PROVIDER_LABEL[p]}`} size={short ? 'sm' : 'md'} loading={busy === p} disabled={!!busy && busy !== p} onPress={() => provider(p)}
-                        icon={p === 'google' ? <GoogleIcon size={17} /> : <FacebookIcon size={18} color={c.text} />} />
-                    ))}
-                  </View>
-                  <Txt size={12} color="muted" center style={{ lineHeight: 17 }}>
-                    Continuando accetti l’<Txt size={12} w={700} color="cobalt" style={{ textDecorationLine: 'underline' }} onPress={apriInformativa} accessibilityRole="link">informativa privacy</Txt>
-                  </Txt>
-                </>
-              ) : null}
-              <Pressable onPress={guest} style={{ alignSelf: 'center', paddingVertical: wide ? space.xs : space.xs }} hitSlop={8}>
-                <Txt w={600} size={14} color="muted">Continua senza account</Txt>
-              </Pressable>
+              <Txt w={700} size={wide ? 18 : 16} color="#fff" style={{ marginTop: space.xs }}>La Smapiù Arena si vive insieme.</Txt>
+              <Txt size={wide ? 17 : 15} color="rgba(255,255,255,0.88)" style={{ lineHeight: wide ? 24 : 21 }}>
+                Segui le partite, sostieni le tue giocatrici e vivi la tua squadra, sempre e ovunque.
+              </Txt>
             </View>
-          </Animated.View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          </View>
+
+          <View style={{ alignItems: 'center', paddingHorizontal: gutter }}>
+            <Animated.View style={{ width: '100%', maxWidth: 430, transform: [{ translateX: shake }] }}>
+              <View style={{ backgroundColor: blue[800], borderRadius: radius.xl, padding: wide ? space.lg : space.md, borderWidth: 2, borderColor: palette.gold, gap: short ? space.sm : space.md, shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 10 }}>
+                <View accessibilityRole="tablist" style={{ flexDirection: 'row', gap: space.xs, padding: space.xs, borderRadius: radius.pill, backgroundColor: 'rgba(255,255,255,0.08)' }}>
+                  {tab('login', 'Accedi')}
+                  {tab('register', 'Registrati')}
+                </View>
+
+                {reg ? <Field label="Nome e cognome" value={name} onChangeText={(t) => { setName(t); setErrors((e) => ({ ...e, name: undefined })); }} error={errors.name} compact={!wide} autoComplete="name" right={<User size={18} color={c.muted} />} /> : null}
+                <Field label="Email" value={email} onChangeText={(t) => { setEmail(t); setErrors((e) => ({ ...e, email: undefined })); }} error={errors.email} compact={!wide} keyboardType="email-address" autoCapitalize="none" autoComplete="email" right={<Mail size={18} color={c.muted} />} />
+                <Field label="Password" value={pass} onChangeText={(t) => { setPass(t); setErrors((e) => ({ ...e, pass: undefined })); }} error={errors.pass} compact={!wide} secureTextEntry={!show} autoCapitalize="none" autoComplete={reg ? 'new-password' : 'current-password'}
+                  right={<Pressable onPress={() => setShow((s) => !s)} hitSlop={10} accessibilityLabel={show ? 'Nascondi password' : 'Mostra password'}>{show ? <EyeOff size={18} color={c.muted} /> : <Eye size={18} color={c.muted} />}</Pressable>} />
+
+                {reg ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+                    <View style={{ flex: 1, flexDirection: 'row', gap: space.xs }}>
+                      {[1, 2, 3, 4].map((i) => (
+                        <View key={i} style={{ flex: 1, height: 4, borderRadius: 4, backgroundColor: i <= st.lv ? [c.danger, c.danger, '#F2994A', palette.gold, c.ok][st.lv] : c.fill2 }} />
+                      ))}
+                    </View>
+                    <Txt size={12} color="muted">{st.label}</Txt>
+                  </View>
+                ) : null}
+
+                {reg ? (
+                  <View style={{ gap: space.sm }}>
+                    <Checkbox checked={eta} onChange={(v) => { setEta(v); setErrors((e) => ({ ...e, consents: undefined })); }} error={!!errors.consents && !eta}>
+                      <Txt size={13} style={{ lineHeight: 18 }}>Dichiaro di avere almeno 14 anni</Txt>
+                    </Checkbox>
+                    <Checkbox checked={privacy} onChange={(v) => { setPrivacy(v); setErrors((e) => ({ ...e, consents: undefined })); }} error={!!errors.consents && !privacy}>
+                      <Txt size={13} style={{ lineHeight: 18 }}>
+                        Ho letto l’<Txt size={13} w={700} color="cobalt" style={{ textDecorationLine: 'underline' }} onPress={apriInformativa} accessibilityRole="link">informativa privacy</Txt>
+                      </Txt>
+                    </Checkbox>
+                    <Checkbox checked={marketing} onChange={setMarketing}>
+                      <Txt size={13} style={{ lineHeight: 18 }}>Acconsento a ricevere comunicazioni promozionali della società e dei suoi sponsor (facoltativo)</Txt>
+                    </Checkbox>
+                    {errors.consents ? <Txt size={12.5} color="danger">{errors.consents}</Txt> : null}
+                  </View>
+                ) : null}
+
+                {errors.form ? <Txt size={13} color="danger">{errors.form}</Txt> : null}
+
+                <Button label={done ? 'Fatto' : reg ? 'Crea account' : 'Accedi'} variant={done ? 'ok' : 'gold'} size={wide ? 'lg' : 'md'} loading={busy === 'form'} onPress={submit}
+                  icon={done ? <Check size={18} color="#fff" /> : undefined} />
+
+                {reg ? null : (
+                  <Pressable onPress={forgot} style={{ alignSelf: 'center' }} hitSlop={8}>
+                    <Txt w={500} size={15} color="rgba(255,255,255,0.85)">Password dimenticata?</Txt>
+                  </Pressable>
+                )}
+
+                {socials.length ? (
+                  <>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
+                      <View style={{ flex: 1, height: 1, backgroundColor: c.line }} />
+                      <Txt size={13} color="muted">oppure</Txt>
+                      <View style={{ flex: 1, height: 1, backgroundColor: c.line }} />
+                    </View>
+                    {/* stessa misura ed evidenza per tutti i provider (App Store, guideline 4.8) */}
+                    <View style={{ gap: space.sm }}>
+                      {socials.map((p) => p === 'apple' ? (
+                        <AppleAuthentication.AppleAuthenticationButton key={p}
+                          buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+                          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+                          cornerRadius={socialH / 2} style={{ width: '100%', height: socialH, opacity: busy && busy !== p ? 0.5 : 1 }} onPress={() => provider(p)} />
+                      ) : (
+                        <Button key={p} label={`Continua con ${PROVIDER_LABEL[p]}`} size={short ? 'sm' : 'md'} loading={busy === p} disabled={!!busy && busy !== p} onPress={() => provider(p)}
+                          icon={p === 'google' ? <GoogleIcon size={17} /> : <FacebookIcon size={18} color={c.text} />} />
+                      ))}
+                    </View>
+                    <Txt size={12} color="muted" center style={{ lineHeight: 17 }}>
+                      Continuando accetti l’<Txt size={12} w={700} color="cobalt" style={{ textDecorationLine: 'underline' }} onPress={apriInformativa} accessibilityRole="link">informativa privacy</Txt>
+                    </Txt>
+                  </>
+                ) : null}
+                <Pressable onPress={guest} style={{ alignSelf: 'center', paddingVertical: space.xs }} hitSlop={8}>
+                  <Txt w={600} size={14} color="muted">Continua senza account</Txt>
+                </Pressable>
+              </View>
+            </Animated.View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      <Pressable onPress={() => router.push('/settings')} hitSlop={10} accessibilityRole="button" accessibilityLabel="Impostazioni"
+        style={{ position: 'absolute', right: gutter, bottom: insets.bottom + space.md }}>
+        <Settings size={30} color={palette.gold} fill={palette.gold} strokeWidth={1.6} />
+      </Pressable>
+    </View>
   );
 }
 
