@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "588808799832",
+    "project_id": "gen-lang-client-0979241232",
+    "storage_bucket": "gen-lang-client-0979241232.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:588808799832:android:2c3bc45d8baa3f5e9d2c2d",
+        "android_client_info": {
+          "package_name": "it.arenavolleyteam.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD2a5b-OAOOBwkV5x_0MX80ZMtZFnzfqyc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

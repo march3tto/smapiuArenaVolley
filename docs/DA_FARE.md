@@ -112,7 +112,7 @@ già, quindi attivarli non richiede di cambiarne la versione.
   `supabase db pull` e rinominare le migration duplicate (gdpr/README.md, sezione 2).
 - [ ] Eseguire i test pgTAP sul database reale (`supabase test db`): oggi sono verificati solo in un Postgres locale
   equivalente.
-- [ ] **`.env` tracciato da git**: `git rm --cached .env` prima di aggiungervi altre variabili.
+- [x] **`.env` tracciato da git**: rimosso con `git rm --cached .env` e aggiunto a `.gitignore`.
 - [ ] Eliminare la bozza superata `src/Claude outputs/profili_auto_creazione_e_blocco_ruolo.sql`.
 - [ ] **Schermata di gestione utenti** per staff e admin (assegnare il ruolo "genitore" o "staff"): la RPC
   `imposta_ruolo_utente` è pronta, manca l'interfaccia. Oggi i ruoli si cambiano da SQL.

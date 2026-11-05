@@ -20,7 +20,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   return {
     ...config,
-    name: config.name ?? 'Arena Volley',
+    name: config.name ?? 'Smapiù Arena Volley',
     slug: config.slug ?? 'smapiuArenaVolley',
     plugins: [
       ...(config.plugins ?? []),

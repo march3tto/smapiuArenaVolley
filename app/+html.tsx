@@ -27,7 +27,7 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Arena Volley" />
+        <meta name="apple-mobile-web-app-title" content="Smapiù Arena" />
 
         {/* come sul nativo lo scorrimento è delle ScrollView, non della pagina */}
         <ScrollViewStyleReset />

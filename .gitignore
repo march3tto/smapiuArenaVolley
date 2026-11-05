@@ -31,6 +31,7 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
 
 # typescript
@@ -52,3 +53,6 @@ __pycache__/
 
 # wrangler pages dev (prova locale della PWA)
 .wrangler/
+
+# chiave service account Firebase (FCM v1): si carica su EAS, non va nel repository
+*firebase-adminsdk*.json

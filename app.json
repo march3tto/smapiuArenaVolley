@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Arena Volley",
+    "name": "Smapiù Arena Volley",
     "slug": "smapiuArenaVolley",
     "scheme": "arenavolley",
     "version": "1.0.0",
@@ -12,12 +12,15 @@
       "bundleIdentifier": "it.arenavolleyteam.app",
       "infoPlist": {
         "UIBackgroundModes": [
+          "audio",
           "audio"
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "it.arenavolleyteam.app",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#061A3A",
@@ -30,7 +33,7 @@
       "output": "static",
       "favicon": "./assets/favicon.png",
       "name": "Smapiù Arena Volley",
-      "shortName": "Arena Volley",
+      "shortName": "Smapiù Arena",
       "description": "L'app ufficiale di Arena Volley Team: risultati, dirette, classifica, rosa e news.",
       "lang": "it",
       "themeColor": "#061A3A",

@@ -100,10 +100,13 @@ assets/                   icona, splash, logo, foto giocatrici, loghi sponsor
 ```bash
 npm install -g eas-cli
 eas login
-eas build:configure
-eas build --platform all
+eas build --profile production --platform all
 eas submit --platform ios      # e/o android
 ```
+
+I profili sono in `eas.json`: `development` (dev client), `preview` (distribuzione interna, APK su Android),
+`production` (store). `buildNumber` e `versionCode` stanno sui server EAS e salgono da soli a ogni build di
+produzione; `version` in `app.json` si aggiorna a mano.
 
 Prima della pubblicazione: verificare `ios.bundleIdentifier` e `android.package` in `app.json`,
 sostituire contatti e dati demo con quelli reali.
