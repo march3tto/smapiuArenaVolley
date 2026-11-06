@@ -30,6 +30,10 @@ yarn-error.*
 .DS_Store
 *.pem
 
+# IDE e cache Gradle
+.gradle/
+.idea/
+
 # local env files
 .env
 .env*.local

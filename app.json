@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Smapiù Arena Volley",
+    "name": "Smapiu Arena Volley",
     "slug": "smapiuArenaVolley",
     "scheme": "arenavolley",
     "version": "1.0.0",
@@ -11,6 +11,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "it.arenavolleyteam.app",
       "infoPlist": {
+        "CFBundleDisplayName": "Smapiù Arena Volley",
         "UIBackgroundModes": [
           "audio",
           "audio"
@@ -62,7 +63,11 @@
         }
       ],
       "expo-web-browser",
-      "./modules/pip-diretta/app.plugin.js"
+      "./modules/pip-diretta/app.plugin.js",
+      [
+        "./plugins/nome-android.js",
+        "Smapiù Arena Volley"
+      ]
     ],
     "extra": {
       "router": {},
