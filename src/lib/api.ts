@@ -1,7 +1,8 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
-import { storageUrl, supabase } from './supabase';
+import { demoMode, storageUrl, supabase } from './supabase';
 import { slugify } from './format';
 import * as mock from '@/data/mock';
+import { VENUES } from '@/data/altro';
 import { COMPETITION_LOGOS, COMPETITION_LOGOS_LIGHT, OPPONENT_LOGOS, PLAYER_PHOTOS, SPONSOR_LOGOS, STAFF_PHOTOS } from '@/data/assets';
 import type {
   Ad, Competition, Convenzione, ImgSrc, LeagueGame, LineupPlayer, LiveEvent, Match, MatchStatus, MediaItem, NewsItem, Player, PlayerRole, PointAction, PointDetail, PointPhase, RegionalRoster, SetScore, Sponsor, SponsorTier, StaffMember, Standing, Venue, YouthTeam,
@@ -60,7 +61,7 @@ const str = (v: unknown, d = ''): string => (typeof v === 'string' ? v : v == nu
 const num = (v: unknown): number | null => (typeof v === 'number' ? v : v == null || v === '' ? null : Number(v));
 
 export function emptyData(): AppData {
-  return { matches: [], standings: [], players: [], news: [], sponsors: [], convenzioni: [], ads: [], youth: [], rosters: {}, staff: [], venues: mock.venues, media: [], source: 'supabase' };
+  return { matches: [], standings: [], players: [], news: [], sponsors: [], convenzioni: [], ads: [], youth: [], rosters: {}, staff: [], venues: VENUES, media: [], source: 'supabase' };
 }
 
 export function demoData(): AppData {
@@ -75,7 +76,7 @@ export function demoData(): AppData {
     youth: mock.youth,
     rosters: {},
     staff: [],
-    venues: mock.venues,
+    venues: VENUES,
     media: [],
     source: 'demo',
   };
@@ -322,7 +323,10 @@ function must<D>(res: { data: D | null; error: { message: string } | null }, wha
  * Se nel DB ci sono più stagioni con corrente = true, i dati vengono uniti.
  */
 export async function loadAll(): Promise<AppData> {
-  if (!supabase) return demoData();
+  if (!supabase) {
+    if (demoMode) return demoData();
+    throw new Error('Supabase non configurato: mancano EXPO_PUBLIC_SUPABASE_URL e EXPO_PUBLIC_SUPABASE_ANON_KEY.');
+  }
   const db = supabase;
 
   const stagioni = must(await db.from(T.stagioni).select('id, etichetta').eq('corrente', true), 'stagioni') as Row[];
@@ -366,7 +370,7 @@ export async function loadAll(): Promise<AppData> {
     rosters: buildRosters(must(categorie, 'categorie_giovanili') as Row[], must(regionali, 'giocatrici') as Row[], must(staff, 'staff') as Row[]),
     // staff della prima squadra: le righe con categoria giovanile appartengono alle giovanili
     staff: (must(staff, 'staff') as Row[]).filter((r) => r.categoria_giovanile_id == null).map(mapStaff),
-    venues: mock.venues,
+    venues: VENUES,
     media: (must(media, 'media') as Row[]).map(mapMedia),
     source: 'supabase',
   };

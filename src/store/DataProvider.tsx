@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { demoData, emptyData, fetchStandings, loadAll, subscribeMatches, subscribeStandings, type AppData } from '@/lib/api';
-import { hasSupabase } from '@/lib/supabase';
+import { demoMode } from '@/lib/supabase';
 import * as mock from '@/data/mock';
 import { useApp } from './AppProvider';
 import type { Match } from '@/types';
@@ -17,7 +17,7 @@ const Ctx = createContext<DataCtx | null>(null);
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const { demoLive } = useApp();
-  const [data, setData] = useState<AppData>(() => (hasSupabase ? emptyData() : demoData()));
+  const [data, setData] = useState<AppData>(() => (demoMode ? demoData() : emptyData()));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

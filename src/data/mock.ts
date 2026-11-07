@@ -1,4 +1,4 @@
-import type { LineupPlayer, LiveEvent, Match, NewsItem, Player, SetScore, Sponsor, Standing, Venue, YouthTeam } from '@/types';
+import type { LineupPlayer, LiveEvent, Match, NewsItem, Player, SetScore, Sponsor, Standing, YouthTeam } from '@/types';
 import { PLAYER_PHOTOS, SPONSOR_LOGOS } from './assets';
 
 /*
@@ -101,21 +101,6 @@ export const youth: YouthTeam[] = [
   { id: 'u16', name: 'Under 16', short: 'U16', coach: 'Chiara Rossi', description: 'Campionato regionale Under 16 femminile.', training: 'Mar e Gio 17:30', gym: "Palasport Castel d'Azzano", next: { opponent: 'Volley Bussolengo', date: '2026-10-11T15:00:00+02:00', home: false }, last: { opponent: 'Volley Legnago', our: 2, opp: 3 } },
   { id: 'u14', name: 'Under 14', short: 'U14', coach: 'Elena Ferro', description: 'Campionato provinciale Under 14.', training: 'Lun e Gio 17:00', gym: "Palestra comunale, Castel d'Azzano", next: { opponent: 'Polisportiva Sona', date: '2026-10-17T16:00:00+02:00', home: true }, last: { opponent: 'Volley Pescantina', our: 3, opp: 0 } },
   { id: 'u12', name: 'Under 12', short: 'U12', coach: 'Sara Conti', description: 'Minivolley e primi tornei, per chi inizia.', training: 'Mer e Ven 16:30', gym: "Palestra comunale, Castel d'Azzano", next: { opponent: 'Raggruppamento provinciale', date: '2026-10-18T10:00:00+02:00', home: false }, last: null },
-];
-
-export const venues: Venue[] = [
-  { name: 'Palazzetto dello sport “PalaRobbi”', address: 'Via Dante Alighieri, 37060 Castel d’Azzano VR', city: 'Castel d’Azzano', kind: 'palasport' },
-  { name: 'Palestra Parrocchiale', address: 'Via Mascagni, 37060 Castel d’Azzano VR', city: 'Castel d’Azzano', kind: 'palestra' },
-  { name: 'Palasport Vigasio', address: 'Via Alzeri, 37068 Vigasio VR', city: 'Vigasio', kind: 'palasport' },
-  { name: 'Scuola Media Statale', address: 'Viale Edoardo Bassini 6, 37068 Vigasio VR', city: 'Vigasio', kind: 'palestra' },
-  { name: 'Scuole Lenotti', address: 'Via Bacchiglione, Verona VR', city: 'Verona', kind: 'palestra' },
-  { name: 'Scuola Media Pacinotti', address: 'Viale Andrea Palladio, 37138 Verona VR', city: 'Verona', kind: 'palestra' },
-  { name: 'Scuole 6 Maggio Santa Lucia', address: 'Via Monsignor Bellomi 1, Verona VR', city: 'Verona', kind: 'palestra' },
-  { name: 'Scuola Media Statale A. De Gasperi', address: 'Via S. Giovanni Bosco 10, 37057 Raldon VR', city: 'San Giovanni Lupatoto', kind: 'palestra' },
-  { name: 'Scuola Primaria Giulio Ceroni', address: 'Via S. Giovanni Bosco 10, 37057 Raldon VR', city: 'San Giovanni Lupatoto', kind: 'palestra' },
-  { name: 'Palestra Scuola Primaria Marconi', address: 'Via Leoncavallo, Pozzo VR', city: 'San Giovanni Lupatoto', kind: 'palestra' },
-  { name: 'Scuola Media Leonardo da Vinci, I.C. 1', address: 'Via Cà dei Sordi 16, 37057 San Giovanni Lupatoto VR', city: 'San Giovanni Lupatoto', kind: 'palestra' },
-  { name: 'Palalupatotina Gas e Luce', address: 'Via Monte Ortigara, 37057 San Giovanni Lupatoto VR', city: 'San Giovanni Lupatoto', kind: 'palasport' },
 ];
 
 /**

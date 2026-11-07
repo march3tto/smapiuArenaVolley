@@ -29,6 +29,12 @@ export const supabase: SupabaseClient | null =
 
 export const hasSupabase = supabase !== null;
 
+/**
+ * Dati dimostrativi (src/data/mock.ts) solo in sviluppo e senza Supabase: una build di produzione senza le variabili
+ * EXPO_PUBLIC_SUPABASE_* resta vuota e segnala l'errore invece di mostrare partite, news o login finti.
+ */
+export const demoMode = !supabase && __DEV__;
+
 /** "bucket/file" → URL pubblico dello Storage Supabase (il primo segmento del percorso è il bucket) */
 export function storageUrl(path: string): string {
   if (!supabase || /^https?:\/\//.test(path)) return path;

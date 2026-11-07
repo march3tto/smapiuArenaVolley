@@ -1,4 +1,5 @@
 import { ALBO_PHOTO, CARD_PHOTO, PALESTRE_PHOTO, SAFEGUARDING_PHOTO, STORIA_PHOTO } from './assets';
+import type { Venue } from '@/types';
 import { BadgeCheck, Book, CreditCard, HeartHandshake, Store, Image, MapPin, Network, Phone, ShieldCheck, Star, Trophy, type LucideIcon } from 'lucide-react-native';
 
 export type InfoKey = 'storia' | 'organigramma' | 'albo' | 'palestre' | 'safeguarding' | 'contatti' | 'sponsor' | 'galleria' | 'card';
@@ -147,3 +148,19 @@ export const ARENA_CARD = {
   partnerInvite: 'Vuoi inserire la tua attività nel circuito Arena Volley Card ed entrare in contatto con la nostra community di atleti, famiglie e tifosi? Contatta l’ufficio marketing:',
   email: 'marketing@arenavolleyteam.it',
 };
+
+/** Palestre e palazzetti (fonte: sito ufficiale) */
+export const VENUES: Venue[] = [
+  { name: 'Palazzetto dello sport “PalaRobbi”', address: 'Via Dante Alighieri, 37060 Castel d’Azzano VR', city: 'Castel d’Azzano', kind: 'palasport' },
+  { name: 'Palestra Parrocchiale', address: 'Via Mascagni, 37060 Castel d’Azzano VR', city: 'Castel d’Azzano', kind: 'palestra' },
+  { name: 'Palasport Vigasio', address: 'Via Alzeri, 37068 Vigasio VR', city: 'Vigasio', kind: 'palasport' },
+  { name: 'Scuola Media Statale', address: 'Viale Edoardo Bassini 6, 37068 Vigasio VR', city: 'Vigasio', kind: 'palestra' },
+  { name: 'Scuole Lenotti', address: 'Via Bacchiglione, Verona VR', city: 'Verona', kind: 'palestra' },
+  { name: 'Scuola Media Pacinotti', address: 'Viale Andrea Palladio, 37138 Verona VR', city: 'Verona', kind: 'palestra' },
+  { name: 'Scuole 6 Maggio Santa Lucia', address: 'Via Monsignor Bellomi 1, Verona VR', city: 'Verona', kind: 'palestra' },
+  { name: 'Scuola Media Statale A. De Gasperi', address: 'Via S. Giovanni Bosco 10, 37057 Raldon VR', city: 'San Giovanni Lupatoto', kind: 'palestra' },
+  { name: 'Scuola Primaria Giulio Ceroni', address: 'Via S. Giovanni Bosco 10, 37057 Raldon VR', city: 'San Giovanni Lupatoto', kind: 'palestra' },
+  { name: 'Palestra Scuola Primaria Marconi', address: 'Via Leoncavallo, Pozzo VR', city: 'San Giovanni Lupatoto', kind: 'palestra' },
+  { name: 'Scuola Media Leonardo da Vinci, I.C. 1', address: 'Via Cà dei Sordi 16, 37057 San Giovanni Lupatoto VR', city: 'San Giovanni Lupatoto', kind: 'palestra' },
+  { name: 'Palalupatotina Gas e Luce', address: 'Via Monte Ortigara, 37057 San Giovanni Lupatoto VR', city: 'San Giovanni Lupatoto', kind: 'palasport' },
+];

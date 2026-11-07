@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
 import { FunctionsHttpError, type User } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import { demoMode, supabase } from '@/lib/supabase';
 import { loadJSON, removeKey, saveJSON } from '@/lib/storage';
 import { accediCon, codiceAutorizzazioneApple, esciDaiProvider, providerCorrente, providerDiUtente, salvaProviderCorrente, type SocialProvider } from '@/lib/auth';
 import { caricaConsensi, consensiValidi, registraConsensi, registraConsensiInAttesa, rimuoviConsensiInAttesa, salvaConsensiInAttesa, type Consensi } from '@/lib/privacy';
@@ -116,6 +116,12 @@ async function richiediRecuperoPassword(email: string): Promise<void> {
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** Accessi finti (utente "demo") solo in sviluppo senza Supabase: in produzione l'accesso fallisce */
+async function demoOnly(ms: number): Promise<void> {
+  if (!demoMode) throw new Error('Accesso non disponibile: Supabase non configurato.');
+  await wait(ms);
+}
+
 async function sessionUser(): Promise<User> {
   const { data } = await supabase!.auth.getSession();
   if (!data.session) throw new Error('Sessione scaduta: accedi di nuovo.');
@@ -131,7 +137,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [consentState, setConsentState] = useState<{ uid: string; consents: Consensi; status: 'mancanti' | 'ok' | 'errore' } | null>(null);
   // Con Supabase l'anteprima live è spenta di default (si accende da Impostazioni o con EXPO_PUBLIC_DEMO_LIVE=1)
   const [demoLive, setDemoLiveState] = useState(
-    supabase ? process.env.EXPO_PUBLIC_DEMO_LIVE === '1' : process.env.EXPO_PUBLIC_DEMO_LIVE !== '0',
+    supabase ? process.env.EXPO_PUBLIC_DEMO_LIVE === '1' : demoMode && process.env.EXPO_PUBLIC_DEMO_LIVE !== '0',
   );
 
   const [noAds, setNoAdsState] = useState(false);
@@ -149,7 +155,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const { data } = await supabase.auth.getSession();
         const u = data.session?.user;
         if (u) setUser(toAppUser(u));
-      } else {
+      } else if (demoMode) {
         const saved = await loadJSON<AppUser>(K.user);
         if (saved) setUser(saved);
       }
@@ -242,7 +248,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await salvaProviderCorrente('email');
       return finishLogin(toAppUser(data.user));
     }
-    await wait(900);
+    await demoOnly(900);
     return finishLogin({ id: 'demo', email, name: nameFromEmail(email) });
   }, [finishLogin]);
 
@@ -260,13 +266,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (!data.session) return null;
       return finishLogin(toAppUser(data.user));
     }
-    await wait(900);
+    await demoOnly(900);
     return finishLogin({ id: 'demo', email, name });
   }, [finishLogin]);
 
   const signInWithProvider = useCallback(async (provider: SocialProvider) => {
     if (supabase) return finishLogin(toAppUser(await accediCon(provider)));
-    await wait(800);
+    await demoOnly(800);
     return finishLogin({ id: 'demo', email: provider, name: 'Tifoso' });
   }, [finishLogin]);
 
@@ -274,7 +280,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (supabase) {
       await richiediRecuperoPassword(email);
     } else {
-      await wait(500);
+      await demoOnly(500);
     }
   }, []);
 
@@ -283,7 +289,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw new Error(passwordErrorMessage(error.message));
     } else {
-      await wait(500);
+      await demoOnly(500);
     }
     setRecovering(false);
   }, []);
@@ -390,8 +396,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // la scelta resta salvata sul dispositivo, ma senza account (ospite o dopo l'uscita) la pubblicità torna
   const adsHidden = !!user && noAds;
-  // anche la demo resta salvata sul dispositivo, ma con Supabase si vede solo da admin: chi non lo è non può spegnerla da Impostazioni
-  const demoOn = demoLive && (!supabase || user?.role === 'admin');
+  // anche la demo resta salvata sul dispositivo, ma con Supabase si vede solo da admin: chi non lo è non può spegnerla da Impostazioni.
+  // Senza Supabase solo in sviluppo (demoMode): una build di produzione non configurata non mostra mai la partita demo
+  const demoOn = demoLive && (demoMode || (!!supabase && user?.role === 'admin'));
 
   const value = useMemo<AppCtx>(() => ({
     ready, user, guest, prefs, demoLive: demoOn, noAds, adsHidden, consents, consentStatus,
