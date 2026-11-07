@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="referrer" content="no-referrer">
+  <title>Nuova password · Smapiù Arena Volley</title>
+  <link rel="stylesheet" href="../stile.css">
+  <style>
+    form { display: grid; gap: 12px; margin: 8px 0 12px; }
+    label { display: grid; gap: 4px; font-weight: 600; font-size: 15px; }
+    input { font: inherit; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--bordo); background: var(--sfondo); color: var(--testo); }
+    input:focus { outline: 2px solid var(--giallo); outline-offset: 1px; }
+    .mostra { display: flex; gap: 8px; align-items: center; font-weight: 400; }
+    button { font: inherit; font-weight: 700; padding: 12px; border: 0; border-radius: 999px; background: var(--giallo); color: #061A3A; cursor: pointer; }
+    button:disabled { opacity: .6; cursor: default; }
+    .errore { color: #E5484D; margin: 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="contenuto">
+      <p>A.S.D. Arena Volley Team</p>
+      <h1>Nuova password</h1>
+    </div>
+  </header>
+  <main>
+    <!-- Link dell'email "Reimposta password" (redirect_to dall'app, flusso implicit): funziona da qualsiasi dispositivo -->
+    <section id="verifica"><p>Verifica del link in corso…</p></section>
+    <section id="modulo" hidden>
+      <h2>Scegli la nuova password</h2>
+      <p class="tenue" id="per"></p>
+      <form id="form" novalidate>
+        <label>Nuova password
+          <input id="pass" type="password" autocomplete="new-password" minlength="8" required>
+        </label>
+        <label>Conferma password
+          <input id="conferma" type="password" autocomplete="new-password" minlength="8" required>
+        </label>
+        <label class="mostra"><input id="mostra" type="checkbox"> Mostra password</label>
+        <p class="errore" id="errore" hidden></p>
+        <button id="salva" type="submit">Salva password</button>
+      </form>
+    </section>
+    <section id="esito" hidden>
+      <h2 id="esito-titolo"></h2>
+      <p id="esito-testo"></p>
+    </section>
+  </main>
+  <footer>Contatti: <a href="mailto:segreteria@arenavolleyteam.it">segreteria@arenavolleyteam.it</a> · <a href="https://arenavolleyteam.it">arenavolleyteam.it</a></footer>
+  <script>
+    (function () {
+      // valori pubblici (gli stessi EXPO_PUBLIC_ dell'app)
+      var SUPABASE = 'https://ruqwpjxpmebiejdndoxd.supabase.co/auth/v1';
+      var KEY = 'sb_publishable_xPE8Bkm-RzqnUmRD5BHZzg_TPPwQx7a';
+      var $ = function (id) { return document.getElementById(id); };
+      var q = new URLSearchParams(location.search + '&' + location.hash.replace(/^#/, ''));
+      // il token non resta nella barra degli indirizzi né nella cronologia
+      history.replaceState(null, '', location.pathname);
+      var token = null;
+
+      function esito(titolo, testo) {
+        $('verifica').hidden = true; $('modulo').hidden = true; $('esito').hidden = false;
+        $('esito-titolo').textContent = titolo; $('esito-testo').textContent = testo;
+      }
+      function linkNonValido() {
+        esito('Link non valido', 'Il link è scaduto o è già stato usato. Apri l’app, tocca “Password dimenticata?” e richiedine uno nuovo.');
+      }
+      function api(path, method, body, bearer) {
+        return fetch(SUPABASE + path, {
+          method: method,
+          headers: { apikey: KEY, 'Content-Type': 'application/json', Authorization: 'Bearer ' + (bearer || KEY) },
+          body: body ? JSON.stringify(body) : undefined,
+        }).then(function (r) {
+          return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) throw j; return j; });
+        });
+      }
+      function messaggio(e) {
+        var m = (e && (e.msg || e.message || e.error_description)) || '';
+        if (/different from the old/i.test(m)) return 'La nuova password deve essere diversa da quella attuale.';
+        if (/at least|weak/i.test(m)) return 'Password troppo debole: usa almeno 8 caratteri.';
+        if (/expired|jwt|session/i.test(m)) return 'Il link è scaduto: richiedine uno nuovo dall’app.';
+        return m || 'Aggiornamento non riuscito. Riprova.';
+      }
+
+      // link standard di Supabase (flusso implicit): #access_token=…&type=recovery
+      // modello personalizzato con {{ .TokenHash }} (se un giorno si attiva l'SMTP): ?token_hash=…&type=recovery
+      var hash = q.get('token_hash'), accesso = q.get('access_token');
+      if (q.get('error_description') || q.get('error') || (!hash && !accesso)) return linkNonValido();
+      var sessione = accesso
+        ? api('/user', 'GET', null, accesso).then(function (u) { return { access_token: accesso, user: u }; })
+        : api('/verify', 'POST', { type: 'recovery', token_hash: hash });
+      sessione
+        .then(function (s) {
+          token = s.access_token;
+          if (!token) throw s;
+          $('verifica').hidden = true; $('modulo').hidden = false;
+          if (s.user && s.user.email) $('per').textContent = 'Account: ' + s.user.email;
+          $('pass').focus();
+        })
+        .catch(linkNonValido);
+
+      $('mostra').addEventListener('change', function (e) {
+        $('pass').type = $('conferma').type = e.target.checked ? 'text' : 'password';
+      });
+      $('form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var p = $('pass').value, c = $('conferma').value, err = $('errore');
+        var m = p.length < 8 ? 'La password deve avere almeno 8 caratteri.' : p !== c ? 'Le due password non coincidono.' : '';
+        err.hidden = !m; err.textContent = m;
+        if (m) return;
+        $('salva').disabled = true;
+        api('/user', 'PUT', { password: p }, token)
+          .then(function () {
+            // la sessione aperta dal link serviva solo a questo: si chiude
+            return api('/logout?scope=local', 'POST', null, token).catch(function () {});
+          })
+          .then(function () {
+            token = null;
+            esito('Password aggiornata', 'Fatto! Ora torna nell’app Smapiù Arena Volley e accedi con la tua email e la nuova password.');
+          })
+          .catch(function (x) { err.hidden = false; err.textContent = messaggio(x); $('salva').disabled = false; });
+      });
+    })();
+  </script>
+</body>
+</html>

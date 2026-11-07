@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -59,7 +59,15 @@ export default function RootLayout() {
 
 function RootStack() {
   const { c, mode } = useTheme();
-  const { ready, user, consentStatus } = useApp();
+  const { ready, user, consentStatus, recovering } = useApp();
+  const router = useRouter();
+  const pathname = usePathname();
+  // evento PASSWORD_RECOVERY da qualunque punto (anche se il link non ha aperto direttamente la schermata)
+  useEffect(() => {
+    if (recovering && pathname !== '/reset-password') router.replace('/reset-password');
+  }, [recovering, pathname, router]);
+  // durante il recupero password niente pubblicità né richiesta consensi sopra il modulo
+  const overlay = !recovering && pathname !== '/reset-password';
   // solo il tocco sulle notifiche: il permesso si chiede esclusivamente da Impostazioni
   useAperturaNotifiche();
   const header = {
@@ -95,13 +103,15 @@ function RootStack() {
         <Stack.Screen name="agente" options={{ presentation: 'modal' }} />
         {/* ritorno dal login Facebook su Android: il codice lo gestisce già openAuthSessionAsync */}
         <Stack.Screen name="auth/callback" options={{ animation: 'none' }} />
+        {/* link dell'email "reimposta password": arenavolley://reset-password?code=… */}
+        <Stack.Screen name="reset-password" options={{ animation: 'fade', gestureEnabled: false }} />
       </Stack>
       {/* diretta video: agganciata nella Live o in finestrella sopra qualsiasi schermata */}
       <FloatingPlayer />
       {/* pubblicità al centro dello schermo, con la frequenza indicata nella tabella pubblicita */}
-      {ready && !(user && consentStatus === 'mancanti') ? <AdPopup /> : null}
+      {overlay && ready && !(user && consentStatus === 'mancanti') ? <AdPopup /> : null}
       {/* sopra tutto (navigazione compresa) finché mancano i consensi obbligatori */}
-      {user && consentStatus === 'mancanti' ? <ConsentGate /> : null}
+      {overlay && user && consentStatus === 'mancanti' ? <ConsentGate /> : null}
       {/* solo PWA: avviso "Nuova versione disponibile" (sul nativo non mostra nulla) */}
       <PwaUpdater />
     </>

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Animated, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View, useWindowDimensions, type TextInputProps } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -7,6 +7,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Check, Eye, EyeOff, Mail, Settings, User } from 'lucide-react-native';
 import { Button } from '@/components/Button';
+import { AuthField as Field } from '@/components/AuthField';
 import { Checkbox } from '@/components/Checkbox';
 import { FacebookIcon } from '@/components/FacebookIcon';
 import { GoogleIcon } from '@/components/GoogleIcon';
@@ -14,23 +15,14 @@ import { Txt } from '@/components/Txt';
 import { useToast } from '@/components/Toast';
 import { LOGIN_PHOTO, LOGO_BRAND } from '@/data/assets';
 import { AccessoAnnullato, PROVIDER_LABEL, providerDisponibili, type SocialProvider } from '@/lib/auth';
+import { passwordStrength as strength } from '@/lib/password';
 import { apriInformativa } from '@/lib/privacy';
 import { useApp } from '@/store/AppProvider';
-import { blue, FONT, palette, radius, space } from '@/theme/colors';
+import { blue, palette, radius, space } from '@/theme/colors';
 import { DarkTheme, useTheme } from '@/theme/ThemeProvider';
 
 type Mode = 'login' | 'register';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-
-function strength(p: string): { lv: number; label: string } {
-  if (!p) return { lv: 0, label: 'Almeno 8 caratteri' };
-  if (p.length < 8) return { lv: 1, label: 'Troppo corta' };
-  let lv = 1;
-  if (/[a-z]/.test(p) && /[A-Z]/.test(p)) lv++;
-  if (/\d/.test(p)) lv++;
-  if (/[^A-Za-z0-9]/.test(p)) lv++;
-  return { lv, label: ['', 'Debole', 'Discreta', 'Buona', 'Ottima'][lv] };
-}
 
 /** Fondo sotto la foto (mentre si carica) e velatura del cielo dietro i testi */
 const LOGIN_NAVY = '#0E2240';
@@ -265,27 +257,6 @@ function LoginScreen() {
         style={{ position: 'absolute', right: gutter, bottom: insets.bottom + space.md }}>
         <Settings size={30} color={palette.gold} fill={palette.gold} strokeWidth={1.6} />
       </Pressable>
-    </View>
-  );
-}
-
-function Field({ label, error, right, compact, ...input }: TextInputProps & { label: string; error?: string; right?: ReactNode; compact?: boolean }) {
-  const { c } = useTheme();
-  const [focus, setFocus] = useState(false);
-  return (
-    <View style={{ gap: space.sm }}>
-      <View style={{ height: compact ? 52 : 58, borderRadius: 16, borderWidth: 1, borderColor: error ? c.danger : focus ? palette.gold : c.lineStrong, backgroundColor: c.fill, paddingHorizontal: space.md, justifyContent: 'center' }}>
-        <Txt w={600} size={compact ? 11 : 12} color={error ? 'danger' : focus || input.value ? 'accent' : 'muted'}>{label}</Txt>
-        <TextInput
-          {...input}
-          onFocus={(e) => { setFocus(true); input.onFocus?.(e); }}
-          onBlur={(e) => { setFocus(false); input.onBlur?.(e); }}
-          placeholderTextColor={c.muted}
-          style={{ fontFamily: FONT[500], fontSize: 16, color: c.text, paddingVertical: space.xs, paddingRight: space.xl }}
-        />
-        {right ? <View style={{ position: 'absolute', right: 14, top: compact ? 17 : 20 }}>{right}</View> : null}
-      </View>
-      {error ? <Txt size={12.5} color="danger">{error}</Txt> : null}
     </View>
   );
 }

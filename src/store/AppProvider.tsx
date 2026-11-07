@@ -33,6 +33,14 @@ interface AppCtx {
   signUp: (name: string, email: string, password: string, marketing: boolean) => Promise<AppUser | null>;
   signInWithProvider: (provider: SocialProvider) => Promise<AppUser>;
   resetPassword: (email: string) => Promise<void>;
+  /**
+   * true dopo l'evento PASSWORD_RECOVERY (link "reimposta password" aperto): la sessione è valida solo per scegliere
+   * la nuova password, finché non si chiama updatePassword o endRecovery
+   */
+  recovering: boolean;
+  /** Nuova password per l'utente collegato (anche dalla sessione di recupero) */
+  updatePassword: (password: string) => Promise<void>;
+  endRecovery: () => void;
   continueAsGuest: () => void;
   signOut: () => Promise<void>;
   /** Onboarding: 14 anni e informativa accettati, marketing a scelta; name se il profilo non ha nome */
@@ -76,6 +84,36 @@ function toAppUser(u: User, prev?: AppUser | null): AppUser {
   };
 }
 
+/** Messaggi di Supabase Auth più comuni su updateUser → italiano */
+function passwordErrorMessage(msg: string): string {
+  if (/different from the old password/i.test(msg)) return 'La nuova password deve essere diversa da quella attuale.';
+  if (/at least \d+ characters|weak/i.test(msg)) return 'Password troppo debole: usa almeno 8 caratteri.';
+  if (/session|jwt|expired/i.test(msg)) return 'Il link è scaduto: richiedi un nuovo link di recupero.';
+  return msg;
+}
+
+/** Pagina web (GitHub Pages) dove si sceglie la nuova password: va nei Redirect URL di Supabase */
+const RESET_PASSWORD_URL = 'https://march3tto.github.io/smapiuArenaVolley/reset-password/';
+
+/**
+ * Email di recupero password senza PKCE (il client usa flowType 'pkce'): il link porta #access_token=…&type=recovery
+ * e la pagina web funziona da qualsiasi dispositivo, non solo da quello che ha fatto la richiesta. Il modello
+ * dell'email non è modificabile senza SMTP personalizzato, quindi non si può usare {{ .TokenHash }}.
+ */
+async function richiediRecuperoPassword(email: string): Promise<void> {
+  const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
+  const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
+  const res = await fetch(`${url}/auth/v1/recover?redirect_to=${encodeURIComponent(RESET_PASSWORD_URL)}`, {
+    method: 'POST',
+    headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  if (res.ok) return;
+  const j = (await res.json().catch(() => ({}))) as { msg?: string; message?: string; error_code?: string };
+  if (res.status === 429 || j.error_code === 'over_email_send_rate_limit') throw new Error('Troppe richieste: riprova tra qualche minuto.');
+  throw new Error(j.msg ?? j.message ?? 'Invio non riuscito.');
+}
+
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function sessionUser(): Promise<User> {
@@ -97,6 +135,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const [noAds, setNoAdsState] = useState(false);
+  const [recovering, setRecovering] = useState(false);
 
   // Ripristino sessione e preferenze
   useEffect(() => {
@@ -120,7 +159,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!supabase) return;
-    const { data } = supabase.auth.onAuthStateChange((_e, session) => {
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      // emesso da exchangeCodeForSession / verifyOtp quando il link viene dall'email di recupero password
+      if (event === 'PASSWORD_RECOVERY') setRecovering(true);
+      else if (event === 'SIGNED_OUT') setRecovering(false);
       const u = session?.user;
       // ruolo e categoria restano quelli già letti se l'utente non cambia (es. refresh del token, nome aggiornato)
       setUser((prev) => (u ? toAppUser(u, prev) : null));
@@ -230,12 +272,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const resetPassword = useCallback(async (email: string) => {
     if (supabase) {
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
-      if (error) throw new Error(error.message);
+      await richiediRecuperoPassword(email);
     } else {
       await wait(500);
     }
   }, []);
+
+  const updatePassword = useCallback(async (password: string) => {
+    if (supabase) {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw new Error(passwordErrorMessage(error.message));
+    } else {
+      await wait(500);
+    }
+    setRecovering(false);
+  }, []);
+
+  const endRecovery = useCallback(() => setRecovering(false), []);
 
   const continueAsGuest = useCallback(() => {
     setGuest(true);
@@ -342,10 +395,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<AppCtx>(() => ({
     ready, user, guest, prefs, demoLive: demoOn, noAds, adsHidden, consents, consentStatus,
-    signIn, signUp, signInWithProvider, resetPassword, continueAsGuest, signOut,
+    signIn, signUp, signInWithProvider, resetPassword, recovering, updatePassword, endRecovery, continueAsGuest, signOut,
     acceptConsents, setMarketing, setYouthCategory, deleteAccount,
     updatePrefs, toggleYouth, setDemoLive, setNoAds,
-  }), [ready, user, guest, prefs, demoOn, noAds, adsHidden, consents, consentStatus, signIn, signUp, signInWithProvider, resetPassword, continueAsGuest, signOut, acceptConsents, setMarketing, setYouthCategory, deleteAccount, updatePrefs, toggleYouth, setDemoLive, setNoAds]);
+  }), [ready, user, guest, prefs, demoOn, noAds, adsHidden, consents, consentStatus, signIn, signUp, signInWithProvider, resetPassword, recovering, updatePassword, endRecovery, continueAsGuest, signOut, acceptConsents, setMarketing, setYouthCategory, deleteAccount, updatePrefs, toggleYouth, setDemoLive, setNoAds]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
