@@ -1,15 +1,15 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { Animated, LayoutAnimation, Platform, Pressable, ScrollView, Switch, View, useWindowDimensions } from 'react-native';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { Alert, Animated, AppState, LayoutAnimation, Linking, Platform, Pressable, ScrollView, Switch, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import * as Notifications from 'expo-notifications';
-import { Bell, ChevronDown, ChevronRight, Megaphone, Moon, Settings as SettingsIcon, ShieldCheck, Volleyball, X } from 'lucide-react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { Bell, ChevronDown, ChevronRight, Megaphone, Moon, Radio, Settings as SettingsIcon, ShieldCheck, Volleyball, X } from 'lucide-react-native';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { ThemeSwitch } from '@/components/ThemeSwitch';
 import { Txt } from '@/components/Txt';
 import { useToast } from '@/components/Toast';
 import { useApp } from '@/store/AppProvider';
+import { attivaNotifiche, disattivaNotifiche, permessoNotifiche, salvaPreferenzeNotifiche, statoNotifiche, type PreferenzeNotifiche } from '@/services/notifiche';
 import { palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { NotifPrefs } from '@/types';
@@ -41,14 +41,6 @@ export default function Settings() {
     Animated.spring(rise, { toValue: 0, useNativeDriver: true, speed: 16, bounciness: 4 }).start();
   }, [rise]);
 
-  const askPermission = async () => {
-    if (Platform.OS === 'web') return false;
-    const cur = await Notifications.getPermissionsAsync();
-    if (cur.granted) return true;
-    const req = await Notifications.requestPermissionsAsync();
-    return req.granted;
-  };
-
   // blocco Notifiche chiuso: resta visibile solo l'interruttore generale
   const [notifOpen, setNotifOpen] = useState(false);
   const toggleNotif = () => {
@@ -56,17 +48,117 @@ export default function Settings() {
     setNotifOpen((v) => !v);
   };
 
-  const setEnabled = async (v: boolean) => {
+  // interruttore generale: acceso solo se il permesso di sistema è concesso e il token dell'utente è attivo su questo dispositivo
+  const [notifAttive, setNotifAttive] = useState(false);
+  const [notifOccupato, setNotifOccupato] = useState(false);
+  const userId = user?.id ?? null;
+
+  // durante un'attivazione/disattivazione non si riallinea (il popup di iOS fa tornare l'app "active" a metà);
+  // a operazione finita notifOccupato cambia, useFocusEffect riparte e riallinea con lo stato definitivo
+  const riallineaNotifiche = useCallback(async () => {
+    if (!userId || notifOccupato) return;
+    try {
+      const st = await statoNotifiche(userId);
+      setNotifAttive(st.permesso === 'granted' && st.attiveSuDispositivo);
+    } catch (e) {
+      console.warn('Impostazioni: stato delle notifiche non disponibile', e);
+    }
+  }, [userId, notifOccupato]);
+
+  // al focus della schermata e al ritorno dalle impostazioni di sistema (l'app torna attiva, la schermata resta a fuoco)
+  useFocusEffect(useCallback(() => {
+    riallineaNotifiche();
+    const sub = AppState.addEventListener('change', (s) => { if (s === 'active') riallineaNotifiche(); });
+    return () => sub.remove();
+  }, [riallineaNotifiche]));
+
+  const scelteTipi = (p: typeof prefs): PreferenzeNotifiche => ({ start: p.start, sets: p.sets, final: p.final, news: p.news, gameDay: p.gameDay, mvp: p.mvp });
+
+  const avvisoPermessoNegato = () => {
+    const dove = Platform.OS === 'ios' ? 'nelle Impostazioni di iOS' : 'nelle impostazioni di Android';
+    Alert.alert(
+      'Notifiche non consentite',
+      `Hai negato il permesso alle notifiche. Per riceverle attivale ${dove}, alla voce Notifiche dell'app.`,
+      [
+        { text: 'Annulla', style: 'cancel' },
+        { text: 'Apri Impostazioni', onPress: () => { Linking.openSettings().catch(() => {}); } },
+      ],
+    );
+  };
+
+  const attiva = async () => {
+    if (!userId) return;
     // riaccese con tutte le singole spente: si riattivano tutte, altrimenti non arriverebbe nulla
     const allOff = NOTIF_TYPES.every((t) => !prefs[t.key]);
-    updatePrefs(v && allOff ? { enabled: true, ...Object.fromEntries(NOTIF_TYPES.map((t) => [t.key, true])) } : { enabled: v });
-    if (v) await askPermission();
+    const scelte = allOff ? { ...prefs, ...Object.fromEntries(NOTIF_TYPES.map((t) => [t.key, true])) } : prefs;
+    setNotifOccupato(true);
+    try {
+      const esito = await attivaNotifiche(userId, scelteTipi(scelte));
+      if (esito === 'attivate') {
+        setNotifAttive(true);
+        updatePrefs(allOff ? { ...scelteTipi(scelte), enabled: true } : { enabled: true });
+        toast.show('Notifiche attivate.');
+      } else if (esito === 'negate') {
+        setNotifAttive(false);
+        avvisoPermessoNegato();
+      } else {
+        setNotifAttive(false);
+        toast.show("Le notifiche sono disponibili solo nell'app su iPhone o Android.");
+      }
+    } catch (e) {
+      setNotifAttive(false);
+      Alert.alert('Notifiche', e instanceof Error ? e.message : 'Attivazione delle notifiche non riuscita, riprova.');
+    } finally {
+      setNotifOccupato(false);
+    }
+  };
+
+  const disattiva = async () => {
+    if (!userId) return;
+    setNotifAttive(false);
+    setNotifOccupato(true);
+    try {
+      await disattivaNotifiche(userId);
+      updatePrefs({ enabled: false });
+    } catch (e) {
+      setNotifAttive(true);
+      Alert.alert('Notifiche', e instanceof Error ? e.message : 'Disattivazione delle notifiche non riuscita, riprova.');
+    } finally {
+      setNotifOccupato(false);
+    }
+  };
+
+  const setEnabled = async (v: boolean) => {
+    if (!userId || notifOccupato) return;
+    if (!v) return disattiva();
+    const permesso = await permessoNotifiche();
+    if (permesso === 'non_supportato') {
+      toast.show("Le notifiche sono disponibili solo nell'app su iPhone o Android.");
+      return;
+    }
+    if (permesso === 'undetermined') {
+      // nostra spiegazione prima del popup di sistema: il popup parte solo con "Attiva"
+      Alert.alert('Notifiche', 'Vuoi ricevere avvisi su risultati, dirette e news della squadra?', [
+        { text: 'Più tardi', style: 'cancel' },
+        { text: 'Attiva', onPress: () => { attiva(); } },
+      ]);
+      return;
+    }
+    // già concesso: si registra subito; negato: attivaNotifiche restituisce 'negate' e si spiega come riattivarlo
+    await attiva();
   };
 
   // spente tutte e sei le singole notifiche: si spegne anche l'interruttore generale
   const setType = (k: (typeof NOTIF_TYPES)[number]['key'], v: boolean) => {
     const allOff = NOTIF_TYPES.every((t) => (t.key === k ? !v : !prefs[t.key]));
-    updatePrefs(allOff ? { [k]: v, enabled: false } : { [k]: v });
+    updatePrefs({ [k]: v });
+    if (!userId || !notifAttive) return;
+    if (allOff) {
+      disattiva();
+      return;
+    }
+    salvaPreferenzeNotifiche(userId, scelteTipi({ ...prefs, [k]: v }))
+      .catch((e) => toast.show(e instanceof Error ? e.message : 'Preferenze non salvate, riprova.'));
   };
 
   const toggleSwitch = (value: boolean, onChange: (v: boolean) => void) => (
@@ -104,9 +196,9 @@ export default function Settings() {
               <>
                 <Block icon={<Bell size={16} color={c.accent} />} title="Notifiche" open={notifOpen} onToggle={toggleNotif}>
                   <Item title="Notifiche attive" sub={notifOpen ? 'Spegnile per non ricevere nulla.' : 'Tocca Notifiche per scegliere quali ricevere.'} first
-                    right={toggleSwitch(prefs.enabled, setEnabled)} />
+                    right={toggleSwitch(notifAttive, setEnabled)} />
                   {notifOpen ? (
-                    <View style={{ opacity: prefs.enabled ? 1 : 0.4 }} pointerEvents={prefs.enabled ? 'auto' : 'none'}>
+                    <View style={{ opacity: notifAttive ? 1 : 0.4 }} pointerEvents={notifAttive ? 'auto' : 'none'}>
                       {NOTIF_TYPES.map((t) => (
                         <Item key={t.key} title={t.title} right={toggleSwitch(prefs[t.key], (v) => setType(t.key, v))} />
                       ))}
@@ -121,13 +213,31 @@ export default function Settings() {
                   </Pressable>
                 </Block>
               </>
-            ) : null}
+            ) : (
+              // senza accesso niente interruttore: le notifiche si attivano solo dopo il login
+              <Block icon={<Bell size={16} color={c.accent} />} title="Notifiche">
+                <Pressable onPress={() => router.replace('/login')} accessibilityRole="link" accessibilityLabel="Accedi per attivare le notifiche">
+                  <Item title="Accedi per attivare le notifiche" sub="Avvisi su risultati, dirette e news della squadra." first
+                    right={<ChevronRight size={17} color={c.muted} />} />
+                </Pressable>
+              </Block>
+            )}
 
             {/* solo per gli utenti registrati */}
             {user ? (
               <Block icon={<Megaphone size={16} color={c.accent} />} title="Pubblicità">
                 <Item title="Elimina pubblicità" sub="Non mostrare più gli annunci al centro dello schermo." first
                   right={toggleSwitch(noAds, setNoAds)} />
+              </Block>
+            ) : null}
+
+            {/* stato e log dell'agente livescore: staff e admin */}
+            {user?.role === 'admin' || user?.role === 'staff' ? (
+              <Block icon={<Radio size={16} color={c.accent} />} title="Agente livescore">
+                <Pressable onPress={() => router.push('/agente')} accessibilityRole="button">
+                  <Item title="Stato e log" sub="Mac e Zima: finestra, punteggi scritti, avvisi ed errori" first
+                    right={<ChevronRight size={17} color={c.muted} />} />
+                </Pressable>
               </Block>
             ) : null}
 

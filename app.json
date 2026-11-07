@@ -8,14 +8,10 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "it.arenavolleyteam.app",
       "infoPlist": {
         "CFBundleDisplayName": "Smapiù Arena Volley",
-        "UIBackgroundModes": [
-          "audio",
-          "audio"
-        ],
         "ITSAppUsesNonExemptEncryption": false
       }
     },

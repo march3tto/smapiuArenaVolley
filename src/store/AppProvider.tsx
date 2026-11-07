@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { loadJSON, removeKey, saveJSON } from '@/lib/storage';
 import { accediCon, codiceAutorizzazioneApple, esciDaiProvider, providerCorrente, providerDiUtente, salvaProviderCorrente, type SocialProvider } from '@/lib/auth';
 import { caricaConsensi, consensiValidi, registraConsensi, registraConsensiInAttesa, rimuoviConsensiInAttesa, salvaConsensiInAttesa, type Consensi } from '@/lib/privacy';
+import { rimuoviTokenAlLogout } from '@/services/notifiche';
 import type { AppUser, NotifPrefs } from '@/types';
 
 /** nessuno = non collegato; errore = non verificabili (rete, migrazione non applicata): l'app non blocca l'utente */
@@ -250,6 +251,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     if (supabase) {
+      // prima del signOut: dopo, la RLS non permetterebbe più di eliminare il token del dispositivo
+      await rimuoviTokenAlLogout();
       await esciDaiProvider(user?.providers ?? []);
       await supabase.auth.signOut();
     }
@@ -301,7 +304,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       throw new Error(msg);
     }
     await esciDaiProvider(providers, true);
-    // l'utente non esiste più sul server: basta chiudere la sessione locale
+    // l'utente non esiste più sul server (dispositivi_push eliminati a cascata): basta chiudere la sessione locale
+    await rimuoviTokenAlLogout();
     await supabase.auth.signOut({ scope: 'local' });
     await clearLocal();
     return data?.codice ?? '';

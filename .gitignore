@@ -60,3 +60,7 @@ __pycache__/
 
 # chiave service account Firebase (FCM v1): si carica su EAS, non va nel repository
 *firebase-adminsdk*.json
+
+# build nativi dei moduli locali
+modules/*/android/build/
+modules/*/ios/build/

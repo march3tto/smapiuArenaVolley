@@ -2,8 +2,8 @@ import { WebView } from 'react-native-webview';
 import { EMBED_ORIGIN, youtubeEmbedHtml, type Stream } from '@/lib/stream';
 
 /**
- * Video della diretta dentro l'app. Su iOS il video può uscire dall'app in Picture in Picture
- * (pulsante PiP del player a schermo intero, o andando alla Home mentre è a schermo intero).
+ * Video della diretta dentro l'app. Su iOS niente Picture in Picture: richiederebbe la background mode
+ * "audio", che l'app non dichiara, e uscendo dall'app il video si ferma. Su Android lo gestisce modules/pip-diretta.
  */
 export function StreamView({ stream }: { stream: Stream }) {
   return (
@@ -11,7 +11,7 @@ export function StreamView({ stream }: { stream: Stream }) {
       source={stream.kind === 'youtube' ? { html: youtubeEmbedHtml(stream.id), baseUrl: EMBED_ORIGIN } : { uri: stream.url }}
       style={{ flex: 1, backgroundColor: '#000' }}
       allowsInlineMediaPlayback
-      allowsPictureInPictureMediaPlayback
+      allowsPictureInPictureMediaPlayback={false}
       allowsFullscreenVideo
       mediaPlaybackRequiresUserAction={false}
       allowsBackForwardNavigationGestures={stream.kind === 'web'}

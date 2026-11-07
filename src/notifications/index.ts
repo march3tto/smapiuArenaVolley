@@ -1,16 +1,13 @@
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
-import Constants from 'expo-constants';
-import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import type { NotifPrefs } from '@/types';
 
 /*
- * Notifiche push (Expo Push API, inviate dalla Edge Function invia-notifica):
- * - registra il token del dispositivo con la RPC registra_push_token (anche senza login);
- * - salva le scelte di Impostazioni con la RPC preferenze_push_token: il server invia solo i tipi attivati;
+ * Notifiche push all'avvio (Expo Push API, inviate dalla Edge Function invia-notifica):
+ * - solo setNotificationHandler: nessuna richiesta di permesso e nessun token qui
+ *   (attivazione, token e preferenze sono in src/services/notifiche.ts, richiamati da Impostazioni);
  * - mostra il banner anche ad app aperta;
  * - al tocco apre la schermata giusta in base a data.tipo (partita, mvp, notizia, video, podcast).
  */
@@ -27,57 +24,6 @@ if (attive) {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({ shouldPlaySound: true, shouldSetBadge: false, shouldShowBanner: true, shouldShowList: true }),
   });
-}
-
-/** projectId EAS: serve a getExpoPushTokenAsync (in Expo Go viene da app.json, expo.extra.eas.projectId) */
-function projectId(): string | undefined {
-  return Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
-}
-
-/**
- * Token Expo del dispositivo, o null (simulatore, web, permesso negato, projectId mancante).
- * chiedi = false: non chiede il permesso (serve solo a comunicare al server che le notifiche sono spente).
- */
-export async function ottieniPushToken(chiedi = true): Promise<string | null> {
-  if (!attive || !Device.isDevice) return null;
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', { name: 'Notifiche', importance: Notifications.AndroidImportance.HIGH });
-  }
-  const cur = await Notifications.getPermissionsAsync();
-  const granted = cur.granted || (chiedi && cur.canAskAgain && (await Notifications.requestPermissionsAsync()).granted);
-  if (!granted) {
-    if (chiedi) console.warn('Notifiche push: permesso non concesso (Impostazioni iOS > Expo Go > Notifiche).');
-    return null;
-  }
-  const pid = projectId();
-  if (!pid) {
-    console.warn('Notifiche push: manca expo.extra.eas.projectId in app.json (si crea con "npx eas-cli init").');
-    return null;
-  }
-  const { data } = await Notifications.getExpoPushTokenAsync({ projectId: pid });
-  return data;
-}
-
-/** Salva il token sul database; per i genitori collega la categoria giovanile del profilo */
-async function registraToken(token: string, userId: string | null) {
-  if (!supabase) return;
-  let categoria: string | null = null;
-  if (userId) {
-    const { data } = await supabase.from('profili').select('ruolo, categoria_giovanile_id').eq('id', userId).maybeSingle();
-    if (data?.ruolo === 'genitore' && data.categoria_giovanile_id) categoria = String(data.categoria_giovanile_id);
-  }
-  const { error } = await supabase.rpc('registra_push_token', { p_token: token, p_piattaforma: Platform.OS, p_categoria_giovanile_id: categoria });
-  if (error) console.warn('Notifiche push: registrazione del token non riuscita', error.message);
-}
-
-/** Scelte di Impostazioni sul server: notifiche spente o singoli tipi esclusi non vengono inviati a questo dispositivo */
-async function salvaPreferenze(token: string, p: Omit<NotifPrefs, 'youth'>) {
-  if (!supabase) return;
-  const base = { p_token: token, p_attive: p.enabled, p_inizio: p.start, p_set: p.sets, p_finale: p.final, p_contenuti: p.news };
-  let { error } = await supabase.rpc('preferenze_push_token', { ...base, p_game_day: p.gameDay, p_mvp: p.mvp });
-  // funzione senza game day e MVP (migrazione 20261102000100 non eseguita): si salvano almeno le altre scelte
-  if (error?.code === 'PGRST202') ({ error } = await supabase.rpc('preferenze_push_token', base));
-  if (error) console.warn('Notifiche push: preferenze non salvate', error.message);
 }
 
 /** Apre la schermata legata alla notifica toccata */
@@ -105,29 +51,11 @@ async function apri(router: ReturnType<typeof useRouter>, d: DatiNotifica) {
 }
 
 /**
- * Registrazione del token all'apertura (e a ogni cambio di utente, per collegarlo al profilo), preferenze di Impostazioni
- * sul server a ogni modifica, e apertura della schermata al tocco di una notifica, anche ad app chiusa.
+ * Apertura della schermata al tocco di una notifica, anche ad app chiusa. Non chiede permessi e non registra token:
+ * l'attivazione delle notifiche avviene solo da Impostazioni (src/services/notifiche.ts).
  */
-export function useNotifichePush({ userId, prefs, ready }: { userId: string | null; prefs: NotifPrefs; ready: boolean }) {
+export function useAperturaNotifiche() {
   const router = useRouter();
-  const { enabled, start, sets, final, news, gameDay, mvp } = prefs;
-
-  useEffect(() => {
-    if (!attive || !ready) return;
-    let annullato = false;
-    const scelte = { enabled, start, sets, final, news, gameDay, mvp };
-    // spente: niente richiesta di permesso, si avvisa solo il server (se il dispositivo era già registrato)
-    ottieniPushToken(enabled)
-      .then(async (token) => {
-        if (!token || annullato) return;
-        if (enabled) await registraToken(token, userId);
-        await salvaPreferenze(token, scelte);
-      })
-      .catch((e) => console.warn('Notifiche push non disponibili', e));
-    return () => {
-      annullato = true;
-    };
-  }, [userId, ready, enabled, start, sets, final, news, gameDay, mvp]);
 
   useEffect(() => {
     if (!attive) return;

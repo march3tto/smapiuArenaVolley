@@ -32,6 +32,9 @@ export const T = {
   media: 'media',
   /** Stato della partita demo condivisa (migrazione 20261025000100_demo_diretta) */
   demoDiretta: 'demo_diretta',
+  /** Log dell'agente livescore e ultimo segnale per agente (migrazione 20261101000100_log_agente) */
+  logAgente: 'log_agente',
+  statoAgenti: 'stato_agenti',
 } as const;
 
 export interface AppData {
@@ -905,4 +908,88 @@ export async function unvoteMvp(matchId: string, userId: string): Promise<void> 
   if (!supabase) return;
   const { error } = await supabase.from(T.votiMvp).delete().eq('partita_id', matchId).eq('utente_id', userId);
   if (error) throw error;
+}
+
+// ---------- agente livescore (migrazione 20261101000100_log_agente) ----------
+
+export type AgentLevel = 'info' | 'avviso' | 'errore';
+
+/** Ultimo segnale di un agente (vista stato_agenti) */
+export interface AgentStatus {
+  agent: string;
+  lastSeen: Date;
+  lastEvent: string;
+  lastLevel: AgentLevel;
+  lastMessage: string;
+}
+
+export interface AgentLogEntry {
+  id: number;
+  at: Date;
+  agent: string;
+  level: AgentLevel;
+  event: string;
+  matchNumber: number | null;
+  message: string;
+}
+
+/** tutti; problemi = avvisi ed errori; punteggi = aggiornamenti e correzioni scritti */
+export type AgentLogFilter = 'tutti' | 'problemi' | 'punteggi';
+
+const agentLevel = (v: unknown): AgentLevel => (v === 'avviso' || v === 'errore' ? v : 'info');
+
+function mapAgentLog(r: Row): AgentLogEntry {
+  return {
+    id: num(r.id) ?? 0,
+    at: new Date(str(r.creato_il)),
+    agent: str(r.agente),
+    level: agentLevel(r.livello),
+    event: str(r.evento),
+    matchNumber: num(r.numero_gara),
+    message: str(r.messaggio),
+  };
+}
+
+export function agentLogMatches(e: AgentLogEntry, filter: AgentLogFilter): boolean {
+  if (filter === 'problemi') return e.level !== 'info';
+  if (filter === 'punteggi') return e.event === 'aggiornamento' || e.event === 'correzione';
+  return true;
+}
+
+/** Staff/admin (policy log_agente_lettura_staff): per gli altri la vista torna vuota */
+export async function fetchAgentStatus(): Promise<AgentStatus[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.from(T.statoAgenti).select('*').order('agente');
+  if (error) throw error;
+  return ((data as Row[] | null) ?? []).map((r) => ({
+    agent: str(r.agente),
+    lastSeen: new Date(str(r.ultimo_segnale)),
+    lastEvent: str(r.ultimo_evento),
+    lastLevel: agentLevel(r.ultimo_livello),
+    lastMessage: str(r.ultimo_messaggio),
+  }));
+}
+
+export async function fetchAgentLog(filter: AgentLogFilter = 'tutti', limit = 200): Promise<AgentLogEntry[]> {
+  if (!supabase) return [];
+  let q = supabase.from(T.logAgente).select('id, creato_il, agente, livello, evento, numero_gara, messaggio')
+    .order('creato_il', { ascending: false }).limit(limit);
+  if (filter === 'problemi') q = q.in('livello', ['avviso', 'errore']);
+  if (filter === 'punteggi') q = q.in('evento', ['aggiornamento', 'correzione']);
+  const { data, error } = await q;
+  if (error) throw error;
+  return ((data as Row[] | null) ?? []).map(mapAgentLog);
+}
+
+/** Realtime: ogni nuova riga di log_agente (arriva solo a staff/admin, per la RLS) */
+export function subscribeAgentLog(onInsert: (e: AgentLogEntry) => void): () => void {
+  if (!supabase) return () => {};
+  const client = supabase;
+  const ch = client
+    .channel(`log-agente-${Math.random().toString(36).slice(2, 8)}`)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: T.logAgente }, (payload) => onInsert(mapAgentLog(payload.new as Row)))
+    .subscribe();
+  return () => {
+    client.removeChannel(ch);
+  };
 }

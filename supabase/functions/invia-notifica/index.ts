@@ -2,7 +2,8 @@
 // fine set (con il risultato finale sul set decisivo), nuove notizie, video e podcast.
 // La chiamano i trigger e il cron del database (migration 20261015_notifiche_push.sql e 20261102000100_notifiche_game_day_mvp.sql).
 // Riceve { tipo, id }: game_day / prepartita / inizio / mvp → id partita; fine_set → id della riga di set_partita; notizia/video/podcast → id del contenuto.
-// Ogni messaggio va solo ai dispositivi con la notifica attiva in Impostazioni (colonne di push_token, migration 20261021000200).
+// Ogni messaggio va solo ai dispositivi degli utenti con accesso che hanno attivato le notifiche in Impostazioni
+// (tabella dispositivi_push, migration 20261107000100: attive = true e il tipo scelto).
 // Accetta solo richieste con l'header x-notifiche-segreto uguale a NOTIFICHE_SEGRETO (lo stesso valore salvato nel Vault).
 //   supabase secrets set NOTIFICHE_SEGRETO=...
 //   supabase functions deploy invia-notifica --no-verify-jwt
@@ -20,7 +21,7 @@ const BLOCCO = 100;
 const CATEGORIA_NOTIZIA: Record<string, string> = { societa: 'Società', prima_squadra: 'Serie A3', giovanili: 'Giovanili', sponsor: 'Sponsor' };
 
 type Tipo = 'game_day' | 'prepartita' | 'inizio' | 'mvp' | 'fine_set' | 'notizia' | 'video' | 'podcast';
-/** Colonna di push_token con la scelta del dispositivo per questo messaggio */
+/** Colonna di dispositivi_push con la scelta del dispositivo per questo messaggio */
 type Preferenza = 'game_day' | 'inizio_partita' | 'voto_mvp' | 'fine_set' | 'risultato_finale' | 'contenuti';
 const TIPI: Tipo[] = ['game_day', 'prepartita', 'inizio', 'mvp', 'fine_set', 'notizia', 'video', 'podcast'];
 /** Il voto MVP si apre all'inizio di questo set (come MVP_FROM_SET in src/components/MvpPanel.tsx e voto_mvp_valido) */
@@ -278,7 +279,7 @@ async function invia(tipo: Tipo, m: Messaggio) {
   try {
     // solo i dispositivi con le notifiche accese e questo tipo scelto in Impostazioni;
     // partite giovanili: solo i dispositivi di quella categoria; prima squadra e contenuti: tutti
-    let q = db.from('push_token').select('token').eq('attivo', true).eq('notifiche_attive', true).eq(m.preferenza, true);
+    let q = db.from('dispositivi_push').select('token').eq('attive', true).eq(m.preferenza, true);
     if (m.categoriaId) q = q.eq('categoria_giovanile_id', m.categoriaId);
     const { data: righe, error: e } = await q;
     if (e) throw e;
@@ -305,7 +306,7 @@ async function invia(tipo: Tipo, m: Messaggio) {
       });
     }
     if (disattivati.length) {
-      await db.from('push_token').update({ attivo: false, aggiornato_il: new Date().toISOString() }).in('token', disattivati);
+      await db.from('dispositivi_push').update({ attive: false, aggiornato_il: new Date().toISOString() }).in('token', disattivati);
     }
 
     await db.from('notifiche_inviate').update({ destinatari: token.length - disattivati.length }).eq('id', regId);

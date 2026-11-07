@@ -20,7 +20,7 @@ import { ConsentGate } from '@/components/ConsentGate';
 import { PwaUpdater } from '@/components/PwaUpdater';
 import { ToastProvider } from '@/components/Toast';
 import { FONT } from '@/theme/colors';
-import { useNotifichePush } from '@/notifications';
+import { useAperturaNotifiche } from '@/notifications';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -59,8 +59,9 @@ export default function RootLayout() {
 
 function RootStack() {
   const { c, mode } = useTheme();
-  const { ready, user, prefs, consentStatus } = useApp();
-  useNotifichePush({ ready, userId: user?.id ?? null, prefs });
+  const { ready, user, consentStatus } = useApp();
+  // solo il tocco sulle notifiche: il permesso si chiede esclusivamente da Impostazioni
+  useAperturaNotifiche();
   const header = {
     headerShown: true,
     // solo la freccia "<", senza il nome della schermata precedente
@@ -90,6 +91,8 @@ function RootStack() {
         <Stack.Screen name="account" options={{ presentation: 'modal' }} />
         <Stack.Screen name="assistente" options={{ presentation: 'modal' }} />
         <Stack.Screen name="elimina-account" options={{ presentation: 'modal' }} />
+        {/* solo staff/admin: stato e log dell'agente livescore */}
+        <Stack.Screen name="agente" options={{ presentation: 'modal' }} />
         {/* ritorno dal login Facebook su Android: il codice lo gestisce già openAuthSessionAsync */}
         <Stack.Screen name="auth/callback" options={{ animation: 'none' }} />
       </Stack>
