@@ -73,8 +73,9 @@ function ResetPasswordScreen() {
           codiciUsati.add(p.code);
           const { error } = await supabase.auth.exchangeCodeForSession(p.code);
           if (error) throw error;
-        } else if (p.token_hash) {
-          // modello email personalizzato con {{ .TokenHash }}: funziona anche aprendo il link su un altro dispositivo
+        } else if (p.token_hash && !codiciUsati.has(p.token_hash)) {
+          // dal pulsante "Apri nell'app" della pagina web (modello email con {{ .TokenHash }}): verifyOtp emette PASSWORD_RECOVERY
+          codiciUsati.add(p.token_hash);
           const { error } = await supabase.auth.verifyOtp({ token_hash: p.token_hash, type: 'recovery' });
           if (error) throw error;
         } else {

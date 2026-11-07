@@ -15,6 +15,9 @@
     .mostra { display: flex; gap: 8px; align-items: center; font-weight: 400; }
     button { font: inherit; font-weight: 700; padding: 12px; border: 0; border-radius: 999px; background: var(--giallo); color: #061A3A; cursor: pointer; }
     button:disabled { opacity: .6; cursor: default; }
+    .scelta { display: grid; gap: 10px; margin: 8px 0 12px; }
+    .pulsante { display: block; text-align: center; text-decoration: none; font-weight: 700; padding: 12px; border-radius: 999px; background: var(--giallo); color: #061A3A; }
+    .secondario { background: transparent; color: var(--testo); border: 1px solid var(--bordo); }
     .errore { color: #E5484D; margin: 0; }
   </style>
 </head>
@@ -26,8 +29,17 @@
     </div>
   </header>
   <main>
-    <!-- Link dell'email "Reimposta password" (redirect_to dall'app, flusso implicit): funziona da qualsiasi dispositivo -->
-    <section id="verifica"><p>Verifica del link in corso…</p></section>
+    <!-- Link dell'email "Reimposta password" (modello con {{ .TokenHash }}): funziona da qualsiasi dispositivo.
+         Dal telefono si può passare il token all'app (arenavolley://reset-password) prima di usarlo qui: vale una volta sola. -->
+    <section id="scelta" hidden>
+      <h2>Dove vuoi cambiare la password?</h2>
+      <p class="tenue">Se hai l’app Smapiù Arena Volley su questo telefono, aprila: la nuova password la scegli lì.</p>
+      <div class="scelta">
+        <a class="pulsante" id="apri-app" href="#">Apri nell’app</a>
+        <button class="pulsante secondario" id="qui" type="button">Continua nel browser</button>
+      </div>
+    </section>
+    <section id="verifica" hidden><p>Verifica del link in corso…</p></section>
     <section id="modulo" hidden>
       <h2>Scegli la nuova password</h2>
       <p class="tenue" id="per"></p>
@@ -61,7 +73,7 @@
       var token = null;
 
       function esito(titolo, testo) {
-        $('verifica').hidden = true; $('modulo').hidden = true; $('esito').hidden = false;
+        $('scelta').hidden = true; $('verifica').hidden = true; $('modulo').hidden = true; $('esito').hidden = false;
         $('esito-titolo').textContent = titolo; $('esito-testo').textContent = testo;
       }
       function linkNonValido() {
@@ -84,22 +96,36 @@
         return m || 'Aggiornamento non riuscito. Riprova.';
       }
 
-      // link standard di Supabase (flusso implicit): #access_token=…&type=recovery
-      // modello personalizzato con {{ .TokenHash }} (se un giorno si attiva l'SMTP): ?token_hash=…&type=recovery
+      // modello con {{ .TokenHash }}: ?token_hash=…&type=recovery — link standard (flusso implicit): #access_token=…&type=recovery
       var hash = q.get('token_hash'), accesso = q.get('access_token');
       if (q.get('error_description') || q.get('error') || (!hash && !accesso)) return linkNonValido();
-      var sessione = accesso
-        ? api('/user', 'GET', null, accesso).then(function (u) { return { access_token: accesso, user: u }; })
-        : api('/verify', 'POST', { type: 'recovery', token_hash: hash });
-      sessione
-        .then(function (s) {
-          token = s.access_token;
-          if (!token) throw s;
-          $('verifica').hidden = true; $('modulo').hidden = false;
-          if (s.user && s.user.email) $('per').textContent = 'Account: ' + s.user.email;
-          $('pass').focus();
-        })
-        .catch(linkNonValido);
+
+      function continuaQui() {
+        $('scelta').hidden = true; $('verifica').hidden = false;
+        var sessione = accesso
+          ? api('/user', 'GET', null, accesso).then(function (u) { return { access_token: accesso, user: u }; })
+          : api('/verify', 'POST', { type: 'recovery', token_hash: hash });
+        sessione
+          .then(function (s) {
+            token = s.access_token;
+            if (!token) throw s;
+            $('verifica').hidden = true; $('modulo').hidden = false;
+            if (s.user && s.user.email) $('per').textContent = 'Account: ' + s.user.email;
+            $('pass').focus();
+          })
+          .catch(linkNonValido);
+      }
+
+      // telefono o tablet (iPadOS si presenta come Mac, ma ha il touch)
+      var mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+      if (mobile && hash) {
+        // il token non va verificato qui: lo usa l'app (verifyOtp → PASSWORD_RECOVERY → updateUser)
+        $('apri-app').href = 'arenavolley://reset-password?token_hash=' + encodeURIComponent(hash) + '&type=recovery';
+        $('qui').addEventListener('click', continuaQui);
+        $('scelta').hidden = false;
+      } else {
+        continuaQui();
+      }
 
       $('mostra').addEventListener('change', function (e) {
         $('pass').type = $('conferma').type = e.target.checked ? 'text' : 'password';
