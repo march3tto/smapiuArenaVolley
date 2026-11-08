@@ -64,3 +64,6 @@ __pycache__/
 # build nativi dei moduli locali
 modules/*/android/build/
 modules/*/ios/build/
+
+# archivi locali di foto (mai nel repository: possono contenere immagini di minorenni)
+supabase/giovanili/
