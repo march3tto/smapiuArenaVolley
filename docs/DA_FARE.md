@@ -114,11 +114,8 @@ già, quindi attivarli non richiede di cambiarne la versione.
   equivalente.
 - [x] **`.env` tracciato da git**: rimosso con `git rm --cached .env` e aggiunto a `.gitignore`.
 - [ ] Eliminare la bozza superata `src/Claude outputs/profili_auto_creazione_e_blocco_ruolo.sql`.
-- [ ] **Schermata di gestione utenti** per staff e admin (assegnare il ruolo "genitore" o "staff"): la RPC
-  `imposta_ruolo_utente` è pronta, manca l'interfaccia. Oggi i ruoli si cambiano da SQL.
 - [ ] Le **versioni dell'app già installate** leggono la rosa da `giocatrici` e la vedono vuota: distribuire la nuova
   versione (legge `giocatrici_pubbliche`).
 - [ ] **Login sul web** (versione browser): solo email, i pulsanti social non sono previsti.
-- [ ] Errori ESLint preesistenti (`useRef(...).current` durante il render, componenti creati nel render in
-  `settings.tsx`, ecc.): `npx expo lint`.
+- [x] Errori ESLint preesistenti: `npx expo lint` e `npm run typecheck` puliti (8 novembre 2026).
 - [ ] Spostare il progetto Google Cloud (se creato) e gli altri account tecnici su account della società, non personali.
