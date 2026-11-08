@@ -10,9 +10,12 @@ import type { Player } from '@/types';
 
 export function PlayerCard({ player: p, width, onPress }: { player: Player; width: number; onPress?: () => void }) {
   const name = `${p.firstName} ${p.lastName}`;
+  // due per riga sul telefono: testo e arrotondamenti un po' più piccoli
+  const small = width < 200;
+  const nameSize = small ? 14 : 16;
   return (
     <Pressy onPress={onPress} scaleTo={0.96} accessibilityRole="button" accessibilityLabel={`${name}, ${ROLE_LABEL[p.role]}`}
-      style={{ width, height: (width * 4) / 3, borderRadius: 22, overflow: 'hidden', backgroundColor: blue[800], borderWidth: 1, borderColor: 'rgba(214,228,247,0.18)' }}>
+      style={{ width, height: (width * 4) / 3, borderRadius: small ? 18 : 22, overflow: 'hidden', backgroundColor: blue[800], borderWidth: 1, borderColor: 'rgba(214,228,247,0.18)' }}>
       {p.photo !== '' ? (
         <Image source={p.photo} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} contentFit="cover" contentPosition="top" transition={250} />
       ) : (
@@ -27,9 +30,9 @@ export function PlayerCard({ player: p, width, onPress }: { player: Player; widt
       {/* fascia scura piena sotto nome e ruolo: restano leggibili su ogni foto */}
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: space.sm, backgroundColor: 'rgba(6,26,58,0.85)', flexDirection: 'row', alignItems: 'flex-end', gap: space.sm }}>
         <View style={{ flex: 1 }}>
-          <Txt w={800} size={16} color="#fff" numberOfLines={1} style={{ letterSpacing: -0.2 }}>{p.firstName}</Txt>
-          <Txt w={800} size={16} color="#fff" numberOfLines={1} style={{ letterSpacing: -0.2 }}>{p.lastName}</Txt>
-          <Txt w={600} size={12} color={palette.gold}>{ROLE_LABEL[p.role]}</Txt>
+          <Txt w={800} size={nameSize} color="#fff" numberOfLines={1} style={{ letterSpacing: -0.2 }}>{p.firstName}</Txt>
+          <Txt w={800} size={nameSize} color="#fff" numberOfLines={1} style={{ letterSpacing: -0.2 }}>{p.lastName}</Txt>
+          <Txt w={600} size={small ? 11 : 12} color={palette.gold} numberOfLines={1}>{ROLE_LABEL[p.role]}</Txt>
           {p.status ? (
             <View style={{ marginTop: space.sm, paddingTop: space.sm, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.16)' }}>
               <Txt w={700} size={12} color={p.status === 'nuova' ? palette.gold : '#fff'}>{p.status === 'nuova' ? 'Nuovo arrivo' : 'Confermata'}</Txt>

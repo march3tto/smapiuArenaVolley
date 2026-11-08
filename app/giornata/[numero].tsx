@@ -45,12 +45,23 @@ export default function Giornata() {
   }, [start, girone]);
 
   const index = days ? Math.max(0, days.indexOf(current)) : 0;
+  // initialScrollIndex sulle liste orizzontali a pagine non è affidabile nell'app nativa (nuova architettura): la lista
+  // può partire dalla 1ª giornata e il primo evento di scroll (offset 0) cambierebbe la giornata scelta. Si posiziona
+  // a mano appena il contenuto è misurato e fino ad allora gli eventi di scroll non cambiano la giornata corrente.
+  const positioned = useRef(false);
+  const position = () => {
+    if (positioned.current || !days) return;
+    const i = Math.max(0, days.indexOf(start));
+    list.current?.scrollToOffset({ offset: i * width, animated: false });
+    positioned.current = true;
+  };
   const goTo = (i: number) => {
     if (!days || i < 0 || i >= days.length) return;
     list.current?.scrollToIndex({ index: i, animated: true });
     setCurrent(days[i]);
   };
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (!positioned.current) return;
     const i = Math.round(e.nativeEvent.contentOffset.x / width);
     if (days && days[i] != null && days[i] !== current) setCurrent(days[i]);
   };
@@ -91,6 +102,7 @@ export default function Giornata() {
             keyExtractor={String}
             initialScrollIndex={index}
             getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
+            onContentSizeChange={position}
             onScroll={onScroll}
             scrollEventThrottle={32}
             showsHorizontalScrollIndicator={false}
