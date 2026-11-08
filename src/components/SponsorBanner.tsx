@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Animated, Easing, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Card } from './Card';
@@ -11,7 +11,7 @@ import { space } from '@/theme/colors';
 export function SponsorBanner({ sponsors, onPress }: { sponsors: Sponsor[]; onPress?: () => void }) {
   const { c } = useTheme();
   const [rowW, setRowW] = useState(0);
-  const x = useRef(new Animated.Value(0)).current;
+  const x = useState(() => new Animated.Value(0))[0];
 
   useEffect(() => {
     if (!rowW) return;

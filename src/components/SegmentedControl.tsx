@@ -18,8 +18,8 @@ interface Props<T extends string> {
 export function SegmentedControl<T extends string>({ options, value, onChange, stretch }: Props<T>) {
   const { c } = useTheme();
   const [layouts, setLayouts] = useState<Record<string, { x: number; w: number }>>({});
-  const x = useRef(new Animated.Value(0)).current;
-  const w = useRef(new Animated.Value(0)).current;
+  const x = useState(() => new Animated.Value(0))[0];
+  const w = useState(() => new Animated.Value(0))[0];
   const scroll = useRef<ScrollViewInstance>(null);
 
   useEffect(() => {

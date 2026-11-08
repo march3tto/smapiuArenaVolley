@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Animated, Easing, View } from 'react-native';
 import { Radio } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -12,7 +12,7 @@ export function LiveDot({ size = 8, color }: { size?: number; color?: string }) 
 /** Icona "in onda" (antenna con onde) che pulsa, alternativa al pallino */
 export function LiveSignal({ size = 16, color }: { size?: number; color?: string }) {
   const { c } = useTheme();
-  const pulse = useRef(new Animated.Value(0)).current;
+  const pulse = useState(() => new Animated.Value(0))[0];
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([

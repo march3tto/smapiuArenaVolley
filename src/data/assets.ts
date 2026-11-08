@@ -1,5 +1,4 @@
 /* File generato: tutte le immagini locali incluse nell'app (usate dai dati demo). */
-/* eslint-disable @typescript-eslint/no-require-imports */
 
 export const LOGO_AVT: number = require('../../assets/brand/avt-logo-white.png');
 export const LOGO_BRAND: number = require('../../assets/brand/avt-smapiu-logo.png');

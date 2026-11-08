@@ -19,10 +19,13 @@ export default function News() {
   const [cat, setCat] = useState('all');
   // "Tutti" del banner video e podcast in home apre la tab già filtrata
   const { filtro } = useLocalSearchParams<{ filtro?: string }>();
+  const [filtroVisto, setFiltroVisto] = useState<string | undefined>();
+  if (filtro !== filtroVisto) {
+    setFiltroVisto(filtro);
+    if (filtro === 'media') setCat(MEDIA);
+  }
   useEffect(() => {
-    if (filtro !== 'media') return;
-    setCat(MEDIA);
-    router.setParams({ filtro: undefined });
+    if (filtro === 'media') router.setParams({ filtro: undefined });
   }, [filtro, router]);
   const options = useMemo(() => [
     { value: 'all', label: 'Tutte' },

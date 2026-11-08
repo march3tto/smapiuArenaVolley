@@ -80,6 +80,7 @@ export function MvpPanel({ match, awayMatch, teams, events, set, finished, onLea
   }, [local, match.id, uid]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- caricamento dati da Supabase all'apertura (lo stato si aggiorna a fetch finita)
     load();
     if (local) return;
     const t = setInterval(load, REFRESH_MS);

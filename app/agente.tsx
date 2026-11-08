@@ -65,6 +65,7 @@ export default function Agente() {
   }, [staff, filter]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- caricamento dati da Supabase all'apertura (lo stato si aggiorna a fetch finita)
     load();
   }, [load]);
 
@@ -110,7 +111,7 @@ export default function Agente() {
                 {status.map((s) => <StatusCard key={s.agent} s={s} now={now} />)}
               </View>
             ) : !loading && hasSupabase ? (
-              <Txt size={14} color="muted">Nessun segnale ancora: l'agente scrive qui appena viene avviato.</Txt>
+              <Txt size={14} color="muted">Nessun segnale ancora: l’agente scrive qui appena viene avviato.</Txt>
             ) : null}
             <SegmentedControl options={FILTRI} value={filter} onChange={setFilter} stretch />
           </View>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CalendarDays, Trophy } from 'lucide-react-native';
@@ -33,9 +33,12 @@ export default function Risultati() {
   const { matches, standings, loading, refresh } = useData();
   const live = useLive();
 
-  useEffect(() => {
+  // filtro richiesto dalla navigazione (es. dalla home): si applica quando cambia, poi resta quello scelto
+  const [filtroVisto, setFiltroVisto] = useState<string | undefined>();
+  if (params.filter !== filtroVisto) {
+    setFiltroVisto(params.filter);
     if (params.filter && FILTERS.includes(params.filter)) setFilter(params.filter as Filter);
-  }, [params.filter]);
+  }
 
   const list = useMemo(() => {
     const sorted = [...matches].sort((a, b) => a.date.localeCompare(b.date));

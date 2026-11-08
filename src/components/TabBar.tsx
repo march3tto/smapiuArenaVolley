@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Animated, Platform, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
@@ -26,7 +26,7 @@ export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTab
   const { c, mode } = useTheme();
   const insets = useSafeAreaInsets();
   const [width, setWidth] = useState(0);
-  const x = useRef(new Animated.Value(0)).current;
+  const x = useState(() => new Animated.Value(0))[0];
   const routes = state.routes.filter((r) => !HIDDEN.has(r.name));
   const n = routes.length;
   const itemW = width / n;

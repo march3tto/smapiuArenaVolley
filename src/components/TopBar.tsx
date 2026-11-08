@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Animated, Platform, Pressable, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
@@ -58,7 +58,7 @@ export function TopBar() {
   const logo = useLogoSize();
   const initials = useInitials();
   const [social, setSocial] = useState(false);
-  const progress = useRef(new Animated.Value(0)).current;
+  const progress = useState(() => new Animated.Value(0))[0];
 
   useEffect(() => {
     Animated.spring(progress, { toValue: social ? 1 : 0, useNativeDriver: false, speed: 18, bounciness: social ? 6 : 0 }).start();

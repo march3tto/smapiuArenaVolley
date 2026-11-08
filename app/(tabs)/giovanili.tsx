@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, View, useWindowDimensions, type ScrollViewInstance } from 'react-native';
+import { Modal, Pressable, View, useWindowDimensions, type ScrollViewInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { ChevronDown, ChevronLeft, ChevronRight, Expand, Images, Sparkles, User, X } from 'lucide-react-native';

@@ -102,6 +102,8 @@ export async function attivaNotifiche(userId: string, preferenze?: PreferenzeNot
   try {
     // Android 13+: il canale va creato prima della richiesta di permesso
     if (Platform.OS === 'android') {
+      // AndroidImportance arriva da un export * che il plugin import non segue (il typecheck lo trova)
+      // eslint-disable-next-line import/namespace
       await Notifications.setNotificationChannelAsync('default', { name: 'Notifiche', importance: Notifications.AndroidImportance.HIGH });
     }
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Animated, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -53,7 +53,7 @@ function LoginScreen() {
   const [busy, setBusy] = useState<null | 'form' | SocialProvider>(null);
   const [socials, setSocials] = useState<SocialProvider[]>([]);
   const [done, setDone] = useState(false);
-  const shake = useRef(new Animated.Value(0)).current;
+  const shake = useState(() => new Animated.Value(0))[0];
   const st = useMemo(() => strength(pass), [pass]);
   const reg = mode === 'register';
 

@@ -71,7 +71,7 @@ export function PointPicker({ anchor, side, team, names, players, rotation = 0, 
   const [loading, setLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const request = useRef(0);
-  const t = useRef(new Animated.Value(0)).current;
+  const t = useState(() => new Animated.Value(0))[0];
   const starters = players.filter((p) => p.zone != null);
   // la posizione è quella della giocatrice scelta sul campo
   const zone = picked?.zone ?? null;

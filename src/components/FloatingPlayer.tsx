@@ -78,6 +78,7 @@ export function FloatingPlayer() {
   // (non in Picture in Picture, dove la finestra è minuscola e tornerebbe nell'angolo sbagliato)
   useEffect(() => { if (!pip) settle(); }, [settle, pip]);
 
+  // eslint-disable-next-line react-hooks/refs -- pos.current si legge solo nei gestori del trascinamento, non durante il render
   const responder = useMemo(() => PanResponder.create({
     // un tocco breve resta ai pulsanti; si trascina solo muovendo il dito
     onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 4 || Math.abs(g.dy) > 4,

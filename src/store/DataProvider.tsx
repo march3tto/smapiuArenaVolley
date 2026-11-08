@@ -35,6 +35,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- caricamento dati da Supabase all'apertura (lo stato si aggiorna a fetch finita)
     refresh();
     // Se una partita cambia stato (es. diventa 'live') si ricarica in automatico
     return subscribeMatches(() => {

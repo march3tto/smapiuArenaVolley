@@ -85,6 +85,7 @@ export function useLineup(match: Match | null): Lineup {
 
   const matchId = match?.id;
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset insieme alle sottoscrizioni Realtime della formazione (stesso effetto)
     setError(null);
     if (!matchId) {
       setRows([]);
@@ -155,6 +156,7 @@ export function useLineup(match: Match | null): Lineup {
     [oppPlayers, oppTeamId],
   );
   const [demoUs, setDemoUs] = useState<LineupPlayer[] | null>(null);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- nuova partita: la formazione demo modificata in locale riparte da zero
   useEffect(() => setDemoUs(null), [matchId]);
   // nella demo tra due avversarie la squadra di casa parte già schierata, altrimenti si usa la nostra rosa
   const otherTeam = isDemo && !!match?.usName;

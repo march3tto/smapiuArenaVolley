@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, View } from 'react-native';
 import { Txt } from './Txt';
 import { palette, space } from '@/theme/colors';
@@ -13,7 +13,7 @@ export function LiveTicker({ text }: { text: string }) {
   const [boxW, setBoxW] = useState(0);
   const [textW, setTextW] = useState(0);
   const [still, setStill] = useState(false);
-  const x = useRef(new Animated.Value(0)).current;
+  const x = useState(() => new Animated.Value(0))[0];
 
   // con "riduci movimento" attivo il testo resta fermo
   useEffect(() => {

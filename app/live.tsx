@@ -246,8 +246,8 @@ export default function Live() {
 function Side({ name, logo, serving, server, flash, onPlus, onServe, locked }: { name: string; logo?: string | number | null; serving: boolean; server: LineupPlayer | null; flash: number; onPlus?: (anchor: Anchor) => void; onServe?: () => void; locked?: boolean }) {
   const { c } = useTheme();
   const plusRef = useRef<HostInstance>(null);
-  const plus = useRef(new Animated.Value(0)).current;
-  const pop = useRef(new Animated.Value(1)).current;
+  const plus = useState(() => new Animated.Value(0))[0];
+  const pop = useState(() => new Animated.Value(1))[0];
   // il punto già segnato prima di aprire la schermata non va rianimato: solo quelli nuovi
   const seen = useRef(flash);
   useEffect(() => {
@@ -298,7 +298,7 @@ function Side({ name, logo, serving, server, flash, onPlus, onServe, locked }: {
 
 function FeedItem({ meta, text, detail, us, first, last }: { meta: string; text: string; detail?: PointDetail | null; us: boolean; first: boolean; last: boolean }) {
   const { c } = useTheme();
-  const anim = useRef(new Animated.Value(first ? 0 : 1)).current;
+  const anim = useState(() => new Animated.Value(first ? 0 : 1))[0];
   useEffect(() => {
     if (first) Animated.spring(anim, { toValue: 1, useNativeDriver: true, speed: 14, bounciness: 8 }).start();
   }, [first, anim]);

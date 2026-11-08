@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
 import { LIVE_EVENTS_MAX, demoRevision, fetchLive, newId, pushLiveNote, setFirstServe, subscribeDemo, subscribeLive, type DemoChannel, withAction } from '@/lib/api';
@@ -221,7 +221,9 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   const demoChannel = useRef<DemoChannel<LiveState> | null>(null);
   // stato corrente letto in addPoint (serve per sapere cosa salvare)
   const stateRef = useRef(state);
-  stateRef.current = state;
+  useLayoutEffect(() => {
+    stateRef.current = state;
+  }, [state]);
   // salvataggi in coda (uno alla volta, nell'ordine dei tocchi) e quanti sono ancora in corso
   const saveQueue = useRef<Promise<void>>(Promise.resolve());
   const pending = useRef(0);
@@ -233,6 +235,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   const liveId = liveMatch?.id ?? null;
   useEffect(() => {
     if (!liveId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset insieme alle sottoscrizioni Realtime della partita (stesso effetto)
       setState(EMPTY);
       reload.current = () => {};
       return;

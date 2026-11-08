@@ -22,7 +22,7 @@ import { space } from '@/theme/colors';
 
 /** Card "In diretta" della home: compare solo se esiste una partita live */
 export function LiveCard() {
-  const { c, mode } = useTheme();
+  const { c } = useTheme();
   const router = useRouter();
   const live = useLive();
   const player = usePlayer();

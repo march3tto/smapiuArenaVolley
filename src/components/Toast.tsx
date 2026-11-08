@@ -16,8 +16,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const [toast, setToast] = useState<{ msg: string; Icon: IconComp } | null>(null);
-  const anim = useRef(new Animated.Value(0)).current;
-  const progress = useRef(new Animated.Value(1)).current;
+  const anim = useState(() => new Animated.Value(0))[0];
+  const progress = useState(() => new Animated.Value(1))[0];
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const show = useCallback((msg: string, Icon: IconComp = Info) => {

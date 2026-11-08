@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated, Platform } from 'react-native';
 import { DISPLAY, DISPLAY_LINE, DISPLAY_SCALE, displayIosShift, FONT, palette } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -6,7 +6,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 /** Numero che "salta" e si colora d'oro quando cambia */
 export function AnimatedNumber({ value, size, weight = 800 }: { value: number; size: number; weight?: 700 | 800 | 900 }) {
   const { c } = useTheme();
-  const anim = useRef(new Animated.Value(1)).current;
+  const anim = useState(() => new Animated.Value(1))[0];
   const first = useRef(true);
   useEffect(() => {
     if (first.current) {
