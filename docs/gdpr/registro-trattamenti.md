@@ -1,7 +1,7 @@
 # Registro delle attività di trattamento (art. 30 GDPR) — BOZZA
 
 > Bozza preparata a partire dall'app e dal database. Va completata nelle parti `[DA COMPLETARE]` / `[DA DEFINIRE]` e
-> **validata da un consulente privacy** prima dell'uso. Ultimo aggiornamento: ottobre 2026.
+> **validata da un consulente privacy** prima dell'uso. Ultimo aggiornamento: 8 novembre 2026.
 
 ## Titolare del trattamento
 
@@ -20,9 +20,9 @@
 | Soggetto | Ruolo | Servizio | Luogo / trasferimenti | Garanzie |
 |---|---|---|---|---|
 | Supabase Inc. | Responsabile (art. 28) | Database, autenticazione, Storage, Edge Functions, Realtime | Progetto in **eu-west-1 (Irlanda)**, infrastruttura AWS; accessi di supporto e sub-responsabili anche USA | DPA Supabase (parte dei Termini di servizio, copia PDF archiviata), SCC incluse nel DPA |
-| 650 Industries Inc. (Expo) | Responsabile | Invio notifiche push (Expo Push Service), build dell'app (EAS) | USA | DPA Expo [DA VERIFICARE], SCC / DPF |
+| 650 Industries Inc. (Expo) | Responsabile | Invio notifiche push (Expo Push Service), build dell'app (EAS) | USA | DPA Expo [DA ARCHIVIARE: copia firmata/PDF], SCC / DPF |
 | Apple Inc. / Google LLC | Destinatari tecnici per le push | Recapito delle notifiche (APNs, Firebase Cloud Messaging) tramite Expo | USA / UE | Condizioni delle piattaforme |
-| Groq Inc. | Responsabile | Generazione delle frasi di cronaca live (Edge Function `cronaca-ai`) | USA | DPA [DA VERIFICARE], SCC |
+| Groq Inc. | Responsabile | Modelli di intelligenza artificiale: assistente in chat per gli utenti (Edge Function `assistente`, scheda 7), frasi di cronaca live (`cronaca-ai`) e trascrizione dell'audio della diretta (`trascrivi-audio`, scheda 6) | USA | DPA Groq [DA ARCHIVIARE: copia firmata/PDF], SCC / DPF [DA VERIFICARE] |
 | Google LLC (YouTube) | Titolare autonomo | Video e dirette su YouTube; miniature caricate da `img.youtube.com` | USA / UE | Condizioni YouTube; l'app apre YouTube all'esterno |
 | Spotify AB | Titolare autonomo | Eventuali podcast aperti tramite link esterno | UE / USA | L'app non trasmette dati dell'utente |
 | GitHub Inc. (GitHub Pages) | Fornitore di hosting | Informativa e pagina di eliminazione account (pagine statiche, nessun dato degli utenti raccolto) | USA | Condizioni GitHub, DPF |
@@ -112,7 +112,7 @@
 | **Finalità** | Rose e staff delle squadre giovanili e regionali (Serie B2, Serie D); comunicazione sull'attività giovanile; album foto |
 | **Base giuridica** | Nome e numero: art. 6.1.f [DA VALUTARE con il consulente: bilanciamento rafforzato per i minori, art. 6.1.f ultima parte]. Foto, bio e album: art. 6.1.a con liberatoria firmata da **entrambi i genitori** o da chi esercita la responsabilità genitoriale |
 | **Interessati** | Atlete minorenni e loro genitori (firmatari delle liberatorie; genitori utenti dell'app con profilo "genitore") |
-| **Categorie di dati** | Nome, cognome, numero di maglia, **data di nascita** [DA VALUTARE: oggi pubblicata per intero; valutare solo l'anno o nessuna], categoria; foto e bio solo con liberatoria; foto degli album solo dopo verifica delle liberatorie di tutte le persone ritratte |
+| **Categorie di dati** | Nome, cognome, numero di maglia, **anno di nascita** (la data completa resta nella tabella riservata allo staff: la vista pubblica la mostra solo dal compimento dei 18 anni), categoria; foto e bio solo con liberatoria; foto degli album solo dopo verifica delle liberatorie di tutte le persone ritratte |
 | **Destinatari** | Pubblico dell'app e del sito; Supabase (responsabile) |
 | **Trasferimenti extra-UE** | Come scheda 1 |
 | **Conservazione** | Per la stagione; archivio [DA DEFINIRE]; foto fino a revoca della liberatoria o al raggiungimento della maggiore età con nuovo consenso [DA VALUTARE] |
@@ -126,10 +126,23 @@
 | **Base giuridica** | Art. 6.1.f (informazione sportiva su eventi pubblici; dati già presenti nei referti e nei canali federali) |
 | **Interessati** | Atlete della società e delle squadre avversarie; staff tecnico |
 | **Categorie di dati** | Nome dell'atleta, numero di maglia, ruolo, capitana, libero, posizione in campo, azione del punto, punteggio, statistiche per partita |
-| **Destinatari** | Pubblico dell'app; Supabase (responsabile, anche Realtime); **Groq** (responsabile) riceve squadre, punteggio, azione e nome dell'atleta per scrivere la frase di cronaca; YouTube per le dirette video (titolare autonomo, l'app apre il video su YouTube) |
+| **Destinatari** | Pubblico dell'app; Supabase (responsabile, anche Realtime); **Groq** (responsabile) riceve squadre, punteggio, azione e nome dell'atleta per scrivere la frase di cronaca e, se lo staff usa la cronaca a voce, brevi pezzi dell'audio della diretta (voce del telecronista) da trascrivere; YouTube per le dirette video (titolare autonomo, l'app apre il video su YouTube) |
 | **Trasferimenti extra-UE** | Groq: USA [DA VERIFICARE DPA e SCC]; YouTube: Google LLC |
 | **Conservazione** | Archivio storico delle stagioni [DA DEFINIRE] |
-| **Misure specifiche** | Inserimento dati solo da staff/admin; all'AI vengono inviati solo i fatti del punto (nessun dato degli utenti dell'app); chiave Groq solo nei secrets |
+| **Misure specifiche** | Inserimento dati solo da staff/admin; all'AI vengono inviati solo i fatti del punto (nessun dato degli utenti dell'app); la trascrizione audio la avvia solo lo staff e il testo resta una bozza finché non lo pubblica; chiave Groq solo nei secrets |
+
+## 7. Assistente AI in chat
+
+| | |
+|---|---|
+| **Finalità** | Rispondere alle domande degli utenti registrati su partite, risultati, classifica, rosa, news della società e pallavolo in generale |
+| **Base giuridica** | Art. 6.1.a: consenso esplicito chiesto nell'app prima del primo uso (schermata "Prima di iniziare"), revocabile da Impostazioni › Account e privacy |
+| **Interessati** | Utenti registrati che usano l'assistente |
+| **Categorie di dati** | Testo delle domande e delle ultime risposte della conversazione (massimo 10 messaggi); conteggio giornaliero delle domande per utente (tabella `uso_assistente`); scelta sul consenso (`consensi_utente`, tipo `assistente_ai`). Non vengono inviati a Groq nome, email né identificativo dell'utente |
+| **Destinatari** | Supabase (responsabile); **Groq** (responsabile) per generare la risposta |
+| **Trasferimenti extra-UE** | Groq: USA [DA VERIFICARE: DPA e SCC / DPF] |
+| **Conservazione** | Le conversazioni non vengono salvate né sul dispositivo né nel database; il conteggio giornaliero [DA DEFINIRE]; le scelte sul consenso come scheda 2 |
+| **Misure specifiche** | Senza consenso la funzione `assistente` rifiuta la domanda prima di contattare Groq; solo utenti autenticati, con limite di domande al giorno; i dati della società sono letti con tool di sola lettura e con i permessi dell'utente (RLS); nei log solo errori tecnici, mai il testo delle domande; l'informativa e la schermata invitano a non scrivere dati personali |
 
 ---
 
@@ -144,3 +157,4 @@ a segreteria@arenavolleyteam.it.
 | Data | Modifica |
 |---|---|
 | Ottobre 2026 | Prima bozza: login con Apple, Google, Facebook; consensi; cancellazione account; liberatorie foto |
+| 8 novembre 2026 | Scheda 7 (assistente AI con consenso esplicito); Groq anche per assistente e trascrizione audio; minorenni: nella vista pubblica solo l'anno di nascita; nessuna foto delle atlete inclusa nell'app (solo Storage, con liberatoria); DPA di Expo e Groq da archiviare |

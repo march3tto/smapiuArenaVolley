@@ -1,5 +1,5 @@
 import type { LineupPlayer, LiveEvent, Match, NewsItem, Player, SetScore, Sponsor, Standing, YouthTeam } from '@/types';
-import { PLAYER_PHOTOS, SPONSOR_LOGOS } from './assets';
+import { SPONSOR_LOGOS } from './assets';
 
 /*
  * Dati demo usati quando Supabase non è configurato (o una tabella è vuota).
@@ -37,18 +37,18 @@ export const standings: Standing[] = [
 ];
 
 export const players: Player[] = [
-  { id: '87959081-06cc-5461-8a8f-211733f42457', firstName: 'Beatrice', lastName: 'Giroldi', role: 'palleggiatrice', photo: PLAYER_PHOTOS['beatrice-giroldi'], bio: "Regista e capitana: è da lei che è partita la presentazione del roster per la Serie A3.", status: 'confermata', isCaptain: true },
-  { id: '56edb0c1-9211-5edf-9073-44568d97c93c', firstName: 'Sofia', lastName: 'Grandi', role: 'palleggiatrice', photo: PLAYER_PHOTOS['sofia-grandi'], bio: "Confermata, completa il reparto delle palleggiatrici per il campionato di Serie A3.", status: 'confermata' },
-  { id: 'e1aa6e63-2ed7-5659-8181-dcc5cb2aaa93', firstName: 'Nicole', lastName: 'Tellaroli', role: 'opposto', photo: PLAYER_PHOTOS['nicole-tellaroli'], bio: "Confermata come opposto della Smapiù Arena anche in Serie A3.", status: 'confermata' },
-  { id: 'f6a4024e-6456-5768-ad0c-33f706e81ae3', firstName: 'Vittoria', lastName: 'Adami', role: 'opposto', photo: PLAYER_PHOTOS['vittoria-adami'], bio: "Classe 2007, dopo una prima stagione positiva in Serie B1 completa il reparto degli opposti.", status: 'confermata', born: 2007 },
-  { id: 'feadcd4c-5126-5736-949d-cfe6f2f6c35d', firstName: 'Aurora', lastName: 'Piron', role: 'schiacciatrice', photo: PLAYER_PHOTOS['aurora-piron'], bio: "Classe 2007, confermata dopo la sua prima stagione positiva alla Smapiù Arena.", status: 'confermata', born: 2007 },
-  { id: '80774d16-5320-5055-bcfb-11aa606dce90', firstName: 'Francesca', lastName: 'Trevisan', role: 'schiacciatrice', photo: PLAYER_PHOTOS['francesca-trevisan'], bio: "Nuovo martello della Smapiù Arena per la stagione 2026/27.", status: 'nuova' },
-  { id: '3c3b9cb2-2e73-5b44-9f0f-99a26a151873', firstName: 'Alice', lastName: 'Trampus', role: 'schiacciatrice', photo: PLAYER_PHOTOS['alice-trampus'], bio: "Nuova schiacciatrice della Smapiù Arena.", status: 'nuova' },
-  { id: 'cc4c93a0-18b9-5194-8207-3d9eb5aa206d', firstName: 'Anna', lastName: 'Riccato', role: 'centrale', photo: PLAYER_PHOTOS['anna-riccato'], bio: "Confermata nel reparto centrali per la stagione in Serie A3.", status: 'confermata' },
-  { id: '1c6184a6-9093-541b-8abf-4e0fb0194494', firstName: 'Chiara', lastName: 'Murari', role: 'centrale', photo: PLAYER_PHOTOS['chiara-murari'], bio: "Giovane centrale, confermata dopo due stagioni positive in Serie B1.", status: 'confermata' },
-  { id: 'efa900a8-c563-5d0b-9fd7-0f4652679d12', firstName: 'Sara', lastName: 'Bonini', role: 'centrale', photo: PLAYER_PHOTOS['sara-bonini'], bio: "Altra conferma importante nel reparto centrali.", status: 'confermata' },
-  { id: '26ddbb30-be13-522c-aac4-e436ee909fbe', firstName: 'Valentina', lastName: 'Gatti', role: 'centrale', photo: PLAYER_PHOTOS['valentina-gatti'], bio: "Arriva a completare il reparto delle centrali per la Serie A3.", status: 'nuova' },
-  { id: '8d723113-2ab7-599a-b3eb-6d229962345d', firstName: 'Isabella', lastName: 'Monaco', role: 'libero', photo: PLAYER_PHOTOS['isabella-monaco'], bio: "Nuovo innesto per il reparto dei liberi.", status: 'nuova' },
+  { id: '87959081-06cc-5461-8a8f-211733f42457', firstName: 'Beatrice', lastName: 'Giroldi', role: 'palleggiatrice', photo: '', bio: "Regista e capitana: è da lei che è partita la presentazione del roster per la Serie A3.", status: 'confermata', isCaptain: true },
+  { id: '56edb0c1-9211-5edf-9073-44568d97c93c', firstName: 'Sofia', lastName: 'Grandi', role: 'palleggiatrice', photo: '', bio: "Confermata, completa il reparto delle palleggiatrici per il campionato di Serie A3.", status: 'confermata' },
+  { id: 'e1aa6e63-2ed7-5659-8181-dcc5cb2aaa93', firstName: 'Nicole', lastName: 'Tellaroli', role: 'opposto', photo: '', bio: "Confermata come opposto della Smapiù Arena anche in Serie A3.", status: 'confermata' },
+  { id: 'f6a4024e-6456-5768-ad0c-33f706e81ae3', firstName: 'Vittoria', lastName: 'Adami', role: 'opposto', photo: '', bio: "Classe 2007, dopo una prima stagione positiva in Serie B1 completa il reparto degli opposti.", status: 'confermata', born: 2007 },
+  { id: 'feadcd4c-5126-5736-949d-cfe6f2f6c35d', firstName: 'Aurora', lastName: 'Piron', role: 'schiacciatrice', photo: '', bio: "Classe 2007, confermata dopo la sua prima stagione positiva alla Smapiù Arena.", status: 'confermata', born: 2007 },
+  { id: '80774d16-5320-5055-bcfb-11aa606dce90', firstName: 'Francesca', lastName: 'Trevisan', role: 'schiacciatrice', photo: '', bio: "Nuovo martello della Smapiù Arena per la stagione 2026/27.", status: 'nuova' },
+  { id: '3c3b9cb2-2e73-5b44-9f0f-99a26a151873', firstName: 'Alice', lastName: 'Trampus', role: 'schiacciatrice', photo: '', bio: "Nuova schiacciatrice della Smapiù Arena.", status: 'nuova' },
+  { id: 'cc4c93a0-18b9-5194-8207-3d9eb5aa206d', firstName: 'Anna', lastName: 'Riccato', role: 'centrale', photo: '', bio: "Confermata nel reparto centrali per la stagione in Serie A3.", status: 'confermata' },
+  { id: '1c6184a6-9093-541b-8abf-4e0fb0194494', firstName: 'Chiara', lastName: 'Murari', role: 'centrale', photo: '', bio: "Giovane centrale, confermata dopo due stagioni positive in Serie B1.", status: 'confermata' },
+  { id: 'efa900a8-c563-5d0b-9fd7-0f4652679d12', firstName: 'Sara', lastName: 'Bonini', role: 'centrale', photo: '', bio: "Altra conferma importante nel reparto centrali.", status: 'confermata' },
+  { id: '26ddbb30-be13-522c-aac4-e436ee909fbe', firstName: 'Valentina', lastName: 'Gatti', role: 'centrale', photo: '', bio: "Arriva a completare il reparto delle centrali per la Serie A3.", status: 'nuova' },
+  { id: '8d723113-2ab7-599a-b3eb-6d229962345d', firstName: 'Isabella', lastName: 'Monaco', role: 'libero', photo: '', bio: "Nuovo innesto per il reparto dei liberi.", status: 'nuova' },
 ];
 
 export const news: NewsItem[] = [

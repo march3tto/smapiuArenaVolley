@@ -3,7 +3,7 @@ import { demoMode, storageUrl, supabase } from './supabase';
 import { slugify } from './format';
 import * as mock from '@/data/mock';
 import { VENUES } from '@/data/altro';
-import { COMPETITION_LOGOS, COMPETITION_LOGOS_LIGHT, OPPONENT_LOGOS, PLAYER_PHOTOS, SPONSOR_LOGOS, STAFF_PHOTOS } from '@/data/assets';
+import { COMPETITION_LOGOS, COMPETITION_LOGOS_LIGHT, OPPONENT_LOGOS, SPONSOR_LOGOS, STAFF_PHOTOS } from '@/data/assets';
 import type {
   Ad, Competition, Convenzione, ImgSrc, LeagueGame, LineupPlayer, LiveEvent, Match, MatchStatus, MediaItem, NewsItem, Player, PlayerRole, PointAction, PointDetail, PointPhase, RegionalRoster, SetScore, Sponsor, SponsorTier, StaffMember, Standing, Venue, YouthTeam,
 } from '@/types';
@@ -171,15 +171,16 @@ function mapStanding(r: Row): Standing {
 function mapPlayer(r: Row): Player {
   const first = str(r.nome);
   const last = str(r.cognome);
-  const born = typeof r.data_nascita === 'string' ? Number(r.data_nascita.slice(0, 4)) : null;
+  // la vista pubblica dà la data completa solo alle maggiorenni; per le minorenni c'è solo l'anno
+  const born = num(r.anno_nascita) ?? (typeof r.data_nascita === 'string' ? Number(r.data_nascita.slice(0, 4)) : null);
   return {
     id: str(r.id),
     firstName: first,
     lastName: last,
     role: (str(r.ruolo, 'schiacciatrice') as PlayerRole),
     number: num(r.numero_maglia),
-    // senza liberatoria niente foto, nemmeno quella inclusa nell'app: si mostra il segnaposto con il numero di maglia
-    photo: r.consenso_foto === true ? image(r.foto_url, PLAYER_PHOTOS, slugify(`${first} ${last}`)) : '',
+    // foto solo dallo Storage e solo con liberatoria (l'app non contiene foto delle atlete): altrimenti segnaposto con il numero
+    photo: r.consenso_foto === true ? image(r.foto_url, {}) : '',
     bio: (r.bio as string | null) ?? null,
     status: null,
     born,
@@ -279,6 +280,7 @@ function buildRosters(categorie: Row[], giocatrici: Row[], staff: Row[]): Record
       name: `${str(g.nome)} ${str(g.cognome)}`.trim(),
       number: num(g.numero_maglia),
       birthDate: typeof g.data_nascita === 'string' ? g.data_nascita : null,
+      born: num(g.anno_nascita),
     }));
     const coaches = staff.filter((s) => s.categoria_giovanile_id === id).map((s) => {
       const m = mapStaff(s);

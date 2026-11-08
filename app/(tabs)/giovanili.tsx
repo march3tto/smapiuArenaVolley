@@ -141,7 +141,8 @@ function Squadra({ team: s, onPhoto }: { team: SquadraRegionale; onPhoto: () => 
                     <Txt w={800} size={12.5} color={palette.gold} tnum>{p.number ?? '–'}</Txt>
                   </View>
                   <Txt w={600} size={14} numberOfLines={1} style={{ flex: 1 }}>{p.name}</Txt>
-                  {p.birthDate ? <Txt size={13} color="muted" tnum>{shortBirthDate(p.birthDate)}</Txt> : null}
+                  {p.birthDate ? <Txt size={13} color="muted" tnum>{shortBirthDate(p.birthDate)}</Txt>
+                    : p.born ? <Txt size={13} color="muted" tnum>Classe {p.born}</Txt> : null}
                 </View>
               ))}
             </View>

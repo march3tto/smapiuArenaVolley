@@ -32,21 +32,6 @@ export const LOADING_IMAGE: number = require('../../assets/brand/caricamento.jpg
 /** Pallone 3D della schermata di caricamento: 36 fotogrammi in griglia 6x6 (generato da scripts/ball-sprite.py) */
 export const BALL_SPRITE: number = require('../../assets/brand/ball-sprite.png');
 
-export const PLAYER_PHOTOS: Record<string, number> = {
-  'alice-trampus': require('../../assets/players/alice-trampus.jpg'),
-  'anna-riccato': require('../../assets/players/anna-riccato.jpg'),
-  'aurora-piron': require('../../assets/players/aurora-piron.jpg'),
-  'beatrice-giroldi': require('../../assets/players/beatrice-giroldi.jpg'),
-  'chiara-murari': require('../../assets/players/chiara-murari.jpg'),
-  'francesca-trevisan': require('../../assets/players/francesca-trevisan.jpg'),
-  'isabella-monaco': require('../../assets/players/isabella-monaco.jpg'),
-  'nicole-tellaroli': require('../../assets/players/nicole-tellaroli.jpg'),
-  'sara-bonini': require('../../assets/players/sara-bonini.jpg'),
-  'sofia-grandi': require('../../assets/players/sofia-grandi.jpg'),
-  'valentina-gatti': require('../../assets/players/valentina-gatti.jpg'),
-  'vittoria-adami': require('../../assets/players/vittoria-adami.jpg'),
-};
-
 export const SPONSOR_LOGOS: Record<string, number> = {
   'adami-group': require('../../assets/sponsors/adami-group.png'),
   'agbd-associazione-sindrome-di-down': require('../../assets/sponsors/agbd-associazione-sindrome-di-down.png'),
