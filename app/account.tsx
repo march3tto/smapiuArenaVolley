@@ -21,6 +21,7 @@ const CONSENSI: { tipo: TipoConsenso; label: string; si: string; no: string }[] 
   { tipo: 'informativa_privacy', label: 'Informativa privacy', si: 'Letta', no: 'Non accettata' },
   { tipo: 'eta_14_anni', label: 'Almeno 14 anni', si: 'Dichiarato', no: 'Non dichiarato' },
   { tipo: 'marketing', label: 'Comunicazioni promozionali', si: 'Acconsentito', no: 'Non acconsentito' },
+  { tipo: 'assistente_ai', label: 'Assistente AI (Groq, USA)', si: 'Acconsentito', no: 'Non acconsentito' },
 ];
 
 /** Impostazioni > Account e privacy: profilo, metodo di accesso, consensi, eliminazione account */
@@ -29,10 +30,10 @@ export default function Account() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const toast = useToast();
-  const { user, consents, setMarketing } = useApp();
-  const [busy, setBusy] = useState<null | 'marketing'>(null);
+  const { user, consents, setMarketing, setAssistantConsent } = useApp();
+  const [busy, setBusy] = useState<null | 'marketing' | 'assistente'>(null);
 
-  const run = async (k: 'marketing', fn: () => Promise<void>, ok: string) => {
+  const run = async (k: 'marketing' | 'assistente', fn: () => Promise<void>, ok: string) => {
     setBusy(k);
     try {
       await fn();
@@ -45,6 +46,7 @@ export default function Account() {
   };
 
   const marketing = consents.marketing?.concesso === true;
+  const assistente = consents.assistente_ai?.concesso === true;
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
@@ -86,6 +88,15 @@ export default function Account() {
                 </View>
                 <Switch value={marketing} disabled={busy !== null}
                   onValueChange={(v) => run('marketing', () => setMarketing(v), v ? 'Consenso marketing attivato.' : 'Consenso marketing revocato.')}
+                  trackColor={{ true: palette.gold, false: c.fill2 }} thumbColor="#fff" />
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm, borderTopWidth: 1, borderTopColor: c.line }}>
+                <View style={{ flex: 1 }}>
+                  <Txt w={600} size={14}>Assistente AI</Txt>
+                  <Txt size={12} color="muted">Le domande all’assistente vanno a Groq Inc. (Stati Uniti). Senza consenso l’assistente non si usa.</Txt>
+                </View>
+                <Switch value={assistente} disabled={busy !== null}
+                  onValueChange={(v) => run('assistente', () => setAssistantConsent(v), v ? 'Consenso all’assistente AI attivato.' : 'Consenso all’assistente AI revocato.')}
                   trackColor={{ true: palette.gold, false: c.fill2 }} thumbColor="#fff" />
               </View>
               <Txt w={700} size={11.5} color="muted" style={{ marginTop: space.sm, letterSpacing: 0.8, textTransform: 'uppercase' }}>Consensi registrati</Txt>

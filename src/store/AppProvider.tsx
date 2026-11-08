@@ -4,7 +4,7 @@ import { FunctionsHttpError, type User } from '@supabase/supabase-js';
 import { demoMode, supabase } from '@/lib/supabase';
 import { loadJSON, removeKey, saveJSON } from '@/lib/storage';
 import { accediCon, codiceAutorizzazioneApple, esciDaiProvider, providerCorrente, providerDiUtente, salvaProviderCorrente, type SocialProvider } from '@/lib/auth';
-import { caricaConsensi, consensiValidi, registraConsensi, registraConsensiInAttesa, rimuoviConsensiInAttesa, salvaConsensiInAttesa, type Consensi } from '@/lib/privacy';
+import { caricaConsensi, consensiValidi, registraConsensi, registraConsensiInAttesa, rimuoviConsensiInAttesa, salvaConsensiInAttesa, type Consensi, type TipoConsenso } from '@/lib/privacy';
 import { rimuoviTokenAlLogout } from '@/services/notifiche';
 import type { AppUser, NotifPrefs } from '@/types';
 
@@ -46,6 +46,8 @@ interface AppCtx {
   /** Onboarding: 14 anni e informativa accettati, marketing a scelta; name se il profilo non ha nome */
   acceptConsents: (marketing: boolean, name?: string) => Promise<void>;
   setMarketing: (on: boolean) => Promise<void>;
+  /** Consenso all'invio delle domande dell'assistente a Groq (USA); revocabile da Account e privacy */
+  setAssistantConsent: (on: boolean) => Promise<void>;
   setYouthCategory: (id: string | null) => Promise<void>;
   /** Ritorna il codice di conferma della cancellazione */
   deleteAccount: () => Promise<string>;
@@ -332,13 +334,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setConsentState({ uid: u.id, consents: c, status: consensiValidi(c) ? 'ok' : 'mancanti' });
   }, []);
 
-  const setMarketing = useCallback(async (on: boolean) => {
+  const saveConsent = useCallback(async (scelte: Partial<Record<TipoConsenso, boolean>>) => {
     if (!supabase) return;
     const u = await sessionUser();
-    await registraConsensi(u.id, await providerCorrente(u), { marketing: on });
+    await registraConsensi(u.id, await providerCorrente(u), scelte);
     const c = await caricaConsensi(u.id);
     setConsentState({ uid: u.id, consents: c, status: consensiValidi(c) ? 'ok' : 'mancanti' });
   }, []);
+
+  const setMarketing = useCallback((on: boolean) => saveConsent({ marketing: on }), [saveConsent]);
+  const setAssistantConsent = useCallback((on: boolean) => saveConsent({ assistente_ai: on }), [saveConsent]);
 
   const setYouthCategory = useCallback(async (id: string | null) => {
     if (!supabase || !uid) return;
@@ -403,9 +408,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AppCtx>(() => ({
     ready, user, guest, prefs, demoLive: demoOn, noAds, adsHidden, consents, consentStatus,
     signIn, signUp, signInWithProvider, resetPassword, recovering, updatePassword, endRecovery, continueAsGuest, signOut,
-    acceptConsents, setMarketing, setYouthCategory, deleteAccount,
+    acceptConsents, setMarketing, setAssistantConsent, setYouthCategory, deleteAccount,
     updatePrefs, toggleYouth, setDemoLive, setNoAds,
-  }), [ready, user, guest, prefs, demoOn, noAds, adsHidden, consents, consentStatus, signIn, signUp, signInWithProvider, resetPassword, recovering, updatePassword, endRecovery, continueAsGuest, signOut, acceptConsents, setMarketing, setYouthCategory, deleteAccount, updatePrefs, toggleYouth, setDemoLive, setNoAds]);
+  }), [ready, user, guest, prefs, demoOn, noAds, adsHidden, consents, consentStatus, signIn, signUp, signInWithProvider, resetPassword, recovering, updatePassword, endRecovery, continueAsGuest, signOut, acceptConsents, setMarketing, setAssistantConsent, setYouthCategory, deleteAccount, updatePrefs, toggleYouth, setDemoLive, setNoAds]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

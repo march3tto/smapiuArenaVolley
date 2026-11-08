@@ -285,6 +285,12 @@ Deno.serve(async (req) => {
     const storico = pulisciStorico(body?.messages);
     if (!storico) return json({ error: 'Messaggi non validi' }, 400);
 
+    // consenso esplicito all'invio delle domande a Groq (App Store 5.1.2): senza, nessun dato lascia il server
+    const { data: consenso, error: consensoError } = await db.from('consensi_utente_attuali')
+      .select('concesso').eq('utente_id', user.id).eq('tipo', 'assistente_ai').maybeSingle();
+    if (consensoError) throw consensoError;
+    if (consenso?.concesso !== true) return json({ error: 'Consenso all’assistente AI mancante', consenso_richiesto: true }, 403);
+
     const { data: consentito, error: limiteError } = await db.rpc('consuma_domanda_assistente', { limite: LIMITE_GIORNO });
     if (limiteError) throw limiteError;
     if (!consentito) {

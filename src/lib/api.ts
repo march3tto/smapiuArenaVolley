@@ -761,10 +761,20 @@ export interface AssistantMessage {
 }
 
 /** Risposta dell'assistente in chat (Edge Function assistente con Groq, solo utenti autenticati, limite giornaliero) */
+/** La funzione assistente ha rifiutato la domanda: manca il consenso (o è stato revocato da un altro dispositivo) */
+export class ConsensoAssistenteMancante extends Error {}
+
 export async function askAssistant(history: AssistantMessage[]): Promise<{ reply: string; limitReached: boolean }> {
   if (!supabase) throw new Error('Supabase non configurato');
   const { data, error } = await supabase.functions.invoke('assistente', { body: { messages: history.slice(-10) }, timeout: 30000 });
-  if (error) throw error;
+  if (error) {
+    const res = (error as { context?: unknown }).context;
+    if (res instanceof Response && res.status === 403) {
+      const b = (await res.clone().json().catch(() => null)) as { consenso_richiesto?: unknown } | null;
+      if (b?.consenso_richiesto === true) throw new ConsensoAssistenteMancante();
+    }
+    throw error;
+  }
   const d = data as { reply?: unknown; limite_raggiunto?: unknown } | null;
   if (typeof d?.reply !== 'string' || !d.reply) throw new Error('Risposta non valida');
   return { reply: d.reply, limitReached: d.limite_raggiunto === true };

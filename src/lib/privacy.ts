@@ -17,7 +17,8 @@ export const PRIVACY_POLICY_VERSION = extra.privacyPolicyVersion ?? '';
 /** Apre l'informativa nel browser interno all'app */
 export const apriInformativa = () => WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL).catch(() => undefined);
 
-export type TipoConsenso = 'informativa_privacy' | 'eta_14_anni' | 'marketing';
+/** assistente_ai: invio delle domande dell'assistente a Groq Inc. (USA), chiesto prima del primo uso */
+export type TipoConsenso = 'informativa_privacy' | 'eta_14_anni' | 'marketing' | 'assistente_ai';
 
 export interface Consenso {
   concesso: boolean;

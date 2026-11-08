@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, FlatList, KeyboardAvoidingView, Platform, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { RotateCcw, SendHorizontal, Sparkles, X } from 'lucide-react-native';
+import { ExternalLink, RotateCcw, SendHorizontal, ShieldCheck, Sparkles, X } from 'lucide-react-native';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { IconButton } from '@/components/IconButton';
 import { Pressy } from '@/components/Pressy';
 import { Txt } from '@/components/Txt';
-import { askAssistant, type AssistantMessage } from '@/lib/api';
+import { askAssistant, ConsensoAssistenteMancante, type AssistantMessage } from '@/lib/api';
+import { apriInformativa } from '@/lib/privacy';
 import { useApp } from '@/store/AppProvider';
 import { FONT, palette, radius, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -21,7 +22,10 @@ export default function Assistente() {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user } = useApp();
+  const { user, consents, consentStatus, setAssistantConsent } = useApp();
+  // il server ha rifiutato per consenso mancante (es. revocato da un altro dispositivo): si richiede
+  const [askConsent, setAskConsent] = useState(false);
+  const consentito = consents.assistente_ai?.concesso === true && !askConsent;
   // lo storico resta solo in memoria: non viene salvato né sul dispositivo né sul database
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [text, setText] = useState('');
@@ -38,7 +42,14 @@ export default function Assistente() {
       const { reply, limitReached } = await askAssistant(history);
       setMessages([...history, { role: 'assistant', content: reply }]);
       if (limitReached) setBlocked(true);
-    } catch {
+    } catch (e) {
+      if (e instanceof ConsensoAssistenteMancante) {
+        // la domanda non è partita: resta nel campo di testo per quando si accetta
+        setMessages(history.slice(0, -1));
+        setText(history[history.length - 1]?.content ?? '');
+        setAskConsent(true);
+        return;
+      }
       setError('Connessione non riuscita. Riprova.');
     } finally {
       setLoading(false);
@@ -78,6 +89,10 @@ export default function Assistente() {
               <Button label="Accedi o registrati" variant="gold" onPress={() => router.replace('/login')} />
             </Card>
           </View>
+        ) : consentStatus === 'caricamento' ? (
+          <ActivityIndicator style={{ marginTop: space.xl }} color={c.muted} />
+        ) : !consentito ? (
+          <ConsensoAi onAccept={async () => { await setAssistantConsent(true); setAskConsent(false); }} onDecline={() => router.back()} />
         ) : (
           <>
             <FlatList
@@ -181,6 +196,56 @@ function Typing() {
         {dots.map((d, i) => <Animated.View key={i} style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: palette.gold, opacity: d }} />)}
       </View>
       <Txt size={13} color="muted">sta scrivendo…</Txt>
+    </View>
+  );
+}
+
+/**
+ * Consenso esplicito prima del primo uso (App Store 5.1.2, GDPR): a chi vanno le domande, cosa si invia e cosa no.
+ * Registrato in consensi_utente (tipo assistente_ai); la funzione assistente rifiuta le domande senza.
+ */
+function ConsensoAi({ onAccept, onDecline }: { onAccept: () => Promise<void>; onDecline: () => void }) {
+  const { c } = useTheme();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const accept = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await onAccept();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Salvataggio non riuscito. Riprova.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const punto = (t: string) => (
+    <View style={{ flexDirection: 'row', gap: space.sm }}>
+      <Txt size={15} color="muted">•</Txt>
+      <Txt size={15} style={{ flex: 1, lineHeight: 21 }}>{t}</Txt>
+    </View>
+  );
+  return (
+    <View style={{ padding: space.md }}>
+      <Card style={{ gap: space.md }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+          <ShieldCheck size={20} color={c.accent} />
+          <Txt w={700} size={17}>Prima di iniziare</Txt>
+        </View>
+        <Txt size={15} style={{ lineHeight: 21 }}>
+          Per rispondere, l’assistente invia le tue domande a <Txt size={15} w={700}>Groq Inc. (Stati Uniti)</Txt>, un servizio di intelligenza artificiale di terze parti.
+        </Txt>
+        {punto('Inviamo solo il testo delle domande e delle ultime risposte della conversazione: niente nome, email o altri dati del tuo account.')}
+        {punto('L’app non conserva le conversazioni. Non scrivere dati personali nelle domande.')}
+        {punto('Puoi revocare il consenso quando vuoi da Impostazioni › Account e privacy.')}
+        <Pressy onPress={apriInformativa} accessibilityRole="link" style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs, alignSelf: 'flex-start' }}>
+          <Txt w={700} size={14} color="cobalt" style={{ textDecorationLine: 'underline' }}>Informativa privacy</Txt>
+          <ExternalLink size={14} color={c.cobalt} />
+        </Pressy>
+        {error ? <Txt size={13} color="danger">{error}</Txt> : null}
+        <Button label="Accetto e continua" variant="gold" loading={busy} onPress={accept} />
+        <Button label="No, grazie" disabled={busy} onPress={onDecline} />
+      </Card>
     </View>
   );
 }
