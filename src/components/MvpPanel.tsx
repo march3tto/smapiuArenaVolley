@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { LayoutAnimation, Pressable, ScrollView, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Crown, Flame, Heart, Info, Lock, Trophy, Users } from 'lucide-react-native';
+import { ChevronDown, Flame, Heart, Info, Lock, Trophy, Users } from 'lucide-react-native';
 import { Button } from './Button';
 import { Mesh } from './HiddenScore';
 import { ROLE_LABEL } from './LineupPanel';
@@ -33,7 +33,7 @@ export interface MvpTeam {
 }
 
 /**
- * Voto MVP tra le giocatrici di entrambe le squadre, con i punti della partita: in alto il riepilogo (la più votata con i voti, la propria scelta),
+ * Voto MVP tra le giocatrici di entrambe le squadre, con i punti della partita: in alto il riepilogo (la più votata con i voti),
  * poi il carosello delle performer (titolari e chi ha fatto punti) e l'elenco filtrabile per squadra e ricerca; si vota con il cuore.
  * Senza accesso tutto resta visibile ma bloccato: il tocco spiega come votare.
  * Un voto per utente registrato, modificabile; nella partita demo resta solo sul dispositivo.
@@ -126,12 +126,18 @@ export function MvpPanel({ match, awayMatch, teams, events, set, finished, onLea
 
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
+  // pannello "Tutte le giocatrici" (filtri, ricerca ed elenco) chiuso di default; chiudendolo si torna a tutte le giocatrici
+  const [listOpen, setListOpen] = useState(false);
+  const toggleList = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    if (listOpen) { setFilter('all'); setQuery(''); }
+    setListOpen(!listOpen);
+  };
   // tutte le giocatrici votabili delle due squadre, con la squadra di appartenenza
   const everyone = useMemo(() => columns.flatMap((t) => t.list.map((r) => ({ ...r, team: t }))), [columns]);
   // carosello: titolari (e libero) e chi è entrata e ha fatto punti, da entrambe le squadre, per punti della partita
   const performers = useMemo(() => everyone.filter((r) => r.p.zone != null || r.p.isLibero || (r.st?.points ?? 0) > 0)
     .sort((a, b) => (b.st?.points ?? 0) - (a.st?.points ?? 0) || (b.st?.attacks ?? 0) - (a.st?.attacks ?? 0) || (a.p.number ?? 99) - (b.p.number ?? 99)), [everyone]);
-  const voted = mine ? everyone.find((r) => voteId(r.p) === mine) : undefined;
   // la più votata: a parità di voti, quella con più punti
   const leader = best > 0
     ? everyone.filter((r) => counts[voteId(r.p)!] === best).sort((a, b) => (b.st?.points ?? 0) - (a.st?.points ?? 0))[0]
@@ -150,13 +156,6 @@ export function MvpPanel({ match, awayMatch, teams, events, set, finished, onLea
 
   return (
     <View style={{ gap: space.md }}>
-      {canVote ? (
-        <Txt size={12.5} color="muted">
-          {finished ? 'Chi è stata la migliore in campo? ' : 'Chi è la migliore in campo? '}
-          Un voto per partita: tocca il cuore di un&apos;altra giocatrice per cambiarlo, lo stesso per toglierlo.
-        </Txt>
-      ) : null}
-
       {awayMatch ? (
         <View accessibilityRole="alert" style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.sm, borderRadius: radius.sm, backgroundColor: c.fill }}>
           <Info size={16} color={c.muted} />
@@ -183,37 +182,26 @@ export function MvpPanel({ match, awayMatch, teams, events, set, finished, onLea
         </View>
       ) : null}
 
-      {/* riepilogo: a sinistra la più votata con i voti, a destra la propria scelta */}
-      <View style={{ flexDirection: 'row', borderRadius: radius.lg, borderWidth: 1, borderColor: c.line, backgroundColor: c.card }}>
-        <View style={{ flex: 1, minWidth: 0, padding: space.md, gap: space.sm }}>
-          <SectionLabel icon={<Trophy size={14} color={c.accent} />} label="Più votata" />
-          {leader ? (
-            <>
-              <MiniCard r={leader} />
-              <View>
-                <Txt w={900} display size={24} color="accent" tnum>{best} {best === 1 ? 'voto' : 'voti'}</Txt>
-                <Txt size={11.5} color="muted" tnum>su {total} {total === 1 ? 'voto totale' : 'voti totali'}</Txt>
-              </View>
-            </>
-          ) : (
-            <Empty icon={<Trophy size={20} color={c.muted} />} text="Ancora nessun voto per questa partita." />
-          )}
-        </View>
-        <View style={{ width: 1, backgroundColor: c.line }} />
-        <View style={{ flex: 1, minWidth: 0, padding: space.md, gap: space.sm }}>
-          <SectionLabel icon={<Heart size={14} color={c.accent} fill={c.accent} />} label="La tua scelta" />
-          {voted ? (
-            <>
-              <MiniCard r={voted} />
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-                <HeartButton {...rowProps(voted)} name={voted.p.name} />
-                <Txt size={11.5} color="muted" style={{ flex: 1 }}>Tocca il cuore per togliere il voto</Txt>
-              </View>
-            </>
-          ) : (
-            <Empty icon={<Heart size={20} color={c.muted} />} text={canVote ? 'Non hai ancora votato: tocca il cuore di una giocatrice.' : !awayMatch && !windowOpen ? 'Il voto si apre dal 3° set.' : guest ? 'Accedi per scegliere la tua MVP.' : 'Voto non disponibile.'} />
-          )}
-        </View>
+      {/* riepilogo: la più votata, tutto al centro: nome, stemma con il numero, voti */}
+      {/* card compatta al centro, non a tutta larghezza */}
+      <View style={{ alignSelf: 'center', minWidth: 180, maxWidth: 240, borderRadius: radius.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.card,
+        paddingVertical: space.sm + 2, paddingHorizontal: space.md, gap: space.xs + 2, alignItems: 'center' }}>
+        <SectionLabel label="Più votata" />
+        {leader ? (
+          <>
+            <PlayerName name={leader.p.name} size={14} center style={{ alignSelf: 'stretch' }} />
+            {/* spazio per il numero di maglia, che sporge dall'angolo dello stemma */}
+            <View style={{ marginBottom: 6 }}>
+              <Jersey p={leader.p} team={leader.team} size={LEADER_BADGE} gold />
+            </View>
+            {/* voti della giocatrice sul totale dei voti espressi */}
+            <Txt w={900} display size={15} color="accent" tnum center accessibilityLabel={`${best} voti su ${total}`}>
+              {best}/{total} {total === 1 ? 'voto' : 'voti'}
+            </Txt>
+          </>
+        ) : (
+          <Empty icon={<Trophy size={20} color={c.muted} />} text="Ancora nessun voto per questa partita." />
+        )}
       </View>
 
       {performers.length ? (
@@ -225,38 +213,49 @@ export function MvpPanel({ match, awayMatch, teams, events, set, finished, onLea
         </View>
       ) : null}
 
-      <View style={{ gap: space.sm }}>
-        <SectionLabel icon={<Users size={14} color={c.accent} />} label="Tutte le giocatrici" />
-        {/* senza accesso filtri e ricerca sono in sola lettura: il tocco spiega perché */}
-        <Pressable onPress={guest ? warnLocked : undefined} disabled={!guest} accessibilityState={{ disabled: guest }}>
-          <View pointerEvents={guest ? 'none' : 'auto'} style={{ gap: space.sm, opacity: guest ? 0.6 : 1 }}>
-            <SegmentedControl value={filter} onChange={setFilter}
-              options={[{ value: 'all' as Filter, label: 'Tutte' }, ...columns.map((t) => ({ value: t.side as Filter, label: t.name, icon: <TeamBadge name={t.name} logo={t.logo} size={20} /> }))]} />
-            <SearchField value={query} onChange={setQuery} editable={!guest} placeholder="Cerca per nome o numero" label="Cerca una giocatrice per nome o numero di maglia" />
+      {/* pannello espandibile: intestazione sempre visibile, dentro filtri, ricerca ed elenco */}
+      <View style={{ borderRadius: radius.lg, borderWidth: 1, borderColor: c.line, backgroundColor: c.card, overflow: 'hidden' }}>
+        <Pressable onPress={toggleList} accessibilityRole="button" accessibilityState={{ expanded: listOpen }}
+          accessibilityLabel={`Tutte le giocatrici. ${listOpen ? 'Chiudi' : 'Apri'} l'elenco`}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.md }}>
+          <View style={{ flex: 1 }}>
+            <SectionLabel icon={<Users size={14} color={c.accent} />} label="Tutte le giocatrici" />
           </View>
+          <ChevronDown size={18} color={listOpen ? c.accent : c.muted} style={{ transform: [{ rotate: listOpen ? '180deg' : '0deg' }] }} />
         </Pressable>
-        {shown.length ? (
-          <View style={{ gap: space.sm }}>
-            {shown.map((r) => <VoteRow key={r.p.id} p={r.p} st={r.st} team={r.team} best={best} {...rowProps(r)} />)}
+        {listOpen ? (
+          <View style={{ gap: space.sm, paddingHorizontal: space.md, paddingBottom: space.md }}>
+            {/* senza accesso filtri e ricerca sono in sola lettura: il tocco spiega perché */}
+            <Pressable onPress={guest ? warnLocked : undefined} disabled={!guest} accessibilityState={{ disabled: guest }}>
+              <View pointerEvents={guest ? 'none' : 'auto'} style={{ gap: space.sm, opacity: guest ? 0.6 : 1 }}>
+                <SegmentedControl value={filter} onChange={setFilter}
+                  options={[{ value: 'all' as Filter, label: 'Tutte' }, ...columns.map((t) => ({ value: t.side as Filter, label: t.name, icon: <TeamBadge name={t.name} logo={t.logo} size={20} /> }))]} />
+                <SearchField value={query} onChange={setQuery} editable={!guest} placeholder="Cerca per nome o numero" label="Cerca una giocatrice per nome o numero di maglia" />
+              </View>
+            </Pressable>
+            {shown.length ? (
+              <View style={{ gap: space.sm }}>
+                {shown.map((r) => <VoteRow key={r.p.id} p={r.p} st={r.st} team={r.team} best={best} {...rowProps(r)} />)}
+              </View>
+            ) : (
+              <Txt size={12.5} color="muted" center>{query ? 'Nessuna giocatrice trovata.' : 'Formazione non ancora inserita.'}</Txt>
+            )}
           </View>
-        ) : (
-          <Txt size={12.5} color="muted" center>{query ? 'Nessuna giocatrice trovata.' : 'Formazione non ancora inserita.'}</Txt>
-        )}
+        ) : null}
       </View>
-      <Txt size={11.5} color="muted">Punti di questa partita: contano quelli registrati in cronaca con la giocatrice.</Txt>
       {error ? <Txt size={12} color="danger">{error}</Txt> : null}
     </View>
   );
 }
 
+/** Stemma della più votata nel riepilogo */
+const LEADER_BADGE = 36;
+
 type Filter = 'all' | 'us' | 'opp';
 type Ranked = { p: LineupPlayer; st?: PlayerStats; team: MvpTeam };
 type VoteProps = { votes: number; selected: boolean; locked: boolean; busy: boolean; onPress: () => void };
 
-/** Colore della squadra: oro la nostra, blu l'avversaria */
-const teamColor = (side: MvpTeam['side']) => (side === 'us' ? palette.gold : palette.blue);
-
-function SectionLabel({ icon, label }: { icon: ReactNode; label: string }) {
+function SectionLabel({ icon, label }: { icon?: ReactNode; label: string }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
       {icon}
@@ -275,15 +274,13 @@ function Empty({ icon, text }: { icon: ReactNode; text: string }) {
   );
 }
 
-/** Giocatrice nel riepilogo: maglia con stemma, nome e squadra */
-function MiniCard({ r }: { r: Ranked }) {
+/** Nome sulla prima riga, cognome (il resto) sulla seconda; i nomi lunghi riducono il carattere */
+function PlayerName({ name, size, center, style }: { name: string; size: number; center?: boolean; style?: StyleProp<ViewStyle> }) {
+  const [first, ...rest] = name.trim().split(/\s+/);
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
-      <Jersey p={r.p} team={r.team} size={44} gold />
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Txt w={700} size={13.5} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75}>{r.p.name}</Txt>
-        <Txt size={11.5} color="muted" numberOfLines={1}>{r.team.name}</Txt>
-      </View>
+    <View style={style} accessible accessibilityLabel={name}>
+      <Txt w={700} size={size} center={center} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{first}</Txt>
+      {rest.length ? <Txt w={700} size={size} center={center} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{rest.join(' ')}</Txt> : null}
     </View>
   );
 }
@@ -301,24 +298,25 @@ function HeartButton({ selected, locked, busy, onPress, name, votes }: VoteProps
   );
 }
 
-/** Numero di maglia grande su trama a rete, con lo stemma della squadra nell'angolo */
+/** Stemma della squadra grande, con il numero di maglia nell'angolo (se manca, niente numero); gold: numero su fondo oro */
 function Jersey({ p, team, size, gold }: { p: LineupPlayer; team: MvpTeam; size: number; gold?: boolean }) {
   const { c } = useTheme();
+  const n = Math.round(size * 0.46);
   return (
     <View>
-      <View style={{ width: size, height: size, borderRadius: Math.round(size * 0.28), overflow: 'hidden', alignItems: 'center', justifyContent: 'center',
-        backgroundColor: gold ? palette.gold : c.cardAlt, borderWidth: 1.5, borderColor: gold ? palette.gold : c.lineStrong }}>
-        <Mesh width={size} color={gold ? 'rgba(6,26,58,0.16)' : c.line} />
-        <Txt w={900} display size={Math.round(size * 0.5)} color={gold ? palette.onGold : c.text} tnum style={{ lineHeight: Math.round(size * 0.56) }}>{p.number ?? '–'}</Txt>
-      </View>
-      <View style={{ position: 'absolute', right: -6, bottom: -6 }}>
-        <TeamBadge name={team.name} logo={team.logo} size={Math.round(size * 0.36)} />
-      </View>
+      <TeamBadge name={team.name} logo={team.logo} size={size} />
+      {p.number != null ? (
+        <View style={{ position: 'absolute', right: -6, bottom: -6, minWidth: n, height: n, paddingHorizontal: 3, borderRadius: Math.round(n * 0.3), overflow: 'hidden',
+          alignItems: 'center', justifyContent: 'center', backgroundColor: gold ? palette.gold : c.cardAlt, borderWidth: 1.5, borderColor: gold ? palette.gold : c.lineStrong }}>
+          <Mesh width={n} color={gold ? 'rgba(6,26,58,0.16)' : c.line} />
+          <Txt w={900} display size={Math.round(n * 0.56)} color={gold ? palette.onGold : c.text} tnum>{p.number}</Txt>
+        </View>
+      ) : null}
     </View>
   );
 }
 
-/** Card del carosello: posizione per punti e cuore in alto, maglia con stemma, nome e punti su una riga */
+/** Card del carosello: posizione per punti e cuore in alto, nome e cognome al centro, sotto stemma con il numero e punti */
 function PerformerCard({ r, rank, ...vote }: VoteProps & { r: Ranked; rank: number }) {
   const { c } = useTheme();
   const { p, st, team } = r;
@@ -330,23 +328,21 @@ function PerformerCard({ r, rank, ...vote }: VoteProps & { r: Ranked; rank: numb
         backgroundColor: c.card, padding: space.sm, gap: space.sm }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingHorizontal: space.sm, height: 22, borderRadius: radius.pill, backgroundColor: first ? palette.gold : c.fill2 }}>
-          {first ? <Crown size={12} color={palette.onGold} strokeWidth={2.5} /> : null}
           <Txt w={900} display size={15} color={first ? palette.onGold : 'muted'}>{rank}°</Txt>
         </View>
         <HeartButton {...vote} name={p.name} />
       </View>
-      <View style={{ alignSelf: 'center' }}>
-        <Jersey p={p} team={team} size={52} gold={first || vote.selected} />
-      </View>
-      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: space.xs, marginTop: space.xs }}>
-        <Txt w={700} size={12.5} numberOfLines={1} style={{ flex: 1 }}>{p.name}</Txt>
+      {/* al centro nome e cognome; altezza fissa perché le card del carosello restino allineate */}
+      <PlayerName name={p.name} size={14} center style={{ minHeight: 44, justifyContent: 'center' }} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.xs, marginBottom: 6 }}>
+        <Jersey p={p} team={team} size={34} gold={first || vote.selected} />
         <Txt w={700} size={12.5} color="accent" tnum>{pts} pt</Txt>
       </View>
     </Pressy>
   );
 }
 
-/** Card orizzontale di una giocatrice: numero in evidenza, nome, squadra, punti e voti, cuore del voto a destra */
+/** Card orizzontale di una giocatrice: stemma con il numero a sinistra, poi nome, squadra, punti e voti, cuore del voto a destra */
 function VoteRow({ p, st, team, best, ...vote }: VoteProps & { p: LineupPlayer; st?: PlayerStats; team: MvpTeam; best: number }) {
   const { c } = useTheme();
   const leader = vote.votes > 0 && vote.votes === best;
@@ -355,13 +351,10 @@ function VoteRow({ p, st, team, best, ...vote }: VoteProps & { p: LineupPlayer; 
     <Pressy onPress={vote.onPress} disabled={vote.busy} scaleTo={0.98} accessible={false}
       style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.sm, paddingLeft: space.md, borderRadius: radius.md, borderWidth: vote.selected ? 1.5 : 1,
         borderColor: vote.selected ? palette.gold : c.line, backgroundColor: vote.selected ? 'rgba(255,213,3,0.08)' : c.card, overflow: 'hidden' }}>
-      {/* filo del colore della squadra */}
-      <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, backgroundColor: teamColor(team.side) }} />
       <Jersey p={p} team={team} size={40} gold={vote.selected} />
       <View style={{ flex: 1, minWidth: 0, gap: space.xs }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
-          {/* nomi lunghi: vanno su due righe e, se non bastano, il carattere si riduce */}
-          <Txt w={700} size={13.5} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75} style={{ flexShrink: 1 }}>{p.name}</Txt>
+          <PlayerName name={p.name} size={13.5} style={{ flexShrink: 1 }} />
           {leader ? <Trophy size={13} color={c.accent} accessibilityLabel="In testa" /> : null}
         </View>
         <Txt size={11.5} color="muted" tnum numberOfLines={1}>

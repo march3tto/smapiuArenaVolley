@@ -12,13 +12,13 @@ import { MvpSheet } from './MvpSheet';
 import { Pressy } from './Pressy';
 import { TeamBadge } from './TeamBadge';
 import { Txt } from './Txt';
-import { YoutubeIcon } from './YoutubeIcon';
 import { US } from '@/constants';
 import { useLiveLineup } from '@/store/LineupProvider';
 import { useLive } from '@/store/LiveProvider';
 import { usePlayer, useScoreHidden } from '@/store/PlayerProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/colors';
+import { LiveLogos } from './LiveLogos';
 
 /** Card "In diretta" della home: compare solo se esiste una partita live */
 export function LiveCard() {
@@ -97,7 +97,7 @@ export function LiveCard() {
               label={hidden ? 'Diretta aperta' : 'Guarda la diretta'}
               sublabel={hidden ? '(punteggio oscurato)' : undefined}
               size="sm"
-              icon={<YoutubeIcon size={22} />}
+              icon={<LiveLogos />}
               // il video si apre nella schermata Live, dentro l'app
               // player già aperto: il tocco non fa nulla (no-op esplicito, così non passa alla card che apre la Live)
               onPress={hidden ? () => {} : () => { player.open(m.youtubeLiveId!, `${left.name} – ${right.name}`); router.push('/live'); }}

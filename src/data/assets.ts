@@ -13,6 +13,8 @@ export const COMPETITION_LOGOS_LIGHT: Record<string, number> = {
 };
 
 export const LOGO_SMAPIU: number = require('../../assets/brand/smapiu-white.png');
+/** Emblema FIPAV (solo il simbolo, senza scritta): pulsanti della diretta */
+export const LOGO_FIPAV: number = require('../../assets/brand/fipav.png');
 /** Foto di squadra della pagina Organigramma */
 /** Foto della pagina Storia */
 export const STORIA_PHOTO: number = require('../../assets/brand/storia.jpg');

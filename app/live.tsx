@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, AppState, RefreshControl, ScrollView, View, useWindowDimensions, type HostInstance } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MonitorPlay, Plus, RotateCcw, Timer, Trophy, Volleyball } from 'lucide-react-native';
+import { Plus, RotateCcw, Timer, Trophy, Volleyball } from 'lucide-react-native';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -29,6 +29,7 @@ import { usePlayer, useScoreHidden } from '@/store/PlayerProvider';
 import { palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { LineupPlayer, PointDetail } from '@/types';
+import { LiveLogos } from '@/components/LiveLogos';
 
 /** Partite di cui la diretta video si è già aperta da sola: chiusa a mano, non si riapre tornando sulla schermata */
 const autoOpened = new Set<string>();
@@ -213,7 +214,7 @@ export default function Live() {
   
           <View style={{ gap: space.sm, alignItems: 'center' }}>
             {m.youtubeLiveId ? (
-              <Button label={hidden ? 'Diretta aperta' : 'Guarda la diretta'} sublabel={hidden ? '(punteggio oscurato)' : undefined} variant="gold" icon={<MonitorPlay size={18} color={palette.onGold} />}
+              <Button label={hidden ? 'Diretta aperta' : 'Guarda la diretta'} sublabel={hidden ? '(punteggio oscurato)' : undefined} variant="gold" icon={<LiveLogos />}
                 onPress={() => player.open(m.youtubeLiveId!, `${L.name} – ${R.name}`)} />
             ) : null}
             {live.canChooseServe ? (
