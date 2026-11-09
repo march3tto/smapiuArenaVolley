@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, FlatList, KeyboardAvoidingView, Platform, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { ExternalLink, RotateCcw, SendHorizontal, ShieldCheck, Sparkles, X } from 'lucide-react-native';
+import { ExternalLink, RotateCcw, SendHorizontal, ShieldCheck, X } from 'lucide-react-native';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { IconButton } from '@/components/IconButton';
 import { Pressy } from '@/components/Pressy';
 import { Txt } from '@/components/Txt';
 import { askAssistant, ConsensoAssistenteMancante, type AssistantMessage } from '@/lib/api';
+import { useAssistantAvatar } from '@/lib/avatar';
 import { apriInformativa } from '@/lib/privacy';
 import { useApp } from '@/store/AppProvider';
 import { FONT, palette, radius, space } from '@/theme/colors';
@@ -69,9 +71,7 @@ export default function Assistente() {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: c.bg }}>
       <View style={{ flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center', paddingTop: Platform.OS === 'ios' ? space.lg : insets.top + space.md }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.md, paddingBottom: space.md }}>
-          <View style={{ width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.navy }}>
-            <Sparkles size={20} color={palette.gold} />
-          </View>
+          <Avatar size={44} />
           <View style={{ flex: 1 }}>
             <Txt w={800} size={22} style={{ letterSpacing: -0.4 }}>Assistente</Txt>
             <Txt size={13} color="muted">Partite, squadra, news e pallavolo</Txt>
@@ -147,16 +147,37 @@ export default function Assistente() {
   );
 }
 
+/** Volto dell'assistente: cerchio oro con l'illustrazione */
+function Avatar({ size = 30 }: { size?: number }) {
+  const { source } = useAssistantAvatar();
+  return (
+    <View style={{ width: size, height: size, borderRadius: size / 2, overflow: 'hidden', backgroundColor: palette.gold }}>
+      <Image source={source} style={{ width: size, height: size }} contentFit="cover" accessibilityIgnoresInvertColors />
+    </View>
+  );
+}
+
+/** Le risposte dell'assistente hanno il suo avatar a sinistra, allineato in basso */
+function ConAvatar({ children }: { children: React.ReactNode }) {
+  return (
+    <View style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, maxWidth: '92%' }}>
+      <Avatar />
+      <View style={{ flexShrink: 1 }}>{children}</View>
+    </View>
+  );
+}
+
 function Bubble({ message }: { message: AssistantMessage }) {
   const { c } = useTheme();
   const mine = message.role === 'user';
-  return (
-    <View style={{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: '86%', paddingHorizontal: space.md, paddingVertical: space.sm, borderRadius: radius.md,
+  const bubble = (
+    <View style={{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: mine ? '86%' : '100%', paddingHorizontal: space.md, paddingVertical: space.sm, borderRadius: radius.md,
       borderBottomRightRadius: mine ? 6 : radius.md, borderBottomLeftRadius: mine ? radius.md : 6,
       backgroundColor: mine ? palette.gold : c.card, borderWidth: mine ? 0 : 1, borderColor: c.line }}>
       <Txt size={15} color={mine ? palette.onGold : c.text} selectable>{message.content}</Txt>
     </View>
   );
+  return mine ? bubble : <ConAvatar>{bubble}</ConAvatar>;
 }
 
 /** Domande pronte quando la chat è vuota */
@@ -190,6 +211,7 @@ function Typing() {
     return () => anim.stop();
   }, [dots]);
   return (
+    <ConAvatar>
     <View accessibilityLabel="L’assistente sta scrivendo" style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.md, paddingVertical: space.md,
       borderRadius: radius.md, borderBottomLeftRadius: 6, backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
       <View style={{ flexDirection: 'row', gap: space.xs }}>
@@ -197,6 +219,7 @@ function Typing() {
       </View>
       <Txt size={13} color="muted">sta scrivendo…</Txt>
     </View>
+    </ConAvatar>
   );
 }
 
