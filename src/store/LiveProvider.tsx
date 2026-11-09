@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
-import { LIVE_EVENTS_MAX, demoRevision, fetchLive, newId, pushLiveNote, setFirstServe, subscribeDemo, subscribeLive, type DemoChannel, withAction } from '@/lib/api';
+import { LIVE_EVENTS_MAX, demoRevision, fetchLive, newId, pushLiveNote, resubscribable, setFirstServe, subscribeDemo, subscribeLive, type DemoChannel, withAction } from '@/lib/api';
 import { hasSupabase } from '@/lib/supabase';
 import { demoLive as demoInitial } from '@/data/mock';
 import { firstServer, pointWinners, rotationState } from '@/lib/rotations';
@@ -59,6 +59,8 @@ interface LiveCtx extends LiveState {
   canChooseServe: boolean;
   /** Sceglie la squadra al servizio sullo 0-0 del set in corso */
   chooseServe: (side: 'us' | 'opp') => void;
+  /** Rilegge punteggio, set e cronaca; prima riapre il canale Realtime se non è più SUBSCRIBED */
+  refresh: () => Promise<void>;
 }
 
 const Ctx = createContext<LiveCtx | null>(null);
@@ -228,7 +230,9 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   const saveQueue = useRef<Promise<void>>(Promise.resolve());
   const pending = useRef(0);
   const failed = useRef(false);
-  const reload = useRef<() => void>(() => {});
+  const reload = useRef<() => Promise<void>>(async () => {});
+  // riapre il canale Realtime della diretta se è caduto (es. iOS in background)
+  const ensureRealtime = useRef<() => void>(() => {});
 
   // Carica lo stato della partita live (demo o Supabase Realtime).
   // Dipende solo dall'id: la partita viene ricreata a ogni ricaricamento dei dati e non deve far ripartire la diretta.
@@ -237,12 +241,13 @@ export function LiveProvider({ children }: { children: ReactNode }) {
     if (!liveId) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- reset insieme alle sottoscrizioni Realtime della partita (stesso effetto)
       setState(EMPTY);
-      reload.current = () => {};
+      reload.current = async () => {};
       return;
     }
     if (isDemo) {
       setState(DEMO_START());
-      reload.current = () => {};
+      // demo: lo stato arriva dal canale broadcast, che realtime-js ricollega da solo (non va chiuso, vedi subscribeDemo)
+      reload.current = async () => {};
       demoRev.current = 0;
       if (!hasSupabase) return;
       const ch = subscribeDemo<LiveState>(
@@ -304,7 +309,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
     };
     reload.current = load;
     load();
-    const unsub = subscribeLive(
+    const sub = resubscribable(() => subscribeLive(
       liveId,
       (e) =>
         setState((s) => {
@@ -319,12 +324,21 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       (a) => setState((s) => (s.events.some((x) => x.id === a.eventId && !x.detail)
         ? { ...s, events: s.events.map((x) => (x.id === a.eventId ? withAction(x, a) : x)) }
         : s)),
-    );
+    ));
+    ensureRealtime.current = sub.ensure;
     return () => {
       active = false;
-      unsub();
+      ensureRealtime.current = () => {};
+      reload.current = async () => {};
+      sub.close();
     };
   }, [liveId, isDemo]);
+
+  // prima il canale (così non si perde niente di quello che arriva durante la lettura), poi la lettura dal database
+  const refresh = useCallback(async () => {
+    ensureRealtime.current();
+    await reload.current();
+  }, []);
 
   /** Demo condivisa: manda il nuovo stato agli altri dispositivi */
   const shareDemo = useCallback((next: LiveState) => {
@@ -442,8 +456,9 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       resetDemo,
       canChooseServe: (scoringDemo || scoringLive) && atStart,
       chooseServe,
+      refresh,
     };
-  }, [state, liveMatch, lastPoint, scoringDemo, autoScore, scoringLive, saveError, addPoint, addNote, timeout, callTimeout, resetDemo, chooseServe]);
+  }, [state, liveMatch, lastPoint, scoringDemo, autoScore, scoringLive, saveError, addPoint, addNote, timeout, callTimeout, resetDemo, chooseServe, refresh]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -1,5 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { demoData, emptyData, fetchStandings, loadAll, subscribeMatches, subscribeStandings, type AppData } from '@/lib/api';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { demoData, emptyData, fetchStandings, loadAll, resubscribable, subscribeMatches, subscribeStandings, type AppData } from '@/lib/api';
 import { demoMode } from '@/lib/supabase';
 import * as mock from '@/data/mock';
 import { useApp } from './AppProvider';
@@ -8,6 +8,7 @@ import type { Match } from '@/types';
 interface DataCtx extends AppData {
   loading: boolean;
   error: string | null;
+  /** Ricarica tutti i dati; prima riapre i canali Realtime caduti (es. app tornata dal background su iOS) */
   refresh: () => Promise<void>;
   /** Partita con status 'live' (la home mostra la diretta solo se esiste) */
   liveMatch: Match | null;
@@ -20,8 +21,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<AppData>(() => (demoMode ? demoData() : emptyData()));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // riapre i canali Realtime di partite e classifica se non sono più SUBSCRIBED
+  const ensureRealtime = useRef<() => void>(() => {});
 
   const refresh = useCallback(async () => {
+    ensureRealtime.current();
     setLoading(true);
     try {
       setData(await loadAll());
@@ -38,23 +42,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- caricamento dati da Supabase all'apertura (lo stato si aggiorna a fetch finita)
     refresh();
     // Se una partita cambia stato (es. diventa 'live') si ricarica in automatico
-    return subscribeMatches(() => {
+    const matches = resubscribable(() => subscribeMatches(() => {
       refresh();
-    });
+    }));
+    // La classifica la ricalcola il database a ogni risultato: si ricarica solo lei
+    const standings = resubscribable(() => subscribeStandings(() => {
+      fetchStandings()
+        .then((rows) => {
+          if (rows) setData((d) => ({ ...d, standings: rows }));
+        })
+        .catch((e) => console.warn('Classifica non aggiornata', e));
+    }));
+    ensureRealtime.current = () => {
+      matches.ensure();
+      standings.ensure();
+    };
+    return () => {
+      ensureRealtime.current = () => {};
+      matches.close();
+      standings.close();
+    };
   }, [refresh]);
-
-  // La classifica la ricalcola il database a ogni risultato: si ricarica solo lei
-  useEffect(
-    () =>
-      subscribeStandings(() => {
-        fetchStandings()
-          .then((standings) => {
-            if (standings) setData((d) => ({ ...d, standings }));
-          })
-          .catch((e) => console.warn('Classifica non aggiornata', e));
-      }),
-    [],
-  );
 
   const liveMatch = useMemo(() => {
     const real = data.matches.find((m) => m.status === 'live');

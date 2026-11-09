@@ -441,6 +441,49 @@ export async function fetchGiornateGirone(girone: string): Promise<number[]> {
   return [...new Set(((data as Row[] | null) ?? []).map((r) => num(r.giornata)).filter((n): n is number => n != null))].sort((a, b) => a - b);
 }
 
+// ---------- realtime ----------
+
+/** Sottoscrizione Realtime con il suo stato: healthy() è false se il canale non è (più) SUBSCRIBED */
+export interface Subscription {
+  close: () => void;
+  healthy: () => boolean;
+}
+
+/** Tempo concesso a un canale appena aperto per arrivare a SUBSCRIBED prima di considerarlo caduto */
+const JOIN_GRACE_MS = 10000;
+
+/** Sottoscrive il canale e ne segue lo stato (su iOS in background la connessione cade: CHANNEL_ERROR, TIMED_OUT o CLOSED) */
+function tracked(ch: RealtimeChannel): Subscription {
+  const client = supabase!;
+  const openedAt = Date.now();
+  let status: string | null = null;
+  ch.subscribe((s) => {
+    status = s;
+  });
+  return {
+    close: () => {
+      client.removeChannel(ch);
+    },
+    healthy: () => (status === null ? Date.now() - openedAt < JOIN_GRACE_MS : status === 'SUBSCRIBED' && ch.state === 'joined'),
+  };
+}
+
+const NO_SUBSCRIPTION: Subscription = { close: () => {}, healthy: () => true };
+
+/** Sottoscrizione che si può rifare: ensure() rimuove il canale e lo riapre se non è più SUBSCRIBED (true se l'ha riaperto) */
+export function resubscribable(open: () => Subscription): { ensure: () => boolean; close: () => void } {
+  let sub = open();
+  return {
+    ensure: () => {
+      if (sub.healthy()) return false;
+      sub.close();
+      sub = open();
+      return true;
+    },
+    close: () => sub.close(),
+  };
+}
+
 // ---------- classifica ----------
 
 /** Classifica delle stagioni correnti (calcolata dal database dai risultati, vedi calcola_classifica) */
@@ -456,29 +499,19 @@ export async function fetchStandings(): Promise<Standing[] | null> {
 }
 
 /** Realtime: la classifica viene ricalcolata dal database a ogni risultato */
-export function subscribeStandings(onChange: () => void): () => void {
-  if (!supabase) return () => {};
-  const client = supabase;
-  const ch = client
+export function subscribeStandings(onChange: () => void): Subscription {
+  if (!supabase) return NO_SUBSCRIPTION;
+  return tracked(supabase
     .channel(`classifiche-${Math.random().toString(36).slice(2, 8)}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: T.classifiche }, onChange)
-    .subscribe();
-  return () => {
-    client.removeChannel(ch);
-  };
+    .on('postgres_changes', { event: '*', schema: 'public', table: T.classifiche }, onChange));
 }
 
 /** Aggiorna quando cambia una partita (es. stato -> 'live' o 'conclusa') */
-export function subscribeMatches(onChange: () => void): () => void {
-  if (!supabase) return () => {};
-  const client = supabase;
-  const ch = client
+export function subscribeMatches(onChange: () => void): Subscription {
+  if (!supabase) return NO_SUBSCRIPTION;
+  return tracked(supabase
     .channel(`partite-${Math.random().toString(36).slice(2, 8)}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: T.partite }, onChange)
-    .subscribe();
-  return () => {
-    client.removeChannel(ch);
-  };
+    .on('postgres_changes', { event: '*', schema: 'public', table: T.partite }, onChange));
 }
 
 // ---------- diretta ----------
@@ -584,10 +617,9 @@ export async function setFirstServe(matchId: string, set: number, side: 'us' | '
 }
 
 /** Realtime: nuovi eventi di cronaca e aggiornamenti dei set (tabelle nella pubblicazione supabase_realtime) */
-export function subscribeLive(matchId: string, onEvent: (e: LiveEvent) => void, onSets: () => void, onAction: (a: LiveAction) => void): () => void {
-  if (!supabase) return () => {};
-  const client = supabase;
-  const ch: RealtimeChannel = client
+export function subscribeLive(matchId: string, onEvent: (e: LiveEvent) => void, onSets: () => void, onAction: (a: LiveAction) => void): Subscription {
+  if (!supabase) return NO_SUBSCRIPTION;
+  return tracked(supabase
     .channel(`live-${matchId}-${Math.random().toString(36).slice(2, 8)}`)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: T.eventiLive, filter: `partita_id=eq.${matchId}` }, (p) =>
       onEvent(mapEvent(p.new as Row)),
@@ -596,11 +628,7 @@ export function subscribeLive(matchId: string, onEvent: (e: LiveEvent) => void, 
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: T.azioniPunto, filter: `partita_id=eq.${matchId}` }, (p) => {
       const a = mapAction(p.new as Row);
       if (a) onAction(a);
-    })
-    .subscribe();
-  return () => {
-    client.removeChannel(ch);
-  };
+    }));
 }
 
 /** Canale della partita demo condivisa: punteggio ('live') o formazioni ('formazioni') */

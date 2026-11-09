@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { Animated, ScrollView, View, useWindowDimensions, type HostInstance } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, AppState, RefreshControl, ScrollView, View, useWindowDimensions, type HostInstance } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MonitorPlay, Plus, RotateCcw, Timer, Trophy, Volleyball } from 'lucide-react-native';
@@ -22,6 +22,7 @@ import { US } from '@/constants';
 import { hasSupabase } from '@/lib/supabase';
 import { rotateZone } from '@/lib/volley';
 import { useApp } from '@/store/AppProvider';
+import { useData } from '@/store/DataProvider';
 import { PHASE_LABEL, TIMEOUT_MS, ZONE_LABEL, actionLabel, detailLine, teamNames, useLive } from '@/store/LiveProvider';
 import { useLiveLineup } from '@/store/LineupProvider';
 import { usePlayer, useScoreHidden } from '@/store/PlayerProvider';
@@ -33,7 +34,7 @@ import type { LineupPlayer, PointDetail } from '@/types';
 const autoOpened = new Set<string>();
 
 export default function Live() {
-  const { c } = useTheme();
+  const { c, mode } = useTheme();
   const insets = useSafeAreaInsets();
   const live = useLive();
   const m = live.match;
@@ -68,13 +69,60 @@ export default function Live() {
     openStream(streamId, `${m.homeAway === 'casa' ? m.usName ?? US : m.opponent} – ${m.homeAway === 'casa' ? m.opponent : m.usName ?? US}`);
   }, [m, streamId, openStream]);
 
+  // Ricaricamento della diretta: partite (con quella in corso) e classifica, poi punteggio, set e cronaca.
+  // Un solo caricamento alla volta: chi arriva mentre è in corso aspetta quello (niente query doppie).
+  const refreshData = useData().refresh;
+  const refreshLive = live.refresh;
+  const inFlight = useRef<Promise<void> | null>(null);
+  const loadLiveData = useCallback(() => {
+    if (inFlight.current) return inFlight.current;
+    const run = Promise.all([refreshData(), refreshLive()])
+      .then(() => {})
+      .finally(() => {
+        inFlight.current = null;
+      });
+    inFlight.current = run;
+    return run;
+  }, [refreshData, refreshLive]);
+  // trascinando verso il basso: lo spinner si chiude sempre, anche se la lettura non riesce
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await loadLiveData();
+    } catch (e) {
+      console.warn('Diretta non aggiornata', e);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refreshing, loadLiveData]);
+  // all'apertura e quando l'app torna dal background (su iOS la connessione Realtime cade): si rilegge tutto
+  useEffect(() => {
+    const silent = () => loadLiveData().catch((e: unknown) => console.warn('Diretta non aggiornata', e));
+    silent();
+    let prev = AppState.currentState;
+    const sub = AppState.addEventListener('change', (next) => {
+      if (prev === 'background' && next === 'active') silent();
+      prev = next;
+    });
+    return () => sub.remove();
+  }, [loadLiveData]);
+  // colori sociali: giallo sul fondo scuro, blu sul chiaro (iOS); su Android freccia gialla e blu su cerchio blu notte
+  const refreshControl = (
+    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={mode === 'dark' ? palette.gold : palette.blue}
+      colors={[palette.gold, palette.blue]} progressBackgroundColor={palette.navy} />
+  );
+
   if (!m) {
     return (
-      <View style={{ flex: 1, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center', padding: space.lg, gap: space.sm }}>
+      // scorrevole solo per il pull-to-refresh: il contenuto resta centrato come prima
+      <ScrollView style={{ flex: 1, backgroundColor: c.bg }} refreshControl={refreshControl}
+        contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: space.lg, gap: space.sm }}>
         <Volleyball size={30} color={c.accent} />
         <Txt w={700} size={18}>Nessuna partita in diretta</Txt>
         <Txt color="muted" center>Quando una partita è in corso la trovi qui, punto per punto.</Txt>
-      </View>
+      </ScrollView>
     );
   }
 
@@ -106,7 +154,7 @@ export default function Live() {
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       {/* il video resta fisso in alto mentre sotto scorrono punteggio e cronaca */}
       <PlayerSlot />
-      <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ padding: space.md, gap: space.md, paddingBottom: insets.bottom + space.xl, width: '100%', maxWidth: 900, alignSelf: 'center' }}>
+      <ScrollView style={{ flex: 1, backgroundColor: c.bg }} refreshControl={refreshControl} contentContainerStyle={{ padding: space.md, gap: space.md, paddingBottom: insets.bottom + space.xl, width: '100%', maxWidth: 900, alignSelf: 'center' }}>
         <Card style={{ gap: space.md, borderColor: 'rgba(255,213,3,0.5)', borderWidth: 1.5 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm }}>
             {live.finished ? <Trophy size={14} color={c.accent} /> : <LiveDot />}
