@@ -67,3 +67,6 @@ modules/*/ios/build/
 
 # archivi locali di foto (mai nel repository: possono contenere immagini di minorenni)
 supabase/giovanili/
+
+# screenshot e grafiche per gli store (contengono foto delle atlete)
+docs/store/

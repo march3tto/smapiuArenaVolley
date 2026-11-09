@@ -11,9 +11,8 @@ Il dettaglio delle configurazioni è in [gdpr/README.md](gdpr/README.md).
 
 ## 1. Prima di pubblicare sugli store (bloccanti)
 
-- [ ] **Pubblicare le pagine privacy**: unire il branch in `main` e attivare GitHub Pages
-  (Settings > Pages > Source: "GitHub Actions"). Verificare che si aprano
-  https://march3tto.github.io/smapiuArenaVolley/privacy/ e `/elimina-account/`.
+- [x] **Pagine pubbliche online** (GitHub Pages da GitHub Actions, workflow `pagine.yml`): verificate il 09/11/2026
+  https://march3tto.github.io/smapiuArenaVolley/ (pagina di supporto con Assistenza), `/privacy/` e `/elimina-account/`.
 - [x] **Edge Function `elimina-account` pubblicata** (16/10/2026, verifica JWT attiva; rifiuta chiamate senza utente).
   Se si modifica il codice: `supabase functions deploy elimina-account`.
 - [ ] **Provare la cancellazione dall'app** con un utente di prova (vedi sotto, "Prova completa").
