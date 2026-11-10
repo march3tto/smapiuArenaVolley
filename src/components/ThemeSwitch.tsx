@@ -2,19 +2,30 @@ import { useEffect, useState } from 'react';
 import { Animated, Pressable, View } from 'react-native';
 import { blue, palette } from '@/theme/colors';
 
-const W = 76;
-const H = 34;
-const KNOB = H - 6;
+/** Scala dell'interruttore: 0.8 = 20% più piccolo del disegno originale (76×34) */
+const S = 0.8;
+/** Misure condivise con AppSwitch: tutti gli interruttori dell'app sono grandi uguali */
+export const SWITCH_W = 76 * S;
+export const SWITCH_H = 34 * S;
+export const SWITCH_PAD = 3 * S;
+const W = SWITCH_W;
+const H = SWITCH_H;
+/** Margine del sole/luna dal bordo */
+const PAD = SWITCH_PAD;
+const KNOB = H - PAD * 2;
 
 /** Cielo di giorno e di notte: tinte piene della palette blu */
 const DAY = blue[200];
 const NIGHT = blue[800];
+const scale = (d: { x: number; y: number; s: number }) => ({ x: d.x * S, y: d.y * S, s: d.s * S });
 const STARS = [
   { x: 10, y: 8, s: 2.5 }, { x: 20, y: 20, s: 2 }, { x: 31, y: 9, s: 3 }, { x: 14, y: 26, s: 1.5 }, { x: 38, y: 22, s: 2 },
-];
+].map(scale);
 const CLOUDS = [
   { x: 40, y: 22, s: 16 }, { x: 52, y: 17, s: 20 }, { x: 64, y: 21, s: 18 },
-];
+].map(scale);
+/** Crateri della luna */
+const CRATERS = [{ x: 6, y: 6, s: 7 }, { x: 13, y: 15, s: 9 }, { x: 18, y: 7, s: 4 }].map(scale);
 
 /**
  * Interruttore della modalità scura illustrato: di giorno sole a sinistra su cielo chiaro con nuvole,
@@ -48,13 +59,13 @@ export function ThemeSwitch({ dark, onChange }: { dark: boolean; onChange: (dark
           ))}
         </Animated.View>
         {/* sole ↔ luna */}
-        <Animated.View style={{ position: 'absolute', top: 3, left: 3, width: KNOB, height: KNOB,
-          transform: [{ translateX: t.interpolate({ inputRange: [0, 1], outputRange: [0, W - KNOB - 6] }) }] }}>
+        <Animated.View style={{ position: 'absolute', top: PAD, left: PAD, width: KNOB, height: KNOB,
+          transform: [{ translateX: t.interpolate({ inputRange: [0, 1], outputRange: [0, W - KNOB - PAD * 2] }) }] }}>
           <Animated.View style={[fill, { borderRadius: KNOB / 2, backgroundColor: palette.gold, opacity: day }]} />
           <Animated.View style={[fill, { borderRadius: KNOB / 2, backgroundColor: blue[100], opacity: night }]}>
-            <View style={{ position: 'absolute', left: 6, top: 6, width: 7, height: 7, borderRadius: 4, backgroundColor: blue[300] }} />
-            <View style={{ position: 'absolute', left: 13, top: 15, width: 9, height: 9, borderRadius: 5, backgroundColor: blue[300] }} />
-            <View style={{ position: 'absolute', left: 18, top: 7, width: 4, height: 4, borderRadius: 2, backgroundColor: blue[300] }} />
+            {CRATERS.map((k, i) => (
+              <View key={i} style={{ position: 'absolute', left: k.x, top: k.y, width: k.s, height: k.s, borderRadius: k.s / 2, backgroundColor: blue[300] }} />
+            ))}
           </Animated.View>
         </Animated.View>
         {/* bordo sopra il disegno (non sposta sole e luna): blu di giorno, giallo di notte */}

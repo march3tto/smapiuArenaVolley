@@ -2,14 +2,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, ScrollView, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { CalendarDays, ChevronLeft } from 'lucide-react-native';
 import { Card } from '@/components/Card';
 import { HiddenScore } from '@/components/HiddenScore';
+import { IconButton } from '@/components/IconButton';
 import { LiveDot } from '@/components/LiveDot';
 import { Pressy } from '@/components/Pressy';
 import { TeamBadge } from '@/components/TeamBadge';
 import { Txt } from '@/components/Txt';
-import { GIRONE, LEAGUE } from '@/constants';
+import { GIRONE } from '@/constants';
 import { fetchGiornata, fetchGiornateGirone } from '@/lib/api';
 import { longDate, timeOf } from '@/lib/format';
 import { useScoreHidden } from '@/store/PlayerProvider';
@@ -17,12 +18,17 @@ import { useTheme } from '@/theme/ThemeProvider';
 import type { LeagueGame } from '@/types';
 import { space } from '@/theme/colors';
 
+/** Altezza della barra con freccia e titolo */
+const HEADER_H = 44;
+
 /**
  * Tutte le gare di una giornata del girone caricate su Supabase (tabella partite, anche tra avversarie).
- * Scorrendo a destra e a sinistra (o con le frecce) si passa alle altre giornate senza uscire dalla schermata.
+ * Scorrendo a destra e a sinistra si passa alle altre giornate senza uscire dalla schermata (il titolo in alto segue la giornata).
  */
 export default function Giornata() {
   const { c } = useTheme();
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { width } = useWindowDimensions();
   const params = useLocalSearchParams<{ numero: string; girone?: string }>();
   const start = Number(params.numero);
@@ -55,11 +61,6 @@ export default function Giornata() {
     list.current?.scrollToOffset({ offset: i * width, animated: false });
     positioned.current = true;
   };
-  const goTo = (i: number) => {
-    if (!days || i < 0 || i >= days.length) return;
-    list.current?.scrollToIndex({ index: i, animated: true });
-    setCurrent(days[i]);
-  };
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     if (!positioned.current) return;
     const i = Math.round(e.nativeEvent.contentOffset.x / width);
@@ -72,26 +73,22 @@ export default function Giornata() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [width]);
 
-  const arrow = (dir: -1 | 1) => {
-    const enabled = !!days && index + dir >= 0 && index + dir < days.length;
-    const Icon = dir < 0 ? ChevronLeft : ChevronRight;
-    return (
-      <Pressy onPress={() => goTo(index + dir)} disabled={!enabled} scaleTo={0.88} accessibilityRole="button"
-        accessibilityLabel={dir < 0 ? 'Giornata precedente' : 'Giornata successiva'} accessibilityState={{ disabled: !enabled }}
-        style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: c.fill, opacity: enabled ? 1 : 0.35 }}>
-        <Icon size={18} color={c.text} />
-      </Pressy>
-    );
-  };
-
   return (
     <>
-      <Stack.Screen options={{ title: Number.isFinite(current) ? `${current}ª giornata` : 'Giornata' }} />
+      {/* barra compatta disegnata qui (quella di sistema su iOS è più alta e non si può ridurre): più spazio per le partite */}
+      <Stack.Screen options={{ headerShown: false }} />
       <View style={{ flex: 1, backgroundColor: c.bg }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.md, paddingTop: space.sm, width: '100%', maxWidth: 600, alignSelf: 'center' }}>
-          {arrow(-1)}
-          <Txt size={13} color="muted" center style={{ flex: 1 }} numberOfLines={1}>{LEAGUE} · {girone}</Txt>
-          {arrow(1)}
+        <View style={{ paddingTop: insets.top, backgroundColor: c.bg }}>
+          <View style={{ height: HEADER_H, flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.md, width: '100%', maxWidth: 600, alignSelf: 'center' }}>
+            <IconButton label="Indietro" size={34} onPress={() => (router.canGoBack() ? router.back() : router.replace('/risultati'))}>
+              <ChevronLeft size={20} color={c.text} />
+            </IconButton>
+            <Txt w={700} size={17} display={false} center numberOfLines={1} style={{ flex: 1 }} accessibilityRole="header">
+              {Number.isFinite(current) ? `${current}ª giornata` : 'Giornata'}
+            </Txt>
+            {/* spazio pari al pulsante: il titolo resta al centro */}
+            <View style={{ width: 34 }} />
+          </View>
         </View>
         {days && days.length > 1 ? (
           <FlatList
@@ -152,17 +149,12 @@ function GiornataPage({ numero, girone }: { numero: number; girone: string }) {
     fetchGames().finally(() => setLoading(false));
   };
 
-  const phase = games?.[0]?.phase;
-
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: c.bg }}
-      contentContainerStyle={{ padding: space.md, gap: space.md, paddingBottom: insets.bottom + space.xl, width: '100%', maxWidth: 600, alignSelf: 'center' }}
+      contentContainerStyle={{ padding: space.md, paddingTop: space.xs, gap: space.md, paddingBottom: insets.bottom + space.xl, width: '100%', maxWidth: 600, alignSelf: 'center' }}
       refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={c.accent} colors={[c.accent]} />}
     >
-      <Txt w={700} size={15} center>
-        {numero}ª giornata{phase ? ` · ${phase === 'ritorno' ? 'ritorno' : 'andata'}` : ''}
-      </Txt>
       {error ? <Txt size={12.5} color="danger" center>{error}</Txt> : null}
       {games == null ? (
         error ? null : <ActivityIndicator color={c.accent} style={{ marginTop: space.xl }} />

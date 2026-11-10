@@ -11,7 +11,7 @@ import { SegmentedControl } from './SegmentedControl';
 import { matchPlayerStats, type PlayerStats } from './StatsPanel';
 import { TeamBadge } from './TeamBadge';
 import { useToast } from './Toast';
-import { Txt } from './Txt';
+import { Txt, type TxtProps } from './Txt';
 import { fetchMvpVotes, unvoteMvp, voteMvp } from '@/lib/api';
 import { hasSupabase } from '@/lib/supabase';
 import { useApp } from '@/store/AppProvider';
@@ -39,7 +39,7 @@ export interface MvpTeam {
  * Un voto per utente registrato, modificabile; nella partita demo resta solo sul dispositivo.
  * awayMatch: in trasferta il pannello si vede (giocatrici e punti) ma il voto è disattivato.
  * set: set in corso; il voto si apre dal 3° set (finestra controllata anche dal database, voto_mvp_valido) e resta aperto a partita finita.
- * onLeave: chiude il contenitore (es. il pannello dal basso della diretta) prima di andare all'accesso.
+ * onLeave: chiude il contenitore (es. la finestra del voto sopra la diretta) prima di andare all'accesso.
  */
 export function MvpPanel({ match, awayMatch, teams, events, set, finished, onLeave }: { match: Match; awayMatch?: boolean; teams: MvpTeam[]; events: LiveEvent[]; set: number; finished: boolean; onLeave?: () => void }) {
   const { c } = useTheme();
@@ -189,15 +189,17 @@ export function MvpPanel({ match, awayMatch, teams, events, set, finished, onLea
         <SectionLabel label="Più votata" />
         {leader ? (
           <>
-            <PlayerName name={leader.p.name} size={14} center style={{ alignSelf: 'stretch' }} />
+            <PlayerName name={leader.p.name} size={14} center upper style={{ alignSelf: 'stretch' }} />
             {/* spazio per il numero di maglia, che sporge dall'angolo dello stemma */}
             <View style={{ marginBottom: 6 }}>
               <Jersey p={leader.p} team={leader.team} size={LEADER_BADGE} gold />
             </View>
             {/* voti della giocatrice sul totale dei voti espressi */}
-            <Txt w={900} display size={15} color="accent" tnum center accessibilityLabel={`${best} voti su ${total}`}>
-              {best}/{total} {total === 1 ? 'voto' : 'voti'}
-            </Txt>
+            {/* i voti che la fanno vincere in giallo e più grandi (+15%), il totale nel colore del testo della card */}
+            <View accessible accessibilityLabel={`${best} voti su ${total}`} style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center' }}>
+              <Txt w={900} display size={17} color={palette.gold} tnum>{best}</Txt>
+              <Txt w={900} display size={15} tnum>/{total} {total === 1 ? 'voto' : 'voti'}</Txt>
+            </View>
           </>
         ) : (
           <Empty icon={<Trophy size={20} color={c.muted} />} text="Ancora nessun voto per questa partita." />
@@ -266,8 +268,9 @@ function SectionLabel({ icon, label }: { icon?: ReactNode; label: string }) {
 
 /** Riquadro vuoto del riepilogo (nessun voto ancora) */
 function Empty({ icon, text }: { icon: ReactNode; text: string }) {
+  // niente flex: 1: nella card compatta (larghezza dal contenuto) il testo veniva misurato strettissimo e la card si allungava
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.sm, paddingVertical: space.md }}>
+    <View style={{ alignItems: 'center', justifyContent: 'center', gap: space.sm, paddingVertical: space.md }}>
       {icon}
       <Txt size={12} color="muted" center>{text}</Txt>
     </View>
@@ -275,12 +278,14 @@ function Empty({ icon, text }: { icon: ReactNode; text: string }) {
 }
 
 /** Nome sulla prima riga, cognome (il resto) sulla seconda; i nomi lunghi riducono il carattere */
-function PlayerName({ name, size, center, style }: { name: string; size: number; center?: boolean; style?: StyleProp<ViewStyle> }) {
+function PlayerName({ name, size, center, upper, style }: { name: string; size: number; center?: boolean; upper?: boolean; style?: StyleProp<ViewStyle> }) {
   const [first, ...rest] = name.trim().split(/\s+/);
+  // grassetto pieno, sempre nel carattere del testo (non in quello dei titoli); upper: tutto maiuscolo
+  const text: TxtProps = { w: 800, display: false, size, center, numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.7, style: upper ? { textTransform: 'uppercase' as const } : undefined };
   return (
     <View style={style} accessible accessibilityLabel={name}>
-      <Txt w={700} size={size} center={center} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{first}</Txt>
-      {rest.length ? <Txt w={700} size={size} center={center} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{rest.join(' ')}</Txt> : null}
+      <Txt {...text}>{first}</Txt>
+      {rest.length ? <Txt {...text}>{rest.join(' ')}</Txt> : null}
     </View>
   );
 }

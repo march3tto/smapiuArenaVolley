@@ -29,12 +29,14 @@ export function CourtPosition({ role, size = 168 }: { role: PlayerRole; size?: n
   const lineColor = 'rgba(255,255,255,0.9)';
   // il campo è 9x9 m: la linea dei 3 metri divide prima linea (1/3) e seconda linea (2/3)
   const front = size / 3;
+  // campo piccolo (sotto 100): numeri, testi e spazi in proporzione
+  const small = size < 100;
 
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: small ? space.sm + 4 : space.md }}>
       <View accessibilityLabel={`Zone in campo: ${[...main, ...also].join(', ')}`}>
         {/* rete */}
-        <View style={{ height: 6, marginHorizontal: -6, borderRadius: 3, backgroundColor: c.text, opacity: 0.85 }} />
+        <View style={{ height: small ? 4 : 6, marginHorizontal: small ? -4 : -6, borderRadius: 3, backgroundColor: c.text, opacity: 0.85 }} />
         <View style={{ width: size, height: size, backgroundColor: court, borderWidth: 2, borderTopWidth: 0, borderColor: lineColor }}>
           {ROWS.map((row, r) => (
             <View key={r} style={{ flexDirection: 'row', height: r === 0 ? front : size - front, borderTopWidth: r ? 2 : 0, borderTopColor: lineColor }}>
@@ -43,7 +45,7 @@ export function CourtPosition({ role, size = 168 }: { role: PlayerRole; size?: n
                 const soft = also.includes(z);
                 return (
                   <View key={z} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? palette.gold : soft ? SOFT : 'transparent' }}>
-                    <Txt w={800} size={on ? 18 : 14} color={on || soft ? palette.onGold : 'rgba(255,255,255,0.85)'}>{z}</Txt>
+                    <Txt w={800} size={Math.round(size * (on ? 0.153 : 0.119))} display={false} color={on || soft ? palette.onGold : 'rgba(255,255,255,0.85)'}>{z}</Txt>
                   </View>
                 );
               })}
@@ -51,16 +53,16 @@ export function CourtPosition({ role, size = 168 }: { role: PlayerRole; size?: n
           ))}
         </View>
       </View>
-      <View style={{ flex: 1, gap: space.sm }}>
-        <Txt w={600} size={14} style={{ lineHeight: 20 }}>{text}</Txt>
+      <View style={{ flex: 1, gap: small ? space.xs : space.sm }}>
+        <Txt w={600} size={small ? 12.5 : 14} style={{ lineHeight: small ? 17 : 20 }}>{text}</Txt>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-          <View style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: palette.gold }} />
-          <Txt size={12} color="muted">Zona principale</Txt>
+          <View style={{ width: small ? 10 : 12, height: small ? 10 : 12, borderRadius: 3, backgroundColor: palette.gold }} />
+          <Txt size={small ? 11 : 12} color="muted">Zona principale</Txt>
         </View>
         {also.length ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-            <View style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: SOFT }} />
-            <Txt size={12} color="muted">Zona secondaria</Txt>
+            <View style={{ width: small ? 10 : 12, height: small ? 10 : 12, borderRadius: 3, backgroundColor: SOFT }} />
+            <Txt size={small ? 11 : 12} color="muted">Zona secondaria</Txt>
           </View>
         ) : null}
       </View>

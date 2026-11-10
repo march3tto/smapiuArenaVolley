@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { Alert, Animated, AppState, LayoutAnimation, Linking, Platform, Pressable, ScrollView, Switch, View, useWindowDimensions } from 'react-native';
+import { Alert, Animated, AppState, LayoutAnimation, Linking, Platform, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { Bell, ChevronDown, ChevronRight, Megaphone, Moon, Radio, Settings as SettingsIcon, ShieldCheck, Volleyball, X } from 'lucide-react-native';
+import { Bell, ChevronDown, LogOut, ChevronRight, Megaphone, Moon, Radio, Settings as SettingsIcon, ShieldCheck, Volleyball, X } from 'lucide-react-native';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
+import { AppSwitch } from '@/components/AppSwitch';
 import { ThemeSwitch } from '@/components/ThemeSwitch';
 import { Txt } from '@/components/Txt';
 import { useToast } from '@/components/Toast';
@@ -13,9 +14,6 @@ import { attivaNotifiche, disattivaNotifiche, permessoNotifiche, salvaPreferenze
 import { palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { NotifPrefs } from '@/types';
-
-/** Interruttori ridotti del 15%: i margini negativi recuperano lo spazio lasciato dalla scala */
-const SMALL_SWITCH = { transform: [{ scale: 0.85 }], marginHorizontal: -4, marginVertical: -2 };
 
 /** Singole notifiche, nell'ordine in cui compaiono */
 const NOTIF_TYPES: { key: keyof Omit<NotifPrefs, 'youth' | 'enabled'>; title: string }[] = [
@@ -162,7 +160,7 @@ export default function Settings() {
   };
 
   const toggleSwitch = (value: boolean, onChange: (v: boolean) => void) => (
-    <Switch value={value} onValueChange={onChange} trackColor={{ true: palette.gold, false: c.fill2 }} thumbColor="#fff" style={SMALL_SWITCH} />
+    <AppSwitch value={value} onValueChange={onChange} />
   );
 
 
@@ -181,6 +179,14 @@ export default function Settings() {
                 <SettingsIcon size={17} color={palette.onGold} />
               </View>
               <Txt w={800} size={18} style={{ flex: 1, letterSpacing: -0.3 }}>Impostazioni</Txt>
+              {/* esci dall'account: pulsante piccolo accanto al titolo */}
+              {user ? (
+                <IconButton label={`Esci dall'account ${user.email}`} size={34} style={{ backgroundColor: 'transparent', borderWidth: 0 }}
+                  onPress={async () => { await signOut(); toast.show("Sei uscito dall'account."); router.replace('/login'); }}>
+                  {/* senza fondo né bordo: giallo nel tema scuro, blu nel tema chiaro */}
+                  <LogOut size={20} color={mode === 'dark' ? palette.gold : palette.blue} />
+                </IconButton>
+              ) : null}
               <IconButton label="Chiudi" onPress={() => router.back()}>
                 <X size={18} color={c.text} />
               </IconButton>
@@ -249,11 +255,7 @@ export default function Settings() {
               </Block>
             ) : null}
 
-            {user ? (
-              <Button size="sm" label={`Esci (${user.email})`} onPress={async () => { await signOut(); toast.show("Sei uscito dall'account."); router.replace('/login'); }} />
-            ) : (
-              <Button size="sm" label="Accedi o registrati" variant="gold" onPress={() => router.replace('/login')} />
-            )}
+            {!user ? <Button size="sm" label="Accedi o registrati" variant="gold" onPress={() => router.replace('/login')} /> : null}
           </ScrollView>
         </View>
       </Animated.View>

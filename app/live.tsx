@@ -31,9 +31,6 @@ import { useTheme } from '@/theme/ThemeProvider';
 import type { LineupPlayer, PointDetail } from '@/types';
 import { LiveLogos } from '@/components/LiveLogos';
 
-/** Partite di cui la diretta video si è già aperta da sola: chiusa a mano, non si riapre tornando sulla schermata */
-const autoOpened = new Set<string>();
-
 export default function Live() {
   const { c, mode } = useTheme();
   const insets = useSafeAreaInsets();
@@ -61,14 +58,7 @@ export default function Live() {
   const [picker, setPicker] = useState<{ side: 'us' | 'opp'; name: string; anchor: Anchor } | null>(null);
   // cronaca: azioni filtrate per set ('all' = tutti)
   const [feedSet, setFeedSet] = useState('all');
-  // diretta YouTube attiva: il video si apre da solo sopra il punteggio (una volta per partita)
-  const streamId = m && !live.finished ? m.youtubeLiveId : null;
-  const openStream = player.open;
-  useEffect(() => {
-    if (!m || !streamId || autoOpened.has(m.id)) return;
-    autoOpened.add(m.id);
-    openStream(streamId, `${m.homeAway === 'casa' ? m.usName ?? US : m.opponent} – ${m.homeAway === 'casa' ? m.opponent : m.usName ?? US}`);
-  }, [m, streamId, openStream]);
+  // il video della diretta parte solo dal pulsante "Guarda la diretta", mai da solo all'apertura della schermata
 
   // Ricaricamento della diretta: partite (con quella in corso) e classifica, poi punteggio, set e cronaca.
   // Un solo caricamento alla volta: chi arriva mentre è in corso aspetta quello (niente query doppie).

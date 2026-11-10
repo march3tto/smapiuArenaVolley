@@ -35,7 +35,7 @@ export default function Squadra() {
 
   return (
     <Screen onRefresh={refresh} refreshing={loading}>
-      <SectionHeader big title="Rosa Serie A3" subtitle="Smapiù Arena Volley Team 2026/27. Tocca una giocatrice per aprire la scheda." />
+      <SectionHeader big title="ROSTER Smapiù Arena Volley Team 2026/27" />
       <SegmentedControl options={ROLE_FILTERS} value={role} onChange={setRole} />
       <View onLayout={onGridLayout} style={{ flexDirection: 'row', flexWrap: 'wrap', gap }}>
         {list.map((p) => (

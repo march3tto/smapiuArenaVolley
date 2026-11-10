@@ -10,7 +10,7 @@ import { useData } from '@/store/DataProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/colors';
 
-/** Notizia completa: copertina, categoria, data, titolo e testo diviso in paragrafi */
+/** Notizia completa: copertina, titolo, testo diviso in paragrafi e, in fondo, categoria e data */
 export default function NewsScreen() {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
@@ -32,24 +32,26 @@ export default function NewsScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: c.card }}>
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + space.xl }}>
-        <View style={{ height: 420, backgroundColor: c.fill }}>
+        {/* la copertina parte sotto la barra di stato (ora, batteria, notch): niente finisce sotto l'ora */}
+        <View style={{ height: 420 + insets.top, paddingTop: insets.top, backgroundColor: c.fill }}>
           {n.image ? <CoverImage source={n.image} style={{ flex: 1 }} /> : null}
           <IconButton label="Chiudi" onPress={() => router.back()} style={{ position: 'absolute', top: insets.top + 12, right: 14, backgroundColor: 'rgba(6,26,58,0.55)' }}>
             <X size={18} color="#fff" />
           </IconButton>
         </View>
         <View style={{ paddingHorizontal: space.lg, marginTop: space.md, gap: space.sm, width: '100%', maxWidth: 680, alignSelf: 'center' }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-            <View style={{ paddingHorizontal: space.sm, paddingVertical: space.xs, borderRadius: 999, backgroundColor: c.fill2 }}>
-              <Txt w={700} size={12} color="accent">{n.category}</Txt>
-            </View>
-            <Txt size={13} color="muted">{newsDate(n.date)}</Txt>
-          </View>
           <Txt w={900} size={26} style={{ letterSpacing: -0.6, marginTop: space.xs }}>{n.title}</Txt>
           <View style={{ gap: space.md, marginTop: space.md }}>
             {paragraphs.map((p, i) => (
               <Txt key={i} size={16} style={{ lineHeight: 25 }}>{p}</Txt>
             ))}
+          </View>
+          {/* categoria e data in fondo, dopo il testo */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.lg, paddingTop: space.md, borderTopWidth: 1, borderTopColor: c.line }}>
+            <View style={{ paddingHorizontal: space.sm, paddingVertical: space.xs, borderRadius: 999, backgroundColor: c.fill2 }}>
+              <Txt w={700} size={12} color="accent">{n.category}</Txt>
+            </View>
+            <Txt size={13} color="muted">{newsDate(n.date)}</Txt>
           </View>
         </View>
       </ScrollView>

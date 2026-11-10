@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from 'react';
-import { Platform, Pressable, ScrollView, Switch, View } from 'react-native';
+import { Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronRight, ExternalLink, Trash2, UserRound, X } from 'lucide-react-native';
+import { AppSwitch } from '@/components/AppSwitch';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { IconButton } from '@/components/IconButton';
@@ -86,18 +87,16 @@ export default function Account() {
                   <Txt w={600} size={14}>Comunicazioni promozionali</Txt>
                   <Txt size={12} color="muted">Della società e dei suoi sponsor. Puoi cambiare idea quando vuoi.</Txt>
                 </View>
-                <Switch value={marketing} disabled={busy !== null}
-                  onValueChange={(v) => run('marketing', () => setMarketing(v), v ? 'Consenso marketing attivato.' : 'Consenso marketing revocato.')}
-                  trackColor={{ true: palette.gold, false: c.fill2 }} thumbColor="#fff" />
+                <AppSwitch value={marketing} disabled={busy !== null} accessibilityLabel="Comunicazioni promozionali"
+                  onValueChange={(v) => run('marketing', () => setMarketing(v), v ? 'Consenso marketing attivato.' : 'Consenso marketing revocato.')} />
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm, borderTopWidth: 1, borderTopColor: c.line }}>
                 <View style={{ flex: 1 }}>
                   <Txt w={600} size={14}>Assistente AI</Txt>
                   <Txt size={12} color="muted">Le domande all’assistente vanno a Groq Inc. (Stati Uniti). Senza consenso l’assistente non si usa.</Txt>
                 </View>
-                <Switch value={assistente} disabled={busy !== null}
-                  onValueChange={(v) => run('assistente', () => setAssistantConsent(v), v ? 'Consenso all’assistente AI attivato.' : 'Consenso all’assistente AI revocato.')}
-                  trackColor={{ true: palette.gold, false: c.fill2 }} thumbColor="#fff" />
+                <AppSwitch value={assistente} disabled={busy !== null} accessibilityLabel="Assistente AI"
+                  onValueChange={(v) => run('assistente', () => setAssistantConsent(v), v ? 'Consenso all’assistente AI attivato.' : 'Consenso all’assistente AI revocato.')} />
               </View>
               <Txt w={700} size={11.5} color="muted" style={{ marginTop: space.sm, letterSpacing: 0.8, textTransform: 'uppercase' }}>Consensi registrati</Txt>
               {CONSENSI.map(({ tipo, label, si, no }) => {
