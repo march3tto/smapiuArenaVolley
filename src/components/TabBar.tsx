@@ -1,89 +1,160 @@
-import { useEffect, useRef, useState, type ComponentRef } from 'react';
+import { useEffect, useRef, useState, type ComponentRef, type ComponentType } from 'react';
 import { Animated, Modal, Platform, Pressable, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BlurView } from 'expo-blur';
+import Svg, { Path } from 'react-native-svg';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/tabs';
-import { Check, Ellipsis, House, Newspaper, Trophy, Users, type LucideIcon } from 'lucide-react-native';
+import { Check, Ellipsis, House, Newspaper, Users } from 'lucide-react-native';
 import { Pressy } from './Pressy';
+import { ScoreboardIcon } from './ScoreboardIcon';
 import { useToast } from './Toast';
 import { AVATARS, avatarLabel, useAssistantAvatar } from '@/lib/avatar';
 import { palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
-const ICONS: Record<string, LucideIcon> = {
+type TabIcon = ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
+const ICONS: Record<string, TabIcon> = {
   index: House,
-  risultati: Trophy,
+  risultati: ScoreboardIcon,
   squadra: Users,
   news: Newspaper,
   altro: Ellipsis,
 };
 
+/** Dimensione delle icone della barra */
+const ICON_SIZE = 22;
+/** Icone più grandi del normale (ICON_SIZE): il tabellone dei risultati è largo e basso, a parità di misura sembra più piccolo */
+const ICON_SCALE: Record<string, number> = { risultati: 1.15 };
+
 /** Tab nascoste dalla barra (la schermata resta, ma non c'è il pulsante) */
 const HIDDEN = new Set(['giovanili']);
-/** Il pulsante dell'assistente sta nella barra subito prima di questa tab (non è una tab: apre la chat) */
-const ASSISTANT_BEFORE = 'news';
-const ASSISTANT_KEY = '__assistente';
-const AVATAR_SIZE = 34;
 
-/** Barra inferiore flottante con indicatore oro che scivola */
+/** Barra: altezza, raggio degli angoli e margine interno */
+const BAR_H = 64;
+const BAR_R = 24;
+const BAR_PAD = 6;
+/** Pulsante dell'assistente: cerchio sospeso nell'incavo al centro della barra */
+const FAB = 60;
+/** Il centro del cerchio sta un po' sopra il bordo della barra */
+const FAB_LIFT = 10;
+/** Incavo: cerchio poco più grande del pulsante, con raccordi morbidi sul bordo */
+const NOTCH_R = FAB / 2 + 7;
+const NOTCH_FILLET = 10;
+/** Le icone scendono un po': quella centrale resta sotto il cerchio dell'assistente, non coperta */
+const ICON_DROP = 8;
+/** Spinta in più verso il basso per l'icona centrale (Squadra), sotto il cerchio */
+const CENTER_ICON_DROP = 5;
+/** Indicatore della tab centrale: parte sotto l'incavo (fondo dell'incavo + margine) */
+const CENTER_TOP = NOTCH_R - FAB_LIFT + 1;
+
+/**
+ * Contorno della barra con l'incavo al centro (coordinate con y verso il basso, bordo superiore a y = 0).
+ * L'incavo è un cerchio di raggio NOTCH_R centrato in (cx, -FAB_LIFT); i raccordi sono cerchi di raggio NOTCH_FILLET
+ * tangenti al bordo superiore e all'incavo.
+ */
+function barPath(w: number) {
+  const h = BAR_H;
+  const r = BAR_R;
+  const cx = w / 2;
+  const d = FAB_LIFT;
+  const f = NOTCH_FILLET;
+  const R = NOTCH_R;
+  // centro del raccordo sinistro: (cx - dx, f), a distanza R + f dal centro dell'incavo
+  const dx = Math.sqrt((R + f) ** 2 - (f + d) ** 2);
+  // punto in cui il raccordo tocca l'incavo
+  const k = R / (R + f);
+  const tx = dx * k;
+  const ty = -d + (f + d) * k;
+  return [
+    `M ${r} 0`,
+    `L ${cx - dx} 0`,
+    `A ${f} ${f} 0 0 1 ${cx - tx} ${ty}`,
+    `A ${R} ${R} 0 0 0 ${cx + tx} ${ty}`,
+    `A ${f} ${f} 0 0 1 ${cx + dx} 0`,
+    `L ${w - r} 0`,
+    `A ${r} ${r} 0 0 1 ${w} ${r}`,
+    `L ${w} ${h - r}`,
+    `A ${r} ${r} 0 0 1 ${w - r} ${h}`,
+    `L ${r} ${h}`,
+    `A ${r} ${r} 0 0 1 0 ${h - r}`,
+    `L 0 ${r}`,
+    `A ${r} ${r} 0 0 1 ${r} 0`,
+    'Z',
+  ].join(' ');
+}
+
+/** Barra inferiore flottante: tab in fila, l'assistente nel cerchio sospeso sopra quella centrale, indicatore oro che scivola */
 export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTabBarProps) {
   const { c, mode } = useTheme();
   const insets = useSafeAreaInsets();
-  const [width, setWidth] = useState(0);
+  const [barW, setBarW] = useState(0);
   const x = useState(() => new Animated.Value(0))[0];
+  // l'indicatore si accorcia sotto l'incavo (tab centrale): si sposta in giù il suo bordo superiore
+  const top = useState(() => new Animated.Value(0))[0];
   const routes = state.routes.filter((r) => !HIDDEN.has(r.name));
-  // posti nella barra: le tab visibili più l'assistente
-  const slots: string[] = routes.flatMap((r) => (r.name === ASSISTANT_BEFORE ? [ASSISTANT_KEY, r.key] : [r.key]));
-  if (!slots.includes(ASSISTANT_KEY)) slots.push(ASSISTANT_KEY);
-  const n = slots.length;
-  const itemW = width / n;
+  const center = Math.floor(routes.length / 2);
+  const innerW = Math.max(0, barW - BAR_PAD * 2);
+  const itemW = routes.length ? innerW / routes.length : 0;
   const activeKey = state.routes[state.index]?.key;
-  const visibleIndex = Math.max(0, slots.indexOf(activeKey ?? ''));
+  const activeIndex = routes.findIndex((r) => r.key === activeKey);
 
   useEffect(() => {
-    if (!width) return;
-    Animated.spring(x, { toValue: visibleIndex * itemW, useNativeDriver: true, speed: 16, bounciness: 10 }).start();
-  }, [visibleIndex, itemW, width, x]);
+    if (!barW || activeIndex < 0) return;
+    Animated.spring(x, { toValue: activeIndex * itemW, useNativeDriver: true, speed: 16, bounciness: 10 }).start();
+    Animated.spring(top, { toValue: activeIndex === center ? CENTER_TOP - BAR_PAD : 0, useNativeDriver: true, speed: 16, bounciness: 4 }).start();
+  }, [activeIndex, center, itemW, barW, x, top]);
+
+  // fondo pieno (la forma con l'incavo non si può sfocare): stessi colori della barra di prima, quasi opachi
+  const fill = Platform.OS === 'android' ? c.card : mode === 'dark' ? 'rgba(34,77,146,0.97)' : 'rgba(255,255,255,0.97)';
+
+  const tab = (route: (typeof routes)[number], i: number) => {
+    const focused = route.key === activeKey;
+    const { options } = descriptors[route.key];
+    const label = typeof options.title === 'string' ? options.title : route.name;
+    const Icon = ICONS[route.name] ?? House;
+    const color = focused ? palette.onGold : c.muted;
+    const onPress = () => {
+      const event = emitter.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+      if (!focused && !event.defaultPrevented) navigateToTab(route.key);
+    };
+    // solo icona: il nome resta per VoiceOver/TalkBack
+    return (
+      <Pressable key={route.key} onPress={onPress} accessibilityRole="tab" accessibilityState={{ selected: focused }} accessibilityLabel={label}
+        style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: ICON_DROP + (i === center ? CENTER_ICON_DROP * 2 : 0) }}>
+        <Icon size={Math.round(ICON_SIZE * (ICON_SCALE[route.name] ?? 1))} color={color} strokeWidth={focused ? 2.4 : 2} />
+      </Pressable>
+    );
+  };
 
   return (
     <View style={{ position: 'absolute', left: 10, right: 10, bottom: insets.bottom + 10, alignItems: 'center' }} pointerEvents="box-none">
-      <View style={{ width: '100%', maxWidth: 560, borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: c.line }}>
-        <BlurView intensity={Platform.OS === 'android' ? 0 : 45} tint={mode === 'dark' ? 'dark' : 'light'} style={{ backgroundColor: Platform.OS === 'android' ? c.card : mode === 'dark' ? 'rgba(34,77,146,0.72)' : 'rgba(255,255,255,0.78)' }}>
-          <View style={{ flexDirection: 'row', padding: space.sm }} onLayout={(e) => setWidth(e.nativeEvent.layout.width - 12)}>
-            {width > 0 ? (
-              <Animated.View style={{ position: 'absolute', top: 6, bottom: 6, left: 6, width: itemW, borderRadius: 18, backgroundColor: palette.gold, transform: [{ translateX: x }] }} />
-            ) : null}
-            {slots.map((key) => {
-              if (key === ASSISTANT_KEY) return <AssistantButton key={key} />;
-              const route = routes.find((r) => r.key === key)!;
-              const focused = route.key === activeKey;
-              const { options } = descriptors[route.key];
-              const label = typeof options.title === 'string' ? options.title : route.name;
-              const Icon = ICONS[route.name] ?? House;
-              const color = focused ? palette.onGold : c.muted;
-              const onPress = () => {
-                const event = emitter.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-                if (!focused && !event.defaultPrevented) navigateToTab(route.key);
-              };
-              // solo icona: il nome resta per VoiceOver/TalkBack
-              return (
-                <Pressable key={route.key} onPress={onPress} accessibilityRole="tab" accessibilityState={{ selected: focused }} accessibilityLabel={label}
-                  style={{ flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: AVATAR_SIZE + space.sm }}>
-                  <Icon size={21} color={color} strokeWidth={focused ? 2.4 : 2} />
-                </Pressable>
-              );
-            })}
-          </View>
-        </BlurView>
+      <View style={{ width: '100%', maxWidth: 560, height: BAR_H }} pointerEvents="box-none" onLayout={(e) => setBarW(e.nativeEvent.layout.width)}>
+        {barW > 0 ? (
+          <Svg width={barW} height={BAR_H} style={{ position: 'absolute', top: 0, left: 0 }} pointerEvents="none">
+            <Path d={barPath(barW)} fill={fill} stroke={c.line} strokeWidth={1} />
+          </Svg>
+        ) : null}
+        <View style={{ flex: 1, flexDirection: 'row', padding: BAR_PAD }}>
+          {barW > 0 && activeIndex >= 0 ? (
+            // altezza fissa e taglio in alto con translateY + overflow: si anima con il driver nativo
+            <Animated.View style={{ position: 'absolute', top: BAR_PAD, bottom: BAR_PAD, left: BAR_PAD, width: itemW, borderRadius: 18, overflow: 'hidden', transform: [{ translateX: x }] }}>
+              <Animated.View style={{ flex: 1, borderRadius: 18, backgroundColor: palette.gold, transform: [{ translateY: top }] }} />
+            </Animated.View>
+          ) : null}
+          {routes.map(tab)}
+        </View>
+        {/* assistente: cerchio oro sospeso nell'incavo */}
+        <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, top: -FAB_LIFT - FAB / 2, alignItems: 'center' }}>
+          <AssistantButton />
+        </View>
       </View>
     </View>
   );
 }
 
-/** Pulsante dell'assistente AI nella barra: il suo avatar apre la chat; tenendolo premuto si sceglie il volto */
+/** Pulsante dell'assistente AI al centro della barra: il suo avatar apre la chat; tenendolo premuto si sceglie il volto */
 function AssistantButton() {
   const router = useRouter();
   const { source } = useAssistantAvatar();
@@ -102,12 +173,12 @@ function AssistantButton() {
   };
 
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <View ref={ref} collapsable={false}>
-        <Pressy onPress={() => router.push('/assistente')} onLongPress={openPicker} delayLongPress={350} scaleTo={0.88}
-          accessibilityRole="button" accessibilityLabel="Assistente" accessibilityHint="Tieni premuto per scegliere l'avatar" hitSlop={6}
-          style={{ width: AVATAR_SIZE, height: AVATAR_SIZE, borderRadius: AVATAR_SIZE / 2, overflow: 'hidden', backgroundColor: palette.gold }}>
-          <Image source={source} style={{ width: AVATAR_SIZE, height: AVATAR_SIZE }} contentFit="cover" accessibilityIgnoresInvertColors />
+    <>
+      <View ref={ref} collapsable={false} style={{ borderRadius: FAB / 2, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 8 }}>
+        <Pressy onPress={() => router.push('/assistente')} onLongPress={openPicker} delayLongPress={350} scaleTo={0.9}
+          accessibilityRole="button" accessibilityLabel="Assistente" accessibilityHint="Tieni premuto per scegliere l'avatar" hitSlop={4}
+          style={{ width: FAB, height: FAB, borderRadius: FAB / 2, overflow: 'hidden', backgroundColor: palette.gold }}>
+          <Image source={source} style={{ width: FAB, height: FAB }} contentFit="cover" accessibilityIgnoresInvertColors />
         </Pressy>
       </View>
       <Modal visible={!!anchor} transparent animationType="none" statusBarTranslucent navigationBarTranslucent onRequestClose={() => setAnchor(null)}>
@@ -116,7 +187,7 @@ function AssistantButton() {
           {anchor ? <AvatarPicker anchor={anchor} onDone={() => setAnchor(null)} /> : null}
         </Pressable>
       </Modal>
-    </View>
+    </>
   );
 }
 

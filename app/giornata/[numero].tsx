@@ -185,7 +185,7 @@ function GameRow({ game: g, onPress }: { game: LeagueGame; onPress?: () => void 
   const border = live ? 'rgba(255,77,94,0.45)' : ours ? 'rgba(255,213,3,0.45)' : c.line;
 
   return (
-    <Pressy onPress={onPress} disabled={!onPress} scaleTo={0.98} style={{ borderRadius: 22, backgroundColor: c.card, borderWidth: 1, borderColor: border, padding: space.md, gap: space.sm }}>
+    <Pressy onPress={onPress} disabled={!onPress} scaleTo={0.98} style={{ borderRadius: 22, backgroundColor: c.card, borderWidth: ours ? 3 : 1, borderColor: border, padding: ours ? space.md - 2 : space.md, gap: space.sm }}>
       <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: space.sm }}>
         {live ? <LiveDot size={7} /> : null}
         <Txt w={600} size={13} color="muted" center>
