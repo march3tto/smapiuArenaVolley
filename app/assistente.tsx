@@ -35,6 +35,12 @@ export default function Assistente() {
   const [error, setError] = useState<string | null>(null);
   const [blocked, setBlocked] = useState(false);
   const list = useRef<FlatList<AssistantMessage>>(null);
+  const { name: nomeAvatar } = useAssistantAvatar();
+  // benvenuto mostrato come primo messaggio: solo a schermo, non fa parte dello storico inviato al server
+  const benvenuto: AssistantMessage = {
+    role: 'assistant',
+    content: `Ciao! Sono ${nomeAvatar}, chiedimi delle partite, dei risultati, della classifica, della rosa o delle news. Posso anche spiegarti le regole della pallavolo.`,
+  };
 
   const send = async (history: AssistantMessage[]) => {
     setMessages(history);
@@ -103,6 +109,7 @@ export default function Assistente() {
               keyboardShouldPersistTaps="handled"
               onContentSizeChange={() => list.current?.scrollToEnd({ animated: true })}
               renderItem={({ item }) => <Bubble message={item} />}
+              ListHeaderComponent={<Bubble message={benvenuto} />}
               ListEmptyComponent={<Suggestions onPick={ask} />}
               ListFooterComponent={
                 <View style={{ gap: space.sm, marginTop: messages.length ? space.sm : 0 }}>
@@ -184,8 +191,7 @@ function Bubble({ message }: { message: AssistantMessage }) {
 function Suggestions({ onPick }: { onPick: (q: string) => void }) {
   const { c } = useTheme();
   return (
-    <View style={{ flex: 1, justifyContent: 'flex-end', gap: space.md, paddingBottom: space.sm }}>
-      <Txt size={15} color="muted">Ciao! Chiedimi delle partite, dei risultati, della classifica, della rosa o delle news. Posso anche spiegarti le regole della pallavolo.</Txt>
+    <View style={{ flex: 1, justifyContent: 'flex-end', paddingBottom: space.sm }}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
         {SUGGERIMENTI.map((s) => (
           <Pressy key={s} onPress={() => onPick(s)} scaleTo={0.95} accessibilityRole="button" accessibilityLabel={s}

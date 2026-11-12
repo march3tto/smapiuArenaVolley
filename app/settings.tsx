@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Alert, Animated, AppState, LayoutAnimation, Linking, Platform, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { Bell, ChevronDown, LogOut, ChevronRight, Megaphone, Moon, Radio, Settings as SettingsIcon, ShieldCheck, Volleyball, X } from 'lucide-react-native';
+import Constants from 'expo-constants';
+import { Bell, ChevronDown, Copyright, LogOut, ChevronRight, Megaphone, Moon, Radio, Settings as SettingsIcon, ShieldCheck, Volleyball, X } from 'lucide-react-native';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { AppSwitch } from '@/components/AppSwitch';
@@ -178,7 +179,11 @@ export default function Settings() {
               <View style={{ width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.gold }}>
                 <SettingsIcon size={17} color={palette.onGold} />
               </View>
-              <Txt w={800} size={18} style={{ flex: 1, letterSpacing: -0.3 }}>Impostazioni</Txt>
+              <View style={{ flex: 1 }}>
+                <Txt w={800} size={18} style={{ letterSpacing: -0.3 }}>Impostazioni</Txt>
+                {/* utente registrato: saluto con il suo nome sotto il titolo */}
+                {user ? <Txt w={600} size={13} color={c.muted} numberOfLines={2}>Ciao! {user.name}, grazie del tuo supporto.</Txt> : null}
+              </View>
               {/* esci dall'account: pulsante piccolo accanto al titolo */}
               {user ? (
                 <IconButton label={`Esci dall'account ${user.email}`} size={34} style={{ backgroundColor: 'transparent', borderWidth: 0 }}
@@ -256,6 +261,15 @@ export default function Settings() {
             ) : null}
 
             {!user ? <Button size="sm" label="Accedi o registrati" variant="gold" onPress={() => router.replace('/login')} /> : null}
+
+            {/* in fondo: versione dell'app, copyright e sviluppatore */}
+            <View style={{ alignItems: 'center', gap: 2, paddingTop: space.xs, paddingBottom: space.xs }}>
+              <Txt size={12} color="muted">Versione {Constants.expoConfig?.version ?? '—'}</Txt>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Copyright size={12} color={c.muted} />
+                <Txt size={12} color="muted">{new Date().getFullYear()} · Sviluppato da Marco Rossi</Txt>
+              </View>
+            </View>
           </ScrollView>
         </View>
       </Animated.View>

@@ -39,7 +39,7 @@ export default function Squadra() {
       <SegmentedControl options={ROLE_FILTERS} value={role} onChange={setRole} />
       <View onLayout={onGridLayout} style={{ flexDirection: 'row', flexWrap: 'wrap', gap }}>
         {list.map((p) => (
-          <PlayerCard key={p.id} player={p} width={cardW} onPress={() => router.push({ pathname: '/player/[id]', params: { id: p.id } })} />
+          <PlayerCard key={p.id} player={p} width={cardW} onPress={() => router.push({ pathname: '/player/[id]', params: { id: p.id, role } })} />
         ))}
       </View>
 

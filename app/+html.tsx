@@ -31,7 +31,8 @@ export default function Root({ children }: PropsWithChildren) {
 
         {/* come sul nativo lo scorrimento è delle ScrollView, non della pagina */}
         <ScrollViewStyleReset />
-        <style dangerouslySetInnerHTML={{ __html: 'html,body{background-color:#061A3A;}' }} />
+        <style dangerouslySetInnerHTML={{ __html: 'html,body{background-color:#061A3A;}' + IMG_LOCK_CSS }} />
+        <script dangerouslySetInnerHTML={{ __html: IMG_LOCK_JS }} />
 
         {headNodes}
       </head>
@@ -42,3 +43,10 @@ export default function Root({ children }: PropsWithChildren) {
     </html>
   );
 }
+
+/*
+ * Immagini non salvabili né condivisibili: niente menu della pressione prolungata su iOS/Android,
+ * niente trascinamento e niente menu del tasto destro sulle immagini (le altre parti della pagina restano normali).
+ */
+const IMG_LOCK_CSS = 'img{-webkit-touch-callout:none;-webkit-user-drag:none;user-drag:none;-webkit-user-select:none;user-select:none;}';
+const IMG_LOCK_JS = "['contextmenu','dragstart'].forEach(function(t){document.addEventListener(t,function(e){if(e.target&&e.target.closest&&e.target.closest('img'))e.preventDefault();},true);});";

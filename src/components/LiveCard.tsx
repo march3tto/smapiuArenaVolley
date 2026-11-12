@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Award } from 'lucide-react-native';
+import { AgentScoresTicker } from './AgentScoresTicker';
 import { AnimatedNumber } from './AnimatedNumber';
 import { Button } from './Button';
 import { HiddenScore } from './HiddenScore';
 import { LiveSignal } from './LiveDot';
 import { LiveTicker } from './LiveTicker';
+import { SHOW_CRONACA } from '@/lib/features';
 import { type MvpTeam } from './MvpPanel';
 import { MvpSheet } from './MvpSheet';
 import { Pressy } from './Pressy';
@@ -108,7 +110,9 @@ export function LiveCard() {
           <Button label="Vota la tua MVP" size="sm" icon={<Award size={18} color={c.text} />} onPress={() => setMvpOpen(true)} style={{ flex: 1, paddingHorizontal: space.sm }} />
         </View>
 
-        {last ? <LiveTicker text={`${last.set}° set${hidden ? '' : ` ${home ? `${last.our}–${last.opp}` : `${last.opp}–${last.our}`}`} · ${last.text}`} /> : null}
+        <AgentScoresTicker />
+
+        {SHOW_CRONACA && last ? <LiveTicker text={`${last.set}° set${hidden ? '' : ` ${home ? `${last.our}–${last.opp}` : `${last.opp}–${last.our}`}`} · ${last.text}`} /> : null}
       </View>
     </Pressy>
     <MvpSheet open={mvpOpen} onClose={() => setMvpOpen(false)} match={m} awayMatch={!home} events={live.events} set={live.set} finished={live.finished} teams={mvpTeams} />

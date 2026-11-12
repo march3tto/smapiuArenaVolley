@@ -1037,3 +1037,41 @@ export function subscribeAgentLog(onInsert: (e: AgentLogEntry) => void): () => v
     client.removeChannel(ch);
   };
 }
+
+// ---------- punteggi dell'agente per la striscia ULTIME NOTIZIE (migrazione 20261112000100_punteggi_agente) ----------
+
+/** Ultimo punteggio di una gara letto dall'agente livescore, con i nomi delle squadre */
+export interface AgentScore {
+  matchNumber: number;
+  home: string;
+  away: string;
+  ours: boolean;
+  status: 'live' | 'conclusa' | string;
+  setsHome: number;
+  setsAway: number;
+  partials: { set: number; home: number; away: number }[];
+  /** Es. "Zero5 Castellana Grotte 21-17 V&V Modena · 1° set · set 0-0" */
+  text: string;
+  at: Date;
+}
+
+/** Pubblica (funzione security definer): solo i punteggi aggiornati negli ultimi `minutes` minuti, la nostra per prima */
+export async function fetchAgentScores(minutes = 5): Promise<AgentScore[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.rpc('punteggi_agente', { p_minuti: minutes });
+  if (error) throw error;
+  return ((data as Row[] | null) ?? []).map((r) => ({
+    matchNumber: num(r.numero_gara) ?? 0,
+    home: str(r.casa),
+    away: str(r.ospite),
+    ours: r.nostra === true,
+    status: str(r.stato),
+    setsHome: num(r.set_casa) ?? 0,
+    setsAway: num(r.set_ospite) ?? 0,
+    partials: Array.isArray(r.parziali)
+      ? (r.parziali as Row[]).map((p) => ({ set: num(p.set) ?? 0, home: num(p.casa) ?? 0, away: num(p.ospite) ?? 0 }))
+      : [],
+    text: str(r.testo),
+    at: new Date(str(r.aggiornato_il)),
+  }));
+}

@@ -3,6 +3,7 @@ import { Animated, AppState, RefreshControl, ScrollView, View, useWindowDimensio
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Plus, RotateCcw, Timer, Trophy, Volleyball } from 'lucide-react-native';
+import { AgentScoresTicker } from '@/components/AgentScoresTicker';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -30,6 +31,7 @@ import { palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { LineupPlayer, PointDetail } from '@/types';
 import { LiveLogos } from '@/components/LiveLogos';
+import { SHOW_CRONACA } from '@/lib/features';
 
 export default function Live() {
   const { c, mode } = useTheme();
@@ -207,6 +209,7 @@ export default function Live() {
               <Button label={hidden ? 'Diretta aperta' : 'Guarda la diretta'} sublabel={hidden ? '(punteggio oscurato)' : undefined} variant="gold" icon={<LiveLogos />}
                 onPress={() => player.open(m.youtubeLiveId!, `${L.name} – ${R.name}`)} />
             ) : null}
+            <View style={{ alignSelf: 'stretch' }}><AgentScoresTicker /></View>
             {live.canChooseServe ? (
               <Txt size={12} color="muted" center>Inizio set: tocca lo stemma della squadra che va al servizio.</Txt>
             ) : null}
@@ -228,11 +231,11 @@ export default function Live() {
         <Card style={{ gap: space.xs }}>
           <View style={{ marginBottom: space.sm }}>
             <SegmentedControl stretch={wide} value={panel} onChange={setPanel}
-              options={[{ value: 'formazioni', label: 'Formazioni' }, { value: 'cronaca', label: 'Cronaca' }, { value: 'mvp', label: 'Vota MVP' }, { value: 'statistiche', label: 'Statistiche' }]} />
+              options={[{ value: 'formazioni', label: 'Formazioni' }, ...(SHOW_CRONACA ? [{ value: 'cronaca' as const, label: 'Cronaca' }] : []), { value: 'mvp', label: 'Vota MVP' }, { value: 'statistiche', label: 'Statistiche' }]} />
           </View>
           {panel === 'formazioni' ? (
             <LineupPanel lineup={lineup} teams={[L, R].map((t) => ({ team: t.side, name: t.name, logo: t.logo, players: t.side === 'us' ? lineup.us : lineup.opp }))} />
-          ) : panel === 'cronaca' ? (
+          ) : SHOW_CRONACA && panel === 'cronaca' ? (
             <View style={{ gap: space.sm }}>
               {/* cronaca dal video: solo chi segna i punti */}
               {live.canScore ? (

@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { CalendarDays, Trophy } from 'lucide-react-native';
+import { CalendarDays } from 'lucide-react-native';
+import { PodiumIcon } from '@/components/PodiumIcon';
 import { Card } from '@/components/Card';
 import { IconButton } from '@/components/IconButton';
 import { MatchRow } from '@/components/MatchRow';
@@ -57,7 +58,7 @@ export default function Risultati() {
           <SegmentedControl options={OPTIONS} value={filter === 'standings' ? null : filter} onChange={setFilter} />
         </View>
         <IconButton label="Classifica" size={44} active={filter === 'standings'} onPress={() => setFilter('standings')}>
-          <Trophy size={19} color={filter === 'standings' ? palette.onGold : c.accent} />
+          <PodiumIcon size={22} color={filter === 'standings' ? palette.onGold : c.accent} />
         </IconButton>
       </View>
       {filter === 'standings' ? (
