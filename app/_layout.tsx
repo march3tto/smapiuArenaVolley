@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { Stack, usePathname, useRouter } from 'expo-router';
+import * as ScreenCapture from 'expo-screen-capture';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -33,6 +35,14 @@ export default function RootLayout() {
   useEffect(() => {
     if (loaded) SplashScreen.hideAsync().catch(() => {});
   }, [loaded]);
+
+  // screenshot e registrazioni bloccati in tutta l'app: l'immagine catturata risulta nera
+  // (Android: FLAG_SECURE, anche l'anteprima nelle app recenti; iOS 13+). Sul web non è supportato.
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    ScreenCapture.preventScreenCaptureAsync().catch(() => {});
+    if (Platform.OS === 'ios') ScreenCapture.enableAppSwitcherProtectionAsync(1).catch(() => {});
+  }, []);
 
   if (!loaded) return null;
 

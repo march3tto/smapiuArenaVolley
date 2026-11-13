@@ -23,14 +23,14 @@ export function SponsorBanner({ sponsors, onPress }: { sponsors: Sponsor[]; onPr
 
   const chips = (keyPrefix: string) =>
     sponsors.map((s) => (
-      <View key={keyPrefix + s.id} style={{ height: 46, width: 104, marginRight: space.sm, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center', padding: space.xs }}>
+      <View key={keyPrefix + s.id} style={{ height: 61, width: 132, marginRight: space.sm, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center', padding: space.xs }}>
         <Image source={s.logo} style={{ width: '100%', height: '100%' }} contentFit="contain" accessibilityLabel={s.name} />
       </View>
     ));
 
   return (
     <Pressy onPress={onPress} scaleTo={0.98} accessibilityRole="button" accessibilityLabel="Sponsor">
-      <Card style={{ padding: space.md, gap: space.md }}>
+      <Card style={{ padding: space.md, gap: space.md, backgroundColor: 'transparent', borderColor: 'transparent' }}>
         <View style={{ overflow: 'hidden' }}>
           <Animated.View style={{ flexDirection: 'row', transform: [{ translateX: x }] }}>
             <View style={{ flexDirection: 'row' }} onLayout={(e) => setRowW(e.nativeEvent.layout.width)}>

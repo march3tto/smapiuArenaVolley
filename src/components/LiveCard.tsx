@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Award } from 'lucide-react-native';
 import { AgentScoresTicker } from './AgentScoresTicker';
 import { AnimatedNumber } from './AnimatedNumber';
 import { Button } from './Button';
@@ -107,7 +106,7 @@ export function LiveCard() {
               style={{ flex: 1, paddingHorizontal: space.sm }}
             />
           ) : null}
-          <Button label="Vota la tua MVP" size="sm" icon={<Award size={18} color={c.text} />} onPress={() => setMvpOpen(true)} style={{ flex: 1, paddingHorizontal: space.sm }} />
+          <Button label="Vota la tua MVP" size="sm" onPress={() => setMvpOpen(true)} style={{ flex: 1, paddingHorizontal: space.sm }} />
         </View>
 
         <AgentScoresTicker />

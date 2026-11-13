@@ -32,11 +32,12 @@ function useMinuteClock() {
 
 /**
  * Conto alla rovescia all'inizio della partita: pallone e caselle giorni / ore / minuti (giorni sempre visibili, anche a 0).
+ * scale: ingrandisce il testo (es. 1.1 = +10%).
  * L'anello attorno al pallone si riempie man mano che la partita si avvicina:
  * progresso = 1 - rimanente / 7 giorni, limitato tra 0 e 1 (vuoto oltre la settimana, pieno al fischio d'inizio).
  * Sparisce a partita iniziata.
  */
-export function CountdownPill({ date }: { date: string }) {
+export function CountdownPill({ date, scale = 1 }: { date: string; scale?: number }) {
   const { mode } = useTheme();
   const now = useMinuteClock();
   // anello, pallone e testo gialli sul tema scuro, blu notte sul tema chiaro (il giallo lì non si legge)
@@ -73,23 +74,21 @@ export function CountdownPill({ date }: { date: string }) {
         </Svg>
         <Volleyball size={13} color={ink} strokeWidth={2.2} />
       </View>
-      <Txt w={400} size={15} color={ink} style={{ opacity: 0.55, transform: [{ skewX: '-8deg' }] }}>/</Txt>
       <View style={{ flexDirection: 'row', gap: space.xs }}>
-        <TimeBox value={String(d)} label="Giorni" ink={ink} />
-        <TimeBox value={pad(h)} label="Ore" ink={ink} />
-        <TimeBox value={pad(min)} label="Minuti" ink={ink} />
+        <TimeBox value={String(d)} label="Giorni" ink={ink} scale={scale} />
+        <TimeBox value={pad(h)} label="Ore" ink={ink} scale={scale} />
+        <TimeBox value={pad(min)} label="Minuti" ink={ink} scale={scale} />
       </View>
     </View>
   );
 }
 
-/** Casella del countdown: numero grande e unità in maiuscoletto sotto */
-function TimeBox({ value, label, ink }: { value: string; label: string; ink: string }) {
-  const { c } = useTheme();
+/** Casella del countdown, senza fondo né bordo: numero grande e unità in maiuscoletto sotto */
+function TimeBox({ value, label, ink, scale }: { value: string; label: string; ink: string; scale: number }) {
   return (
-    <View style={{ minWidth: 35, alignItems: 'center', paddingVertical: space.xs, paddingHorizontal: space.xs, borderRadius: 7.5, backgroundColor: c.fill2 }}>
-      <Txt w={800} size={11.5} display={false} color={ink} tnum style={{ lineHeight: 13.5 }}>{value}</Txt>
-      <Txt w={700} size={6.75} color="muted" style={{ letterSpacing: 0.45, lineHeight: 8.5 }}>{label.toUpperCase()}</Txt>
+    <View style={{ minWidth: 35 * scale, alignItems: 'center', paddingVertical: space.xs, paddingHorizontal: space.xs }}>
+      <Txt w={800} size={11.5 * scale} display={false} color={ink} tnum style={{ lineHeight: 13.5 * scale }}>{value}</Txt>
+      <Txt w={700} size={6.75 * scale} color="muted" style={{ letterSpacing: 0.45, lineHeight: 8.5 * scale }}>{label.toUpperCase()}</Txt>
     </View>
   );
 }

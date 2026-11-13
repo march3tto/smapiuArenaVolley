@@ -53,7 +53,7 @@ export default function Home() {
         {twoCols ? null : <View style={{ width: '100%' }}>{sponsorBanner}</View>}
         <Card style={{ gap: space.sm, flex: twoCols ? 1 : undefined, width: twoCols ? undefined : '100%' }}>
           <SectionHeader title="Classifica" subtitle="Serie A3, girone B" />
-          <StandingsTable rows={standings} />
+          <StandingsTable rows={standings} scale={1.15} />
         </Card>
       </View>
       {twoCols ? sponsorBanner : null}

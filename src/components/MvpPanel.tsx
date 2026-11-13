@@ -184,25 +184,22 @@ export function MvpPanel({ match, awayMatch, teams, events, set, finished, onLea
 
       {/* riepilogo: la più votata, tutto al centro: nome, stemma con il numero, voti */}
       {/* card compatta al centro, non a tutta larghezza */}
-      <View style={{ alignSelf: 'center', minWidth: 180, maxWidth: 240, borderRadius: radius.md, borderWidth: 1, borderColor: c.line, backgroundColor: c.card,
+      {/* larghezza fissa e bordo oro più spesso, così si distingue dalle altre card e non cambia misura con o senza voti */}
+      <View style={{ alignSelf: 'center', width: 220, borderRadius: radius.md, borderWidth: 2, borderColor: palette.gold, backgroundColor: 'rgba(255,213,3,0.08)',
         paddingVertical: space.sm + 2, paddingHorizontal: space.md, gap: space.xs + 2, alignItems: 'center' }}>
-        <SectionLabel label="Più votata" />
         {leader ? (
-          <>
-            <PlayerName name={leader.p.name} size={14} center upper style={{ alignSelf: 'stretch' }} />
-            {/* spazio per il numero di maglia, che sporge dall'angolo dello stemma */}
-            <View style={{ marginBottom: 6 }}>
-              <Jersey p={leader.p} team={leader.team} size={LEADER_BADGE} gold />
-            </View>
-            {/* voti della giocatrice sul totale dei voti espressi */}
-            {/* i voti che la fanno vincere in giallo e più grandi (+15%), il totale nel colore del testo della card */}
-            <View accessible accessibilityLabel={`${best} voti su ${total}`} style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center' }}>
-              <Txt w={900} display size={17} color={palette.gold} tnum>{best}</Txt>
-              <Txt w={900} display size={15} tnum>/{total} {total === 1 ? 'voto' : 'voti'}</Txt>
-            </View>
-          </>
+          <LeaderBody p={leader.p} team={leader.team} best={best} total={total} />
         ) : (
-          <Empty icon={<Trophy size={20} color={c.muted} />} text="Ancora nessun voto per questa partita." />
+          // senza voti: lo stesso contenuto, invisibile, tiene le misure della card; sopra il messaggio
+          <View style={{ alignSelf: 'stretch', alignItems: 'center' }}>
+            <View style={{ opacity: 0, alignSelf: 'stretch', alignItems: 'center', gap: space.xs + 2 }} pointerEvents="none"
+              accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+              <LeaderBody p={{ ...everyone[0].p, name: 'Nome Cognome' }} team={everyone[0].team} best={0} total={0} />
+            </View>
+            <View style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, alignItems: 'center', justifyContent: 'center' }}>
+              <Empty text="Ancora nessun voto per questa partita." />
+            </View>
+          </View>
         )}
       </View>
 
@@ -251,7 +248,7 @@ export function MvpPanel({ match, awayMatch, teams, events, set, finished, onLea
 }
 
 /** Stemma della più votata nel riepilogo */
-const LEADER_BADGE = 36;
+const LEADER_BADGE = 46;
 
 type Filter = 'all' | 'us' | 'opp';
 type Ranked = { p: LineupPlayer; st?: PlayerStats; team: MvpTeam };
@@ -266,8 +263,27 @@ function SectionLabel({ icon, label }: { icon?: ReactNode; label: string }) {
   );
 }
 
+/** Contenuto della card "Più votata": nome e cognome (sempre due righe di spazio), stemma con il numero, voti sul totale */
+function LeaderBody({ p, team, best, total }: { p: LineupPlayer; team: MvpTeam; best: number; total: number }) {
+  return (
+    <>
+      <PlayerName name={p.name} size={14} center upper style={{ alignSelf: 'stretch', minHeight: 40, justifyContent: 'center' }} />
+      {/* spazio per il numero di maglia, che sporge dall'angolo dello stemma */}
+      <View style={{ marginBottom: 6 }}>
+        <Jersey p={p} team={team} size={LEADER_BADGE} gold solid />
+      </View>
+      {/* voti della giocatrice sul totale dei voti espressi */}
+      {/* i voti che la fanno vincere più grandi (+15%), tutto nel colore del testo della card */}
+      <View accessible accessibilityLabel={`${best} voti su ${total}`} style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center' }}>
+        <Txt w={900} display size={17} tnum>{best}</Txt>
+        <Txt w={900} display size={15} tnum>/{total} {total === 1 ? 'voto' : 'voti'}</Txt>
+      </View>
+    </>
+  );
+}
+
 /** Riquadro vuoto del riepilogo (nessun voto ancora) */
-function Empty({ icon, text }: { icon: ReactNode; text: string }) {
+function Empty({ icon, text }: { icon?: ReactNode; text: string }) {
   // niente flex: 1: nella card compatta (larghezza dal contenuto) il testo veniva misurato strettissimo e la card si allungava
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center', gap: space.sm, paddingVertical: space.md }}>
@@ -303,8 +319,8 @@ function HeartButton({ selected, locked, busy, onPress, name, votes }: VoteProps
   );
 }
 
-/** Stemma della squadra grande, con il numero di maglia nell'angolo (se manca, niente numero); gold: numero su fondo oro */
-function Jersey({ p, team, size, gold }: { p: LineupPlayer; team: MvpTeam; size: number; gold?: boolean }) {
+/** Stemma della squadra grande, con il numero di maglia nell'angolo (se manca, niente numero); gold: numero su fondo oro; solid: fondo pieno, senza trama */
+function Jersey({ p, team, size, gold, solid }: { p: LineupPlayer; team: MvpTeam; size: number; gold?: boolean; solid?: boolean }) {
   const { c } = useTheme();
   const n = Math.round(size * 0.46);
   return (
@@ -313,7 +329,7 @@ function Jersey({ p, team, size, gold }: { p: LineupPlayer; team: MvpTeam; size:
       {p.number != null ? (
         <View style={{ position: 'absolute', right: -6, bottom: -6, minWidth: n, height: n, paddingHorizontal: 3, borderRadius: Math.round(n * 0.3), overflow: 'hidden',
           alignItems: 'center', justifyContent: 'center', backgroundColor: gold ? palette.gold : c.cardAlt, borderWidth: 1.5, borderColor: gold ? palette.gold : c.lineStrong }}>
-          <Mesh width={n} color={gold ? 'rgba(6,26,58,0.16)' : c.line} />
+          {solid ? null : <Mesh width={n} color={gold ? 'rgba(6,26,58,0.16)' : c.line} />}
           <Txt w={900} display size={Math.round(n * 0.56)} color={gold ? palette.onGold : c.text} tnum>{p.number}</Txt>
         </View>
       ) : null}
