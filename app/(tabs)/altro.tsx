@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { LayoutAnimation, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { ChevronDown, ChevronRight } from 'lucide-react-native';
+import { ChevronDown, ChevronRight, Clapperboard, Newspaper, type LucideIcon } from 'lucide-react-native';
 import { Card } from '@/components/Card';
 import { InfoBody, SponsorPopup } from '@/components/InfoContent';
 import { Pressy } from '@/components/Pressy';
@@ -10,6 +10,8 @@ import { Screen } from '@/components/Screen';
 import { SectionHeader } from '@/components/SectionHeader';
 import { Txt } from '@/components/Txt';
 import { INFO, MEDIA, SOCIETA, type InfoKey } from '@/data/altro';
+import { hasSupabase } from '@/lib/supabase';
+import { useApp } from '@/store/AppProvider';
 import { useData } from '@/store/DataProvider';
 import { blue, palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -41,6 +43,9 @@ export default function Altro() {
   const mediaOpen = openKey && MEDIA.includes(openKey) ? openKey : null;
   // sponsor con il logo, nell'ordine dell'elenco (title e main sponsor per primi); se sono pochi si ripetono
   const { sponsors } = useData();
+  // gestione di news e media: solo staff e admin (le policy RLS lo richiedono comunque)
+  const { user } = useApp();
+  const staff = hasSupabase && (user?.role === 'admin' || user?.role === 'staff');
   const withLogo = sponsors.filter((s) => s.logo !== '');
   const logos = withLogo.length ? Array.from({ length: LOGO_ROWS * LOGO_COLS }, (_, i) => withLogo[i % withLogo.length]) : [];
 
@@ -85,6 +90,15 @@ export default function Altro() {
         <Group title="Arena Volley Card">
           <CardPanel />
         </Group>
+
+        {staff ? (
+          <Group title="Gestione contenuti">
+            <View style={{ flexDirection: 'row', gap: space.md }}>
+              <AdminCard Icon={Newspaper} title="Nuova news" subtitle="Da screenshot o a mano" onPress={() => router.push('/gestione/news')} />
+              <AdminCard Icon={Clapperboard} title="Podcast e video" subtitle="Link YouTube o esterno" onPress={() => router.push('/gestione/media')} />
+            </View>
+          </Group>
+        ) : null}
 
         {SHOW_SOCIETA ? (
           <Group title="La società">
@@ -173,6 +187,24 @@ export default function Altro() {
           </View>
           {image ? <Image source={image} style={{ width: 112, aspectRatio: 4 / 3, borderRadius: 14 }} contentFit="cover" /> : null}
         </View>
+      </Pressy>
+    );
+  }
+
+  /** Card della gestione contenuti: stesso stile di quelle di "Sostenitori e media", apre la schermata dedicata */
+  function AdminCard({ Icon, title, subtitle, onPress }: { Icon: LucideIcon; title: string; subtitle: string; onPress: () => void }) {
+    return (
+      <Pressy onPress={onPress} scaleTo={0.97} accessibilityRole="button" accessibilityLabel={`${title}, ${subtitle}`} style={{ flex: 1 }}>
+        <Card style={{ gap: space.xs }}>
+          <View style={{ width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.navy, marginBottom: space.sm }}>
+            <Icon size={22} color={palette.gold} />
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
+            <Txt w={700} size={16} style={{ flex: 1 }}>{title}</Txt>
+            <ChevronRight size={17} color={c.muted} />
+          </View>
+          <Txt size={13} color="muted">{subtitle}</Txt>
+        </Card>
       </Pressy>
     );
   }

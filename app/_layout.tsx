@@ -111,6 +111,9 @@ function RootStack() {
         <Stack.Screen name="elimina-account" options={{ presentation: 'modal' }} />
         {/* solo staff/admin: stato e log dell'agente livescore */}
         <Stack.Screen name="agente" options={{ presentation: 'modal' }} />
+        {/* solo staff/admin: Altro > Gestione contenuti */}
+        <Stack.Screen name="gestione/news" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="gestione/media" options={{ presentation: 'modal' }} />
         {/* ritorno dal login Facebook su Android: il codice lo gestisce già openAuthSessionAsync */}
         <Stack.Screen name="auth/callback" options={{ animation: 'none' }} />
         {/* link dell'email "reimposta password": arenavolley://reset-password?code=… */}

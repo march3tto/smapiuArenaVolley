@@ -1,6 +1,8 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { demoMode, storageUrl, supabase } from './supabase';
 import { slugify } from './format';
+import { daBase64, preparaImmagine } from './immagini';
+import type { Tabellino } from '../../supabase/functions/_shared/tabellino.ts';
 import * as mock from '@/data/mock';
 import { VENUES } from '@/data/altro';
 import { COMPETITION_LOGOS, COMPETITION_LOGOS_LIGHT, OPPONENT_LOGOS, SPONSOR_LOGOS, STAFF_PHOTOS } from '@/data/assets';
@@ -36,6 +38,10 @@ export const T = {
   /** Log dell'agente livescore e ultimo segnale per agente (migrazione 20261101000100_log_agente) */
   logAgente: 'log_agente',
   statoAgenti: 'stato_agenti',
+  /** Foto dei tabellini DataVolley e statistiche d'attacco confermate (migrazione 20261114000200_tabellino_attacco) */
+  tabellini: 'tabellini',
+  statisticheAttacco: 'statistiche_attacco',
+  attaccoPartita: 'attacco_giocatrici_partita',
 } as const;
 
 export interface AppData {
@@ -1076,4 +1082,302 @@ export async function fetchAgentScores(minutes = 5): Promise<AgentScore[]> {
     text: str(r.testo),
     at: new Date(str(r.aggiornato_il)),
   }));
+}
+
+// ---------- tabellino DataVolley: punti in attacco (migrazione 20261114000200_tabellino_attacco) ----------
+
+/** Riga di statistiche_attacco: una giocatrice in un set */
+export interface AttackRow {
+  team: 'us' | 'opp';
+  set: number;
+  number: number;
+  name: string;
+  playerId: string | null;
+  attempts: number;
+  errors: number;
+  blocked: number;
+  points: number;
+  /** set ricavato dal foglio finale per differenza */
+  derived: boolean;
+}
+
+function mapAttack(r: Row): AttackRow {
+  return {
+    team: r.squadra === 'avversaria' ? 'opp' : 'us',
+    set: num(r.numero_set) ?? 1,
+    number: num(r.numero_maglia) ?? 0,
+    name: str(r.nome),
+    playerId: (r.giocatrice_id as string | null) ?? null,
+    attempts: num(r.tentativi) ?? 0,
+    errors: num(r.errori) ?? 0,
+    blocked: num(r.murati) ?? 0,
+    points: num(r.punti) ?? 0,
+    derived: r.derivato === true,
+  };
+}
+
+/** Statistiche d'attacco confermate della partita, per set (lettura pubblica); vuoto se la migrazione non c'è */
+export async function fetchAttacco(matchId: string): Promise<AttackRow[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.from(T.statisticheAttacco).select('*').eq('partita_id', matchId);
+  if (error) {
+    console.warn('Statistiche attacco non disponibili', error.message);
+    return [];
+  }
+  return ((data as Row[] | null) ?? []).map(mapAttack);
+}
+
+/** Realtime: le statistiche cambiano quando lo staff conferma un foglio */
+export function subscribeAttacco(matchId: string, onChange: () => void): Subscription {
+  if (!supabase) return NO_SUBSCRIPTION;
+  return tracked(supabase
+    .channel(`attacco-${matchId}-${Math.random().toString(36).slice(2, 8)}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: T.statisticheAttacco, filter: `partita_id=eq.${matchId}` }, onChange));
+}
+
+/** Punti in attacco di stagione di una giocatrice della rosa (somma delle partite con tabellino) */
+export async function fetchAttaccoGiocatrice(playerId: string): Promise<{ points: number; attempts: number; matches: number; perc: number | null } | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase.from(T.attaccoPartita).select('punti, tentativi').eq('giocatrice_id', playerId).eq('squadra', 'nostra');
+  if (error || !data?.length) return null;
+  const rows = data as Row[];
+  const points = rows.reduce((n, r) => n + (num(r.punti) ?? 0), 0);
+  const attempts = rows.reduce((n, r) => n + (num(r.tentativi) ?? 0), 0);
+  return { points, attempts, matches: rows.length, perc: attempts ? Math.round((100 * points) / attempts) : null };
+}
+
+/** Esito della lettura AI di un foglio */
+export interface TabellinoResult {
+  id: string;
+  status: 'letto' | 'errore';
+  data: Tabellino | null;
+  error: string | null;
+  /** problemi della squadra avversaria (la nostra si può salvare lo stesso) */
+  warnings: string[];
+}
+
+/** Messaggio leggibile da un errore di functions.invoke (il corpo JSON ha { error }) */
+async function functionError(error: unknown): Promise<Error> {
+  const res = (error as { context?: unknown }).context;
+  if (res instanceof Response) {
+    const b = (await res.clone().json().catch(() => null)) as { error?: unknown } | null;
+    if (typeof b?.error === 'string') return new Error(b.error);
+  }
+  return error instanceof Error ? error : new Error('Operazione non riuscita');
+}
+
+/** Rilegge con l'AI un tabellino già caricato (Edge Function leggi-tabellino) */
+export async function leggiTabellino(id: string): Promise<TabellinoResult> {
+  if (!supabase) throw new Error('Supabase non configurato');
+  const { data, error } = await supabase.functions.invoke('leggi-tabellino', { body: { tabellinoId: id }, timeout: 90000 });
+  if (error) throw await functionError(error);
+  const d = (data ?? {}) as { stato?: unknown; dati?: unknown; errore?: unknown; avvisi?: unknown };
+  return {
+    id,
+    status: d.stato === 'letto' ? 'letto' : 'errore',
+    data: d.dati && typeof d.dati === 'object' ? (d.dati as Tabellino) : null,
+    error: typeof d.errore === 'string' ? d.errore : null,
+    warnings: Array.isArray(d.avvisi) ? d.avvisi.filter((x): x is string => typeof x === 'string') : [],
+  };
+}
+
+/**
+ * Foto del tabellino (staff): ridimensionata a ~2000 px sul lato lungo, JPEG 0.8, nel bucket privato "tabellini";
+ * poi la riga in tabellini e la lettura AI. set null = foglio finale.
+ */
+export async function caricaTabellino(matchId: string, uri: string, set: number | null): Promise<TabellinoResult> {
+  if (!supabase) throw new Error('Supabase non configurato');
+  const img = await preparaImmagine(uri, { maxLato: 2000, qualita: 0.8 });
+  const id = newId();
+  const path = `${matchId}/${set ? `set-${set}` : 'finale'}-${id}.jpg`;
+  const up = await supabase.storage.from(T.tabellini).upload(path, daBase64(img.base64), { contentType: 'image/jpeg' });
+  if (up.error) throw new Error(`Foto non caricata: ${up.error.message}`);
+  const ins = await supabase.from(T.tabellini).insert({ id, partita_id: matchId, numero_set: set, percorso_immagine: path });
+  if (ins.error) throw new Error(`Tabellino non salvato: ${ins.error.message}`);
+  return leggiTabellino(id);
+}
+
+/** Conferma dello staff con i dati rivisti: scrive le statistiche (RPC conferma_tabellino) */
+export async function confermaTabellino(id: string, data: Tabellino): Promise<{ rows: number; notes: string[] }> {
+  if (!supabase) throw new Error('Supabase non configurato');
+  const { data: out, error } = await supabase.rpc('conferma_tabellino', { p_tabellino: id, p_dati: data });
+  if (error) throw new Error(error.message);
+  const o = (out ?? {}) as { righe?: unknown; note?: unknown };
+  return { rows: num(o.righe) ?? 0, notes: Array.isArray(o.note) ? o.note.map(String) : [] };
+}
+
+// ---------- gestione contenuti (staff/admin): news e media ----------
+
+export type NewsCategoryKey = 'societa' | 'prima_squadra' | 'giovanili' | 'sponsor';
+
+/** News come la vede lo staff: anche quelle non pubblicate e delle giovanili */
+export interface NewsDraft {
+  id: string | null;
+  title: string;
+  body: string;
+  category: NewsCategoryKey;
+  /** AAAA-MM-GG */
+  date: string;
+  /** percorso "news/<file>.jpg" (o URL) già salvato */
+  coverPath: string | null;
+  published: boolean;
+  source: NewsSource | null;
+}
+
+const NEWS_CAT: NewsCategoryKey[] = ['societa', 'prima_squadra', 'giovanili', 'sponsor'];
+
+function mapNewsDraft(r: Row): NewsDraft {
+  return {
+    id: str(r.id),
+    title: str(r.titolo),
+    body: str(r.corpo),
+    category: NEWS_CAT.includes(r.categoria as NewsCategoryKey) ? (r.categoria as NewsCategoryKey) : 'societa',
+    date: str(r.pubblicato_il).slice(0, 10),
+    coverPath: (r.url_immagine_copertina as string | null) || null,
+    published: r.pubblicata === true,
+    source: FONTI_NOTIZIA.includes(r.fonte as NewsSource) ? (r.fonte as NewsSource) : null,
+  };
+}
+
+export async function fetchNewsAdmin(limit = 30): Promise<NewsDraft[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.from(T.notizie).select('*').order('pubblicato_il', { ascending: false }).limit(limit);
+  if (error) throw new Error(error.message);
+  return ((data as Row[] | null) ?? []).map(mapNewsDraft);
+}
+
+/** Proposta dell'AI da uno screenshot (Edge Function news-da-screenshot); box in pixel dell'immagine inviata */
+export interface NewsProposal {
+  title: string;
+  body: string;
+  category: NewsCategoryKey;
+  date: string;
+  /** data stimata dal tempo relativo del post ("3 g") */
+  estimated: boolean;
+  slug: string;
+  box: { x1: number; y1: number; x2: number; y2: number } | null;
+}
+
+export async function newsDaScreenshot(img: { base64: string; width: number; height: number }, today: string): Promise<NewsProposal> {
+  if (!supabase) throw new Error('Supabase non configurato');
+  const { data, error } = await supabase.functions.invoke('news-da-screenshot', {
+    body: { immagine: img.base64, larghezza: img.width, altezza: img.height, oggi: today },
+    timeout: 90000,
+  });
+  if (error) throw await functionError(error);
+  const d = (data ?? {}) as Row;
+  const b = d.box as Row | null;
+  return {
+    title: str(d.titolo),
+    body: str(d.corpo),
+    category: NEWS_CAT.includes(d.categoria as NewsCategoryKey) ? (d.categoria as NewsCategoryKey) : 'societa',
+    date: /^\d{4}-\d{2}-\d{2}$/.test(str(d.data)) ? str(d.data) : today,
+    estimated: d.stimata === true,
+    slug: str(d.slug),
+    box: b ? { x1: num(b.x1) ?? 0, y1: num(b.y1) ?? 0, x2: num(b.x2) ?? 0, y2: num(b.y2) ?? 0 } : null,
+  };
+}
+
+/** Ora di pubblicazione: adesso se la data è oggi, altrimenti le 10:00 convenzionali (come lo script) */
+function publishedAt(date: string, today: string): string {
+  return date === today ? new Date().toISOString() : `${date}T10:00:00+00:00`;
+}
+
+/**
+ * Salva la news: copertina in news/<data>-<slug>.jpg (stesso formato dello script news_da_screenshot.py),
+ * poi insert o update di notizie. Con pubblicata = true le notifiche push partono dai trigger.
+ */
+export async function salvaNews(n: NewsDraft, opts: { slug: string; today: string; cover?: { base64: string } | null }): Promise<string> {
+  if (!supabase) throw new Error('Supabase non configurato');
+  let coverPath = n.coverPath;
+  if (opts.cover) {
+    const file = `${n.date}-${slugify(opts.slug || n.title).slice(0, 60).replace(/-+$/, '') || 'news'}.jpg`;
+    const up = await supabase.storage.from('news').upload(file, daBase64(opts.cover.base64), { contentType: 'image/jpeg', upsert: true });
+    if (up.error) throw new Error(`Copertina non caricata: ${up.error.message}`);
+    coverPath = `news/${file}`;
+  }
+  const row = {
+    titolo: n.title.trim(), corpo: n.body.trim(), categoria: n.category, url_immagine_copertina: coverPath,
+    pubblicato_il: publishedAt(n.date, opts.today), pubblicata: n.published, fonte: n.source,
+  };
+  if (n.id) {
+    const { error } = await supabase.from(T.notizie).update(row).eq('id', n.id);
+    if (error) throw new Error(error.message);
+    return n.id;
+  }
+  const { data, error } = await supabase.from(T.notizie).insert({ ...row, autore: 'Arena Volley Team' }).select('id').single();
+  if (error) throw new Error(error.message);
+  return str((data as Row).id);
+}
+
+export async function setNewsPubblicata(id: string, published: boolean): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from(T.notizie).update({ pubblicata: published }).eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+/** Video o podcast come lo vede lo staff (anche non pubblicato) */
+export interface MediaDraft {
+  id: string | null;
+  type: 'video' | 'podcast';
+  title: string;
+  /** id YouTube, link YouTube o URL esterno */
+  ref: string;
+  duration: string;
+  cover: string | null;
+  published: boolean;
+  date: string;
+}
+
+function mapMediaDraft(r: Row): MediaDraft {
+  return {
+    id: str(r.id),
+    type: r.tipo === 'podcast' ? 'podcast' : 'video',
+    title: str(r.titolo),
+    ref: str(r.riferimento_esterno),
+    duration: str(r.etichetta_durata),
+    cover: (r.url_immagine_copertina as string | null) || null,
+    published: r.pubblicato === true,
+    date: str(r.pubblicato_il),
+  };
+}
+
+export async function fetchMediaAdmin(limit = 30): Promise<MediaDraft[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.from(T.media).select('*').order('pubblicato_il', { ascending: false }).limit(limit);
+  if (error) throw new Error(error.message);
+  return ((data as Row[] | null) ?? []).map(mapMediaDraft);
+}
+
+/**
+ * Salva video/podcast; la copertina facoltativa va nel bucket "news" (cartella media/) e in tabella c'è l'URL pubblico,
+ * perché l'app usa url_immagine_copertina dei media così com'è. Con pubblicato = true parte la notifica push (trigger).
+ */
+export async function salvaMedia(m: MediaDraft, cover?: { base64: string } | null): Promise<string> {
+  if (!supabase) throw new Error('Supabase non configurato');
+  let coverUrl = m.cover;
+  if (cover) {
+    const file = `media/${new Date().toISOString().slice(0, 10)}-${slugify(m.title).slice(0, 60).replace(/-+$/, '') || 'media'}-${newId().slice(0, 8)}.jpg`;
+    const up = await supabase.storage.from('news').upload(file, daBase64(cover.base64), { contentType: 'image/jpeg', upsert: true });
+    if (up.error) throw new Error(`Copertina non caricata: ${up.error.message}`);
+    coverUrl = supabase.storage.from('news').getPublicUrl(file).data.publicUrl;
+  }
+  const row = {
+    tipo: m.type, titolo: m.title.trim(), riferimento_esterno: m.ref.trim(), etichetta_durata: m.duration.trim() || null,
+    url_immagine_copertina: coverUrl, pubblicato: m.published,
+  };
+  if (m.id) {
+    const { error } = await supabase.from(T.media).update(row).eq('id', m.id);
+    if (error) throw new Error(error.message);
+    return m.id;
+  }
+  const { data, error } = await supabase.from(T.media).insert(row).select('id').single();
+  if (error) throw new Error(error.message);
+  return str((data as Row).id);
+}
+
+export async function setMediaPubblicato(id: string, published: boolean): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from(T.media).update({ pubblicato: published }).eq('id', id);
+  if (error) throw new Error(error.message);
 }

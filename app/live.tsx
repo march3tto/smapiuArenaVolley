@@ -4,6 +4,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Plus, RotateCcw, Timer, Trophy, Volleyball } from 'lucide-react-native';
 import { AgentScoresTicker } from '@/components/AgentScoresTicker';
+import { AttaccoPanel } from '@/components/AttaccoPanel';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
@@ -67,8 +68,11 @@ export default function Live() {
   const refreshData = useData().refresh;
   const refreshLive = live.refresh;
   const inFlight = useRef<Promise<void> | null>(null);
+  // a ogni ricaricamento cambia: la sezione Attacco rilegge il tabellino
+  const [reloadKey, setReloadKey] = useState(0);
   const loadLiveData = useCallback(() => {
     if (inFlight.current) return inFlight.current;
+    setReloadKey((k) => k + 1);
     const run = Promise.all([refreshData(), refreshLive()])
       .then(() => {})
       .finally(() => {
@@ -267,6 +271,15 @@ export default function Live() {
           )}
         </Card>
   
+        {/* punti in attacco dal tabellino DataVolley (fonte ufficiale, separata dai punti inseriti a mano) */}
+        {hasSupabase && !m.demoLive ? (
+          <Card>
+            <AttaccoPanel matchId={m.id} names={{ us, opp: m.opponent }} canUpload={ai} reloadKey={reloadKey}
+              // proposta: il set appena chiuso; a partita finita il foglio finale
+              suggestedSet={live.finished ? null : Math.max(1, live.history.length)} />
+          </Card>
+        ) : null}
+
         {picker ? (
           <PointPicker anchor={picker.anchor} side={picker.side} team={picker.name} names={{ us, opp: m.opponent }}
             players={onCourt(picker.side)} rotation={live.rotation[picker.side]} score={{ set: live.set, our: live.our, opp: live.opp }} ai={ai} commentOnly={live.autoScore}

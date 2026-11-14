@@ -57,6 +57,36 @@ Migrazioni in `supabase/migrations/`.
 - Chi ha fatto punto si deduce dal punteggio degli eventi (timeout e cambi restano neutri).
 - Partita demo: con Supabase la attiva un admin collegato da Impostazioni (rotella) > Partita demo > "Partita in diretta (demo)",
   e la vedono solo gli admin. Senza `.env` è accesa di default (si spegne con `EXPO_PUBLIC_DEMO_LIVE=0`).
+- **Tabellino DataVolley (punti in attacco)**: staff/admin nella Live, sezione Attacco > "Tabellino", scelgono il foglio
+  (Set 1…5 o Finale, proposto in base al set appena chiuso), lo fotografano o lo prendono dalla galleria. La foto va nel bucket
+  privato `tabellini`, la Edge Function `leggi-tabellino` (Groq vision) la trascrive e controlla che i numeri tornino (somma
+  delle giocatrici = "Totali giocatori", totale = "Punti vinti → Att" del set o di tutti i set). Lo staff rivede la tabella,
+  corregge a mano se serve e conferma: la RPC `conferma_tabellino` scrive `statistiche_attacco` (i set senza foglio si
+  ricavano dal finale per differenza). È la fonte ufficiale, separata da `azioni_punto` (punti inseriti a mano in diretta).
+  La sezione Attacco si aggiorna in Realtime per tutti; la scheda giocatrice mostra punti in attacco e Pt% di stagione.
+  Migrazione `20261114000200_tabellino_attacco`, test `supabase/tests/database/tabellino_attacco.test.sql` e `npm test`.
+
+  ```bash
+  supabase secrets set GROQ_VISION_MODEL=qwen/qwen3.8-27b   # facoltativo: senza, si usa la lista di modelli vision nel codice
+  supabase functions deploy leggi-tabellino
+  ```
+
+### Contenuti
+
+- **Altro > Gestione contenuti** (solo staff/admin):
+  - **Nuova news**: da uno screenshot di un post (galleria) la Edge Function `news-da-screenshot` (Groq vision, stesse regole
+    della skill `news-da-screenshot`) propone titolo, testo, categoria, data e il riquadro della grafica; oppure si scrive a mano.
+    Si rivede tutto, si regola il ritaglio della copertina e si salva: copertina in `news/<data>-<slug>.jpg` (bucket `news`),
+    riga in `notizie`. L'elenco delle ultime news permette di modificarle e di pubblicarle o nasconderle.
+  - **Podcast e video**: tipo, titolo, link (YouTube o URL esterno; per YouTube si salva l'id e si vede subito la miniatura),
+    durata, copertina facoltativa. Riga in `media`, stesso elenco con modifica e pubblica/nascondi.
+  - Con "Pubblica subito" le notifiche push partono dai trigger della migrazione 20261015_notifiche_push.
+  - La scrittura nel bucket `news` dall'app richiede le policy della migrazione `20261114000300_contenuti_staff`.
+
+  ```bash
+  supabase secrets set GROQ_VISION_MODEL=qwen/qwen3.8-27b   # facoltativo, lo stesso segreto della lettura del tabellino
+  supabase functions deploy news-da-screenshot
+  ```
 
 ### Accesso, consensi e GDPR
 
@@ -79,7 +109,8 @@ Configurazione delle console (Supabase, Apple, Google, Meta), secrets e attivit�
 app/                      rotte (Expo Router)
   _layout.tsx             font, provider, stack principale
   login.tsx               accesso / registrazione / ospite
-  live.tsx                centro partita (punteggio, set, cronaca)
+  live.tsx                centro partita (punteggio, set, cronaca, attacco dal tabellino)
+  gestione/               news e podcast/video dall'app (solo staff/admin)
   settings.tsx            notifiche e anteprima (modale)
   account.tsx             account e privacy: consensi, categoria, link a elimina-account
   elimina-account.tsx     cancellazione dell'account

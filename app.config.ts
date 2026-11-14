@@ -9,6 +9,10 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
 const PRIVACY_POLICY_URL = 'https://march3tto.github.io/smapiuArenaVolley/privacy/';
 const PRIVACY_POLICY_VERSION = '2026-10-v2';
 
+/** Permessi per le foto dello staff: tabellino DataVolley in diretta, screenshot e copertine di news e video */
+const CAMERA_PERMISSION = 'L\'app usa la fotocamera per fotografare il tabellino della partita (solo staff).';
+const PHOTOS_PERMISSION = 'L\'app accede alle foto per caricare il tabellino della partita e le immagini di news e video (solo staff).';
+
 export default ({ config }: ConfigContext): ExpoConfig => {
   // Client ID OAuth di Google Cloud (identificativi pubblici, non segreti): vedi .env.example
   const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
@@ -22,8 +26,18 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ...config,
     name: config.name ?? 'Smapiu Arena Volley',
     slug: config.slug ?? 'smapiuArenaVolley',
+    ios: {
+      ...config.ios,
+      infoPlist: {
+        ...config.ios?.infoPlist,
+        NSCameraUsageDescription: CAMERA_PERMISSION,
+        NSPhotoLibraryUsageDescription: PHOTOS_PERMISSION,
+      },
+    },
     plugins: [
       ...(config.plugins ?? []),
+      // fotocamera e galleria (Android: permessi CAMERA e lettura immagini); niente microfono, si scattano solo foto
+      ['expo-image-picker', { cameraPermission: CAMERA_PERMISSION, photosPermission: PHOTOS_PERMISSION, microphonePermission: false }],
       // capability "Sign in with Apple" (entitlement iOS)
       'expo-apple-authentication',
       // senza client ID iOS il plugin fallirebbe il prebuild: si aggiunge solo quando è configurato

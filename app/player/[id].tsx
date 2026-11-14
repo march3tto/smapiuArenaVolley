@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, ScrollView, View, useWindowDimensions, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -9,6 +9,7 @@ import { PlayerPlaceholder } from '@/components/PlayerPlaceholder';
 import { IconButton } from '@/components/IconButton';
 import { Txt } from '@/components/Txt';
 import { ROLE_LABEL } from '@/constants';
+import { fetchAttaccoGiocatrice } from '@/lib/api';
 import { birthDate } from '@/lib/format';
 import { useData } from '@/store/DataProvider';
 import type { Player, PlayerRole } from '@/types';
@@ -83,12 +84,25 @@ function PlayerPage({ p, width, height }: { p: Player; width: number; height: nu
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const name = `${p.firstName} ${p.lastName}`;
+  // punti in attacco di stagione dai tabellini DataVolley confermati (nessun riquadro se non ci sono dati)
+  const [attack, setAttack] = useState<Awaited<ReturnType<typeof fetchAttaccoGiocatrice>>>(null);
+  useEffect(() => {
+    let on = true;
+    fetchAttaccoGiocatrice(p.id).then((a) => on && setAttack(a)).catch(() => {});
+    return () => {
+      on = false;
+    };
+  }, [p.id]);
   // ruolo e maglia sopra i dati personali ("—" se non ancora inseriti)
   const facts: [string, string][] = [
     ['Ruolo', ROLE_LABEL[p.role]],
     ['Maglia', p.number != null ? `#${p.number}` : '—'],
     ['Data di nascita', p.birthDate ? birthDate(p.birthDate) : p.born ? `Classe ${p.born}` : '—'],
     ['Altezza', p.heightCm ? `${p.heightCm} cm` : '—'],
+    ...(attack ? [
+      ['Punti in attacco', `${attack.points} in ${attack.matches} ${attack.matches === 1 ? 'partita' : 'partite'}`],
+      ['Pt% medio', attack.perc != null ? `${attack.perc}%` : '—'],
+    ] as [string, string][] : []),
     ...(p.status ? [['Stagione', p.status === 'nuova' ? 'Nuovo arrivo' : 'Confermata'] as [string, string]] : []),
   ];
   const photoW = Math.min(width, 560);
