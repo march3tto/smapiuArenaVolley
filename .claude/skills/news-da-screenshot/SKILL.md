@@ -25,8 +25,9 @@ Elabora **ogni** immagine (`.png`, `.jpg`, `.jpeg`, `.heic` esclusi i file nasco
    ```
    python3 scripts/news_da_screenshot.py crea "<file>" --box x1,y1,x2,y2 \
      --data AAAA-MM-GG --slug <slug> --titolo "<titolo>" \
-     --categoria <categoria> --corpo-file /tmp/corpo.txt
+     --categoria <categoria> --corpo-file /tmp/corpo.txt [--fonte instagram|sito_web|app]
    ```
+   `--fonte` (colonna `notizie.fonte`, etichetta nell'app) è `instagram` di default: cambiala solo se lo screenshot viene dal sito della società (`sito_web`) o se la news è scritta apposta per l'app (`app`).
    Lo script salva `supabase/notizie/<data>-<slug>.jpg`, scrive `supabase/notizie/<data>-<slug>.sql` (INSERT idempotente), carica la copertina nel bucket pubblico `news` dello Storage Supabase e **solo dopo aver verificato i file** elimina lo screenshot. L'app legge le copertine **solo** dallo Storage (`url_immagine_copertina = "news/<file>.jpg"`): non vanno mai messe in `assets/` né registrate in `src/data/assets.ts`.
    Il caricamento richiede `SUPABASE_SERVICE_ROLE_KEY` nell'ambiente (mai nel `.env` dell'app); se manca, lo script lo segnala e la copertina va caricata a mano nel bucket `news`. Se un passo fallisce lo screenshot resta in `news-inbox/`.
 

@@ -5,7 +5,7 @@ import * as mock from '@/data/mock';
 import { VENUES } from '@/data/altro';
 import { COMPETITION_LOGOS, COMPETITION_LOGOS_LIGHT, OPPONENT_LOGOS, SPONSOR_LOGOS, STAFF_PHOTOS } from '@/data/assets';
 import type {
-  Ad, Competition, Convenzione, ImgSrc, LeagueGame, LineupPlayer, LiveEvent, Match, MatchStatus, MediaItem, NewsItem, Player, PlayerRole, PointAction, PointDetail, PointPhase, RegionalRoster, SetScore, Sponsor, SponsorTier, StaffMember, Standing, Venue, YouthTeam,
+  Ad, Competition, Convenzione, ImgSrc, LeagueGame, LineupPlayer, LiveEvent, Match, MatchStatus, MediaItem, NewsItem, NewsSource, Player, PlayerRole, PointAction, PointDetail, PointPhase, RegionalRoster, SetScore, Sponsor, SponsorTier, StaffMember, Standing, Venue, YouthTeam,
 } from '@/types';
 
 /** Tabelle dello schema Supabase (in italiano) */
@@ -85,6 +85,7 @@ export function demoData(): AppData {
 // ---------- mapper ----------
 
 const STATO: Record<string, MatchStatus> = { programmata: 'scheduled', live: 'live', conclusa: 'finished', rinviata: 'postponed' };
+const FONTI_NOTIZIA: NewsSource[] = ['instagram', 'sito_web', 'app'];
 const CATEGORIA_NOTIZIA: Record<string, string> = { societa: 'Società', prima_squadra: 'Serie A3', giovanili: 'Giovanili', sponsor: 'Sponsor' };
 const LIVELLO_SPONSOR: Record<string, SponsorTier> = {
   'title sponsor': 'title', gold: 'title',
@@ -204,6 +205,7 @@ function mapNews(r: Row): NewsItem {
     image: image(r.url_immagine_copertina, {}),
     excerpt: body.length > 160 ? `${body.slice(0, 157)}…` : body,
     body,
+    source: FONTI_NOTIZIA.includes(r.fonte as NewsSource) ? (r.fonte as NewsSource) : null,
   };
 }
 

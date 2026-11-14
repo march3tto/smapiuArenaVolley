@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { X } from 'lucide-react-native';
 import { CoverImage } from '@/components/CoverImage';
 import { IconButton } from '@/components/IconButton';
+import { SOURCE_LABEL } from '@/components/NewsCard';
 import { Txt } from '@/components/Txt';
 import { newsDate } from '@/lib/format';
 import { useData } from '@/store/DataProvider';
@@ -51,6 +52,11 @@ export default function NewsScreen() {
             <View style={{ paddingHorizontal: space.sm, paddingVertical: space.xs, borderRadius: 999, backgroundColor: c.fill2 }}>
               <Txt w={700} size={12} color="accent">{n.category}</Txt>
             </View>
+            {n.source ? (
+              <View style={{ paddingHorizontal: space.sm, paddingVertical: space.xs, borderRadius: 999, borderWidth: 1, borderColor: c.line }} accessibilityLabel={`Fonte: ${SOURCE_LABEL[n.source]}`}>
+                <Txt w={700} size={12} color="muted">{SOURCE_LABEL[n.source]}</Txt>
+              </View>
+            ) : null}
             <Txt size={13} color="muted">{newsDate(n.date)}</Txt>
           </View>
         </View>

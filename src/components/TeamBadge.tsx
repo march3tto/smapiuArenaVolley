@@ -14,9 +14,13 @@ interface Props {
   logo?: ImgSrc | null;
 }
 
+/** Tutti gli stemmi un po' più grandi (+15%) della misura chiesta */
+const BADGE_SCALE = 1.15;
+
 /** Stemma squadra: il nostro logo, il logo dell'avversaria se c'è, altrimenti sigla su fondo blu */
-export function TeamBadge({ name, size = 44, logo: logoProp }: Props) {
+export function TeamBadge({ name, size: sizeProp = 44, logo: logoProp }: Props) {
   const { c } = useTheme();
+  const size = Math.round(sizeProp * BADGE_SCALE);
   const logo = logoProp || OPPONENT_LOGOS[slugify(name)];
   const r = Math.round(size * 0.32);
   if (name === US || name.startsWith('Smapiù')) {

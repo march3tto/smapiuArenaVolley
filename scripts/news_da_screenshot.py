@@ -41,6 +41,8 @@ ROOT = Path(__file__).resolve().parent.parent
 SQL_DIR = ROOT / "supabase" / "notizie"
 BUCKET = "news"
 CATEGORIE = {"societa", "prima_squadra", "giovanili", "sponsor"}
+# fonte della notizia (colonna notizie.fonte, etichetta nell'app)
+FONTI = {"instagram", "sito_web", "app"}
 SLUG_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
 
@@ -121,6 +123,8 @@ def cmd_crea(a):
         sys.exit("--slug: solo minuscole, numeri e trattini")
     if a.categoria not in CATEGORIE:
         sys.exit(f"--categoria deve essere una di {sorted(CATEGORIE)}")
+    if a.fonte not in FONTI:
+        sys.exit(f"--fonte deve essere una di {sorted(FONTI)}")
     if not re.fullmatch(r"\d{2}:\d{2}", a.ora):
         sys.exit("--ora deve essere HH:MM")
     corpo = Path(a.corpo_file).read_text(encoding="utf-8").strip()
@@ -138,9 +142,9 @@ def cmd_crea(a):
     # 2. query (idempotente: non reinserisce la stessa copertina)
     url = f"{BUCKET}/{nome}.jpg"
     sql.write_text(
-        "insert into public.notizie (titolo, categoria, corpo, url_immagine_copertina, autore, pubblicato_il, pubblicata)\n"
+        "insert into public.notizie (titolo, categoria, corpo, url_immagine_copertina, autore, pubblicato_il, pubblicata, fonte)\n"
         f"select {sql_str(a.titolo.strip())}, '{a.categoria}', {sql_str(corpo)},\n"
-        f"       '{url}', {sql_str(a.autore)}, '{a.data} {a.ora}:00+00', true\n"
+        f"       '{url}', {sql_str(a.autore)}, '{a.data} {a.ora}:00+00', true, '{a.fonte}'\n"
         f"where not exists (select 1 from public.notizie where url_immagine_copertina = '{url}');\n",
         encoding="utf-8",
     )
@@ -182,6 +186,7 @@ def main():
     s.add_argument("--categoria", required=True)
     s.add_argument("--corpo-file", required=True)
     s.add_argument("--autore", default="Arena Volley Team")
+    s.add_argument("--fonte", default="instagram", help="instagram (default), sito_web o app")
     s.add_argument("--mantieni-sorgente", action="store_true")
     s.set_defaults(f=cmd_crea)
 

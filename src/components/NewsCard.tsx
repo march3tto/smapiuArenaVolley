@@ -6,7 +6,7 @@ import { Txt } from './Txt';
 import { newsDate } from '@/lib/format';
 import { blue, palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
-import type { NewsItem } from '@/types';
+import type { NewsItem, NewsSource } from '@/types';
 
 interface Props {
   item: NewsItem;
@@ -33,6 +33,20 @@ const TITLE = { compact: { size: 13.5, line: 18 }, big: { size: 17, line: 22 } }
 const META_H = 22;
 const NEWS_CARD_TEXT_H = space.md * 2 + TITLE.big.line * TITLE_LINES + space.sm + META_H;
 export const NEWS_CARD_H = NEWS_CARD_IMG_H + NEWS_CARD_TEXT_H + 2; // + bordo
+
+/** Nome della fonte per l'etichetta */
+export const SOURCE_LABEL: Record<NewsSource, string> = { instagram: 'Instagram', sito_web: 'Sito web', app: 'App' };
+
+/** Etichetta della fonte, in alto a sinistra sulla copertina: fondo scuro semitrasparente, leggibile su ogni foto */
+function SourceBadge({ source }: { source?: NewsSource | null }) {
+  if (!source) return null;
+  return (
+    <View style={{ position: 'absolute', top: space.sm, left: space.sm, height: META_H, justifyContent: 'center', paddingHorizontal: space.sm, borderRadius: 999,
+      backgroundColor: 'rgba(6,26,58,0.7)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }} accessibilityLabel={`Fonte: ${SOURCE_LABEL[source]}`}>
+      <Txt w={700} size={10.5} color="#fff" numberOfLines={1}>{SOURCE_LABEL[source]}</Txt>
+    </View>
+  );
+}
 
 /** Colore dell'etichetta per categoria (sfondo, testo); le altre restano scure semitrasparenti */
 const CATEGORY_COLORS: Record<string, { bg: string; fg: string }> = {
@@ -74,6 +88,7 @@ export function NewsCard({ item, width, compact, onPress }: Props) {
       <Pressy onPress={onPress} scaleTo={0.97} accessibilityRole="button" accessibilityLabel={item.title}
         style={{ width: NEWS_COMPACT_W, height: NEWS_COMPACT_H, borderRadius: 18, overflow: 'hidden', backgroundColor: c.fill, borderWidth: 1, borderColor: c.line }}>
         <Image source={item.image} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} contentFit="cover" contentPosition="center" transition={250} />
+        <SourceBadge source={item.source} />
         {/* fascia scura piena sotto il testo: resta leggibile su ogni foto */}
         <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: space.sm, gap: space.xs, backgroundColor: 'rgba(6,26,58,0.85)' }}>
           <Txt w={700} size={TITLE.compact.size} color="#fff" numberOfLines={TITLE_LINES}
@@ -88,6 +103,7 @@ export function NewsCard({ item, width, compact, onPress }: Props) {
       <View style={{ height: NEWS_CARD_IMG_H, backgroundColor: c.fill }}>
         {/* immagine intera e centrata (le copertine sono verticali) */}
         <CoverImage source={item.image} style={{ flex: 1 }} />
+        <SourceBadge source={item.source} />
       </View>
       <View style={{ height: NEWS_CARD_TEXT_H, padding: space.md, gap: space.sm, overflow: 'hidden' }}>
         <Txt w={700} size={TITLE.big.size} numberOfLines={TITLE_LINES}

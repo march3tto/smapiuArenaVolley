@@ -124,7 +124,11 @@ export interface NewsItem {
   image: ImgSrc;
   excerpt: string;
   body?: string | null;
+  /** Da dove viene la notizia (colonna notizie.fonte); senza fonte niente etichetta */
+  source?: NewsSource | null;
 }
+
+export type NewsSource = 'instagram' | 'sito_web' | 'app';
 
 export type SponsorTier = 'title' | 'main' | 'sponsor' | 'charity';
 
