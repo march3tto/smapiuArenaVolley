@@ -1381,3 +1381,12 @@ export async function setMediaPubblicato(id: string, published: boolean): Promis
   const { error } = await supabase.from(T.media).update({ pubblicato: published }).eq('id', id);
   if (error) throw new Error(error.message);
 }
+
+/** Partita demo ricominciata (admin): via statistiche e tabellini di prova; le foto restano nel bucket privato */
+export async function azzeraTabellinoDemo(matchId: string): Promise<void> {
+  if (!supabase) return;
+  const st = await supabase.from(T.statisticheAttacco).delete().eq('partita_id', matchId);
+  if (st.error) throw new Error(st.error.message);
+  const tb = await supabase.from(T.tabellini).delete().eq('partita_id', matchId);
+  if (tb.error) throw new Error(tb.error.message);
+}

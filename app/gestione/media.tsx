@@ -62,7 +62,7 @@ export default function GestioneMedia() {
     if (staff) load();
   }, [staff, load]);
 
-  const paddingTop = Platform.OS === 'android' ? insets.top + space.md : space.md;
+  const paddingTop = Platform.OS === 'ios' ? space.lg : insets.top + space.md;
   const header = (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
       <Txt w={800} size={20} style={{ flex: 1 }}>{draft ? (draft.id ? 'Modifica contenuto' : 'Nuovo podcast o video') : 'Podcast e video'}</Txt>

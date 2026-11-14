@@ -21,6 +21,7 @@ import { TeamBadge } from '@/components/TeamBadge';
 import { VoiceCommentary } from '@/components/VoiceCommentary';
 import { Txt } from '@/components/Txt';
 import { US } from '@/constants';
+import { azzeraTabellinoDemo } from '@/lib/api';
 import { hasSupabase } from '@/lib/supabase';
 import { rotateZone } from '@/lib/volley';
 import { useApp } from '@/store/AppProvider';
@@ -226,7 +227,12 @@ export default function Live() {
             ) : null}
             {live.saveError ? <Txt size={12} color="live" center>{live.saveError}</Txt> : null}
             {m.demoLive && live.finished && live.canResetDemo ? (
-              <Button size="sm" label="Ricomincia la demo" icon={<RotateCcw size={14} color={c.text} />} onPress={live.resetDemo} />
+              <Button size="sm" label="Ricomincia la demo" icon={<RotateCcw size={14} color={c.text} />}
+                onPress={() => {
+                  live.resetDemo();
+                  // anche il tabellino di prova riparte da zero
+                  if (hasSupabase) azzeraTabellinoDemo(m.id).catch((e: unknown) => console.warn('Tabellino demo non azzerato', e));
+                }} />
             ) : null}
           </View>
         </Card>
@@ -271,10 +277,12 @@ export default function Live() {
           )}
         </Card>
   
-        {/* punti in attacco dal tabellino DataVolley (fonte ufficiale, separata dai punti inseriti a mano) */}
-        {hasSupabase && !m.demoLive ? (
+        {/* punti in attacco dal tabellino DataVolley (fonte ufficiale, separata dai punti inseriti a mano).
+            Anche nella demo, per provarlo: la partita demo ha una riga parcheggiata in partite (migrazione 20261114000400).
+            "Nostra" nel tabellino è sempre Smapiù Arena, anche quando nella demo gioca un'altra squadra */}
+        {hasSupabase ? (
           <Card>
-            <AttaccoPanel matchId={m.id} names={{ us, opp: m.opponent }} canUpload={ai} reloadKey={reloadKey}
+            <AttaccoPanel matchId={m.id} names={{ us: US, opp: m.opponent }} canUpload={ai} reloadKey={reloadKey}
               // proposta: il set appena chiuso; a partita finita il foglio finale
               suggestedSet={live.finished ? null : Math.max(1, live.history.length)} />
           </Card>

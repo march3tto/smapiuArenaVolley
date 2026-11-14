@@ -10,6 +10,7 @@ import { Check, Ellipsis, House, Newspaper, Users } from 'lucide-react-native';
 import { Pressy } from './Pressy';
 import { ScoreboardIcon } from './ScoreboardIcon';
 import { useToast } from './Toast';
+import { Txt } from './Txt';
 import { AVATARS, avatarLabel, useAssistantAvatar } from '@/lib/avatar';
 import { palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -202,6 +203,8 @@ function AvatarPicker({ anchor, onDone }: { anchor: Anchor; onDone: () => void }
   const { index, setAvatar } = useAssistantAvatar();
   const toast = useToast();
   const [anims] = useState(() => AVATARS.map(() => new Animated.Value(0)));
+  // avatar sotto il mouse (solo PWA da computer): sopra compare il nome prima di sceglierlo
+  const [hover, setHover] = useState<number | null>(null);
   useEffect(() => {
     // dal più vicino al pulsante (in basso al centro) al più lontano
     const order = AVATARS.map((_, i) => i).sort((a, b) => dist(a) - dist(b));
@@ -222,16 +225,30 @@ function AvatarPicker({ anchor, onDone }: { anchor: Anchor; onDone: () => void }
       {AVATARS.map((a, i) => {
         const selected = i === index;
         return (
-          <Animated.View key={i} style={{ opacity: anims[i], transform: [{ scale: anims[i] }, { translateY: anims[i].interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }}>
+          <Animated.View key={i} style={{ zIndex: hover === i ? 1 : 0, opacity: anims[i], transform: [{ scale: anims[i] }, { translateY: anims[i].interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }}>
             <Pressy onPress={() => pick(i)} scaleTo={0.88} accessibilityRole="button" accessibilityLabel={avatarLabel(i)} accessibilityState={{ selected }}
+              onHoverIn={() => setHover(i)} onHoverOut={() => setHover((h) => (h === i ? null : h))}
               style={{ width: PICK, height: PICK, borderRadius: PICK / 2, overflow: 'hidden', backgroundColor: palette.gold,
                 borderWidth: selected ? 3 : 0, borderColor: palette.navy,
                 shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 6 }}>
               <Image source={a.source} style={{ width: '100%', height: '100%' }} contentFit="cover" accessibilityIgnoresInvertColors />
             </Pressy>
+            {hover === i ? <AvatarName name={avatarLabel(i)} /> : null}
           </Animated.View>
         );
       })}
+    </View>
+  );
+}
+
+/** Etichetta col nome sopra l'avatar sotto il mouse; non intercetta il mouse, così non toglie l'hover all'avatar */
+function AvatarName({ name }: { name: string }) {
+  return (
+    <View pointerEvents="none" style={{ position: 'absolute', bottom: PICK + 6, left: -PICK, right: -PICK, alignItems: 'center' }}>
+      <View style={{ backgroundColor: palette.navy, borderRadius: 8, paddingHorizontal: space.sm, paddingVertical: 4,
+        shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 6 }}>
+        <Txt w={700} size={12.5} color="#fff" numberOfLines={1}>{name}</Txt>
+      </View>
     </View>
   );
 }
