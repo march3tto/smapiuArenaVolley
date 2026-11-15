@@ -6,7 +6,11 @@
 -- (in finestra scrive un battito ogni 5': un agente spento senza "stop" non tiene la striscia accesa).
 -- Le gare sono quelle elencate in finestra_aperta.dettagli.gare; per ognuna l'ultimo punteggio letto
 -- (live o finale), anche se scritto prima di un riavvio dell'agente.
+-- giornata e girone (da partite) servono al tocco sulla striscia, che apre la schermata della giornata.
 -- log_agente resta leggibile solo da staff/admin: al pubblico arrivano solo i punteggi.
+
+-- le colonne restituite possono cambiare: "create or replace" non basta
+drop function if exists public.bordo_campo();
 
 create or replace function public.bordo_campo()
 returns table (
@@ -20,7 +24,9 @@ returns table (
   set_ospite integer,
   parziali jsonb,
   testo text,
-  aggiornato_il timestamptz
+  aggiornato_il timestamptz,
+  giornata integer,
+  girone text
 )
 language sql
 stable
@@ -54,9 +60,12 @@ as $$
       coalesce((l.dettagli->'tabellone'->>'set_ospite')::int, 0) as g_set_ospite,
       coalesce(l.dettagli->'tabellone'->'parziali', '[]'::jsonb) as g_parziali,
       public.tabellone_testo(l.dettagli->'tabellone')            as g_testo,
-      l.creato_il                                                as g_quando
+      l.creato_il                                                as g_quando,
+      p.giornata                                                 as g_giornata,
+      p.girone::text                                             as g_girone
     from public.log_agente l
     join gare g on g.numero_gara = l.numero_gara
+    left join public.partite p on p.id = l.partita_id
     where l.evento in ('aggiornamento', 'correzione')
       and l.dettagli ? 'tabellone'
       and l.creato_il > now() - interval '12 hours'

@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, View } from 'react-native';
+import { Pressy } from './Pressy';
 import { Txt } from './Txt';
 import { palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -14,7 +15,8 @@ export interface TickerSegment { text: string; strong?: boolean }
 /** Spazio largo con un pallino tra un pezzo e l'altro */
 const SEP = '\u2003\u2003●\u2003\u2003';
 
-export function LiveTicker({ text, label = 'ULTIMA AZIONE', segments }: { text: string; label?: string; segments?: TickerSegment[] }) {
+/** onPress: la striscia diventa un pulsante (hint: cosa succede toccandola, per la lettura vocale) */
+export function LiveTicker({ text, label = 'ULTIMA AZIONE', segments, onPress, hint }: { text: string; label?: string; segments?: TickerSegment[]; onPress?: () => void; hint?: string }) {
   const { c } = useTheme();
   const [boxW, setBoxW] = useState(0);
   const [textW, setTextW] = useState(0);
@@ -49,9 +51,10 @@ export function LiveTicker({ text, label = 'ULTIMA AZIONE', segments }: { text: 
     ))
     : text;
 
-  return (
-    <View accessible accessibilityLabel={`${label.charAt(0)}${label.slice(1).toLowerCase()}: ${text}`}
-      style={{ flexDirection: 'row', height: 30, borderRadius: 8, overflow: 'hidden', backgroundColor: palette.gold }}>
+  const a11y = `${label.charAt(0)}${label.slice(1).toLowerCase()}: ${text}`;
+  const boxStyle = { flexDirection: 'row', height: 30, borderRadius: 8, overflow: 'hidden', backgroundColor: palette.gold } as const;
+  const content = (
+    <>
       <View style={{ justifyContent: 'center', paddingHorizontal: space.sm, backgroundColor: c.live, zIndex: 1 }}>
         <Txt w={800} size={11} color="#FFFFFF" display={false} style={{ letterSpacing: 0.6 }}>{label}</Txt>
       </View>
@@ -65,6 +68,13 @@ export function LiveTicker({ text, label = 'ULTIMA AZIONE', segments }: { text: 
           </Animated.View>
         )}
       </View>
-    </View>
+    </>
+  );
+  return onPress ? (
+    <Pressy onPress={onPress} scaleTo={0.98} accessibilityRole="button" accessibilityLabel={a11y} accessibilityHint={hint} style={boxStyle}>
+      {content}
+    </Pressy>
+  ) : (
+    <View accessible accessibilityLabel={a11y} style={boxStyle}>{content}</View>
   );
 }

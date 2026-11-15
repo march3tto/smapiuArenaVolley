@@ -1079,6 +1079,9 @@ export interface AgentScore {
   /** Es. "Zero5 Castellana Grotte 21-17 V&V Modena · 1° set · set 0-0" */
   text: string;
   at: Date;
+  /** Giornata e girone della gara (solo da bordo_campo): il tocco sulla striscia apre la giornata */
+  giornata: number | null;
+  girone: string | null;
 }
 
 /**
@@ -1104,6 +1107,8 @@ export async function fetchAgentScores(): Promise<AgentScore[]> {
       : [],
     text: str(r.testo),
     at: new Date(str(r.aggiornato_il)),
+    giornata: num(r.giornata),
+    girone: (r.girone as string | null) || null,
   }));
 }
 
