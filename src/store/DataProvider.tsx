@@ -16,6 +16,9 @@ interface DataCtx extends AppData {
 
 const Ctx = createContext<DataCtx | null>(null);
 
+/** Modifiche alle partite entro questo tempo: una sola ricarica */
+const MATCHES_DEBOUNCE_MS = 1500;
+
 export function DataProvider({ children }: { children: ReactNode }) {
   const { demoLive } = useApp();
   const [data, setData] = useState<AppData>(() => (demoMode ? demoData() : emptyData()));
@@ -24,26 +27,56 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // riapre i canali Realtime di partite e classifica se non sono più SUBSCRIBED
   const ensureRealtime = useRef<() => void>(() => {});
 
+  // Una lettura alla volta: chi arriva mentre è in corso fa ripartire una lettura subito dopo (dati sempre freschi,
+  // niente risposte fuori ordine che riportano indietro i dati)
+  const inFlight = useRef<Promise<void> | null>(null);
+  const again = useRef(false);
+  const reload = useCallback((): Promise<void> => {
+    if (inFlight.current) {
+      again.current = true;
+      return inFlight.current;
+    }
+    const run = (async () => {
+      do {
+        again.current = false;
+        try {
+          setData(await loadAll());
+          setError(null);
+        } catch (e) {
+          // con Supabase si tengono gli ultimi dati caricati e si mostra l'errore
+          setError(e instanceof Error ? e.message : 'Errore di caricamento');
+        }
+      } while (again.current);
+    })().finally(() => {
+      inFlight.current = null;
+    });
+    inFlight.current = run;
+    return run;
+  }, []);
+
+  // Ricarica chiesta dall'utente (trascinando verso il basso) o all'apertura: solo questa mostra lo spinner
   const refresh = useCallback(async () => {
     ensureRealtime.current();
     setLoading(true);
     try {
-      setData(await loadAll());
-      setError(null);
-    } catch (e) {
-      // con Supabase si tengono gli ultimi dati caricati e si mostra l'errore
-      setError(e instanceof Error ? e.message : 'Errore di caricamento');
+      await reload();
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [reload]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- caricamento dati da Supabase all'apertura (lo stato si aggiorna a fetch finita)
     refresh();
-    // Se una partita cambia stato (es. diventa 'live') si ricarica in automatico
+    // Se una partita cambia (es. diventa 'live' o l'agente scrive un punteggio) si ricarica in silenzio.
+    // In diretta l'agente aggiorna tutte le gare del girone ogni pochi secondi: le modifiche ravvicinate diventano una lettura sola.
+    let debounce: ReturnType<typeof setTimeout> | null = null;
     const matches = resubscribable(() => subscribeMatches(() => {
-      refresh();
+      if (debounce) clearTimeout(debounce);
+      debounce = setTimeout(() => {
+        debounce = null;
+        reload();
+      }, MATCHES_DEBOUNCE_MS);
     }));
     // La classifica la ricalcola il database a ogni risultato: si ricarica solo lei
     const standings = resubscribable(() => subscribeStandings(() => {
@@ -58,11 +91,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
       standings.ensure();
     };
     return () => {
+      if (debounce) clearTimeout(debounce);
       ensureRealtime.current = () => {};
       matches.close();
       standings.close();
     };
-  }, [refresh]);
+  }, [refresh, reload]);
 
   const liveMatch = useMemo(() => {
     const real = data.matches.find((m) => m.status === 'live');

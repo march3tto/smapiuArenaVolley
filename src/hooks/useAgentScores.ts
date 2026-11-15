@@ -3,12 +3,12 @@ import { AppState } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { fetchAgentScores, type AgentScore } from '@/lib/api';
 
-/** Con almeno una gara in corso si rilegge spesso, altrimenti di rado */
-const LIVE_MS = 30_000;
-const IDLE_MS = 120_000;
+/** Con almeno una gara in corso si rilegge spesso, altrimenti più di rado (per accorgersi dell'apertura della giornata) */
+const LIVE_MS = 20_000;
+const IDLE_MS = 60_000;
 
 /**
- * Punteggi dell'agente livescore (live e finali delle ultime ore) per la striscia ULTIME NOTIZIE.
+ * Punteggi dell'agente livescore (live e finali della giornata in corso) per la striscia BORDO CAMPO.
  * Si aggiorna solo con la schermata a fuoco e l'app in primo piano.
  */
 export function useAgentScores() {

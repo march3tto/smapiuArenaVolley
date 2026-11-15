@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { AgentScoresTicker } from './AgentScoresTicker';
 import { AnimatedNumber } from './AnimatedNumber';
 import { Button } from './Button';
 import { HiddenScore } from './HiddenScore';
@@ -108,8 +107,6 @@ export function LiveCard() {
           ) : null}
           <Button label="Vota la tua MVP" size="sm" onPress={() => setMvpOpen(true)} style={{ flex: 1, paddingHorizontal: space.sm }} />
         </View>
-
-        <AgentScoresTicker />
 
         {SHOW_CRONACA && last ? <LiveTicker text={`${last.set}° set${hidden ? '' : ` ${home ? `${last.our}–${last.opp}` : `${last.opp}–${last.our}`}`} · ${last.text}`} /> : null}
       </View>

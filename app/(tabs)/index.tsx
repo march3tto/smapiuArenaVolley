@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
+import { AgentScoresTicker } from '@/components/AgentScoresTicker';
 import { Card } from '@/components/Card';
 import { LiveCard } from '@/components/LiveCard';
 import { MediaStrip } from '@/components/MediaStrip';
@@ -17,7 +18,7 @@ import { space } from '@/theme/colors';
 /** In home solo gli ultimi elementi: il resto è nella tab News */
 const HOME_MAX = 10;
 
-/** Ordine: diretta (solo se esiste) → news → prossime partite → banner sponsor → classifica → video e podcast */
+/** Ordine: striscia BORDO CAMPO (solo con la giornata in corso) → diretta (solo se esiste) → news → prossime partite → banner sponsor → classifica → video e podcast */
 export default function Home() {
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -38,6 +39,7 @@ export default function Home() {
           <Txt size={13} color="muted" style={{ marginTop: space.xs }}>{error}. Trascina verso il basso per riprovare.</Txt>
         </Card>
       ) : null}
+      <AgentScoresTicker />
       {liveMatch ? <LiveCard /> : null}
 
       <View style={{ gap: space.md }}>

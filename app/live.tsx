@@ -3,7 +3,6 @@ import { Animated, AppState, RefreshControl, ScrollView, View, useWindowDimensio
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Plus, RotateCcw, Timer, Trophy, Volleyball } from 'lucide-react-native';
-import { AgentScoresTicker } from '@/components/AgentScoresTicker';
 import { AttaccoPanel } from '@/components/AttaccoPanel';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { Button } from '@/components/Button';
@@ -34,6 +33,9 @@ import { useTheme } from '@/theme/ThemeProvider';
 import type { LineupPlayer, PointDetail } from '@/types';
 import { LiveLogos } from '@/components/LiveLogos';
 import { SHOW_CRONACA } from '@/lib/features';
+
+/** Durata massima dello spinner del trascinamento verso il basso */
+const REFRESH_MAX_MS = 20000;
 
 export default function Live() {
   const { c, mode } = useTheme();
@@ -87,11 +89,14 @@ export default function Live() {
   const onRefresh = useCallback(async () => {
     if (refreshing) return;
     setRefreshing(true);
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
-      await loadLiveData();
+      // tetto di sicurezza: anche se la rete resta appesa lo spinner si chiude (i dati arrivano quando arrivano)
+      await Promise.race([loadLiveData(), new Promise<void>((resolve) => { timer = setTimeout(resolve, REFRESH_MAX_MS); })]);
     } catch (e) {
       console.warn('Diretta non aggiornata', e);
     } finally {
+      clearTimeout(timer);
       setRefreshing(false);
     }
   }, [refreshing, loadLiveData]);
@@ -214,7 +219,6 @@ export default function Live() {
               <Button label={hidden ? 'Diretta aperta' : 'Guarda la diretta'} sublabel={hidden ? '(punteggio oscurato)' : undefined} variant="gold" icon={<LiveLogos />}
                 onPress={() => player.open(m.youtubeLiveId!, `${L.name} – ${R.name}`)} />
             ) : null}
-            <View style={{ alignSelf: 'stretch' }}><AgentScoresTicker /></View>
             {live.canChooseServe ? (
               <Txt size={12} color="muted" center>Inizio set: tocca lo stemma della squadra che va al servizio.</Txt>
             ) : null}

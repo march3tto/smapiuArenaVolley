@@ -592,6 +592,20 @@ export interface LiveSnapshot {
   completed: boolean[];
   /** Squadra al servizio sullo 0-0, per numero di set (solo i set in cui l'admin l'ha scelta) */
   firstServe: Record<number, 'us' | 'opp'>;
+  /** Impronta delle righe di set_partita: se cambia (fetchLiveSetsKey) il punteggio va riletto */
+  setsKey: string;
+}
+
+/** Impronta del punteggio: stessi campi in fetchLive e fetchLiveSetsKey */
+const SETS_KEY_COLS = 'numero_set, punti_nostri, punti_avversario, completato, primo_servizio';
+const setsKey = (rows: Row[]) => JSON.stringify(rows.map((s) => [s.numero_set, s.punti_nostri, s.punti_avversario, s.completato, s.primo_servizio ?? null]));
+
+/** Lettura leggera del solo punteggio (righe di set_partita), per accorgersi di un punto perso dal Realtime */
+export async function fetchLiveSetsKey(matchId: string): Promise<string | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase.from(T.setPartita).select(SETS_KEY_COLS).eq('partita_id', matchId).order('numero_set');
+  if (error) throw new Error(`set_partita: ${error.message}`);
+  return setsKey((data as Row[] | null) ?? []);
 }
 
 export async function fetchLive(matchId: string): Promise<LiveSnapshot | null> {
@@ -602,6 +616,9 @@ export async function fetchLive(matchId: string): Promise<LiveSnapshot | null> {
     // tabella facoltativa (migrazione 20261014_azioni_punto): senza, la cronaca resta solo testo
     supabase.from(T.azioniPunto).select('*').eq('partita_id', matchId),
   ]);
+  // lettura non riuscita: meglio tenere il punteggio di prima che mostrarne uno vuoto
+  if (st.error) throw new Error(`set_partita: ${st.error.message}`);
+  if (ev.error) throw new Error(`eventi_live: ${ev.error.message}`);
   const sets = (st.data as Row[] | null) ?? [];
   const actions = new Map(((az.data as Row[] | null) ?? []).map(mapAction).filter((a): a is LiveAction => !!a).map((a) => [a.eventId, a]));
   return {
@@ -611,6 +628,7 @@ export async function fetchLive(matchId: string): Promise<LiveSnapshot | null> {
     firstServe: Object.fromEntries(sets
       .filter((s) => s.primo_servizio === 'nostra' || s.primo_servizio === 'avversaria')
       .map((s) => [num(s.numero_set) ?? 0, s.primo_servizio === 'nostra' ? 'us' : 'opp'])),
+    setsKey: setsKey(sets),
   };
 }
 
@@ -1046,7 +1064,7 @@ export function subscribeAgentLog(onInsert: (e: AgentLogEntry) => void): () => v
   };
 }
 
-// ---------- punteggi dell'agente per la striscia ULTIME NOTIZIE (migrazione 20261112000100_punteggi_agente) ----------
+// ---------- punteggi dell'agente per la striscia BORDO CAMPO (migrazioni 20261112000100_punteggi_agente e 20261115000200_bordo_campo) ----------
 
 /** Ultimo punteggio di una gara letto dall'agente livescore, con i nomi delle squadre */
 export interface AgentScore {
@@ -1063,10 +1081,15 @@ export interface AgentScore {
   at: Date;
 }
 
-/** Pubblica (funzione security definer): solo i punteggi aggiornati negli ultimi `minutes` minuti, la nostra per prima */
-export async function fetchAgentScores(minutes = 5): Promise<AgentScore[]> {
+/**
+ * Pubblica (funzione security definer bordo_campo): i punteggi di tutte le gare della giornata in corso,
+ * finché l'agente la sta seguendo (vuota fuori dalla finestra). La nostra per prima, poi le live, poi le finali.
+ * Senza la migrazione 20261115000200 si ripiega sulle gare aggiornate negli ultimi 5 minuti.
+ */
+export async function fetchAgentScores(): Promise<AgentScore[]> {
   if (!supabase) return [];
-  const { data, error } = await supabase.rpc('punteggi_agente', { p_minuti: minutes });
+  let { data, error } = await supabase.rpc('bordo_campo');
+  if (error?.code === 'PGRST202') ({ data, error } = await supabase.rpc('punteggi_agente', { p_minuti: 5 }));
   if (error) throw error;
   return ((data as Row[] | null) ?? []).map((r) => ({
     matchNumber: num(r.numero_gara) ?? 0,

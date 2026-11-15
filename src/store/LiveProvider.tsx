@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import * as Haptics from 'expo-haptics';
-import { Platform } from 'react-native';
-import { LIVE_EVENTS_MAX, demoRevision, fetchLive, newId, pushLiveNote, resubscribable, setFirstServe, subscribeDemo, subscribeLive, type DemoChannel, withAction } from '@/lib/api';
+import { AppState, Platform } from 'react-native';
+import { LIVE_EVENTS_MAX, demoRevision, fetchLive, fetchLiveSetsKey, newId, pushLiveNote, resubscribable, setFirstServe, subscribeDemo, subscribeLive, type DemoChannel, withAction } from '@/lib/api';
 import { hasSupabase } from '@/lib/supabase';
 import { demoLive as demoInitial } from '@/data/mock';
 import { firstServer, pointWinners, rotationState } from '@/lib/rotations';
@@ -64,6 +64,11 @@ interface LiveCtx extends LiveState {
 }
 
 const Ctx = createContext<LiveCtx | null>(null);
+
+/** Controllo di riserva del punteggio se il Realtime perde un aggiornamento (canale caduto senza accorgersene) */
+const POLL_MS = 10000;
+/** Le righe che l'agente scrive insieme (set e punti) arrivano come più eventi Realtime: una lettura sola */
+const REALTIME_DEBOUNCE_MS = 250;
 
 /** Durata di un timeout: 30 secondi */
 export const TIMEOUT_MS = 30000;
@@ -276,9 +281,12 @@ export function LiveProvider({ children }: { children: ReactNode }) {
     // la prima lettura non ha un punteggio precedente con cui confrontarsi
     let first = true;
     // il punteggio è quello di set_partita (lo scrive l'agente): le righe di cronaca non lo cambiano
-    const load = async () => {
+    // impronta del punteggio dell'ultima lettura: il controllo di riserva rilegge tutto solo se cambia
+    let lastKey: string | null = null;
+    const loadOnce = async () => {
       const snap = await fetchLive(liveId);
       if (!snap || !active) return;
+      lastKey = snap.setsKey;
       const done = snap.sets.filter((_, i) => snap.completed[i]);
       const current = snap.sets.find((_, i) => !snap.completed[i]) ?? { our: 0, opp: 0 };
       const prev = stateRef.current;
@@ -307,27 +315,77 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       stateRef.current = next;
       setState(next);
     };
+    // Una lettura alla volta: se nel frattempo arriva un altro aggiornamento se ne fa un'altra subito dopo.
+    // Letture in parallelo potevano finire fuori ordine e riportare indietro il punteggio.
+    let running: Promise<void> | null = null;
+    let again = false;
+    const load = (): Promise<void> => {
+      if (running) {
+        again = true;
+        return running;
+      }
+      running = (async () => {
+        do {
+          again = false;
+          try {
+            await loadOnce();
+          } catch (e) {
+            console.warn('Diretta non aggiornata', e);
+          }
+        } while (again && active);
+      })().finally(() => {
+        running = null;
+      });
+      return running;
+    };
+    let debounce: ReturnType<typeof setTimeout> | null = null;
+    const loadSoon = () => {
+      if (debounce) clearTimeout(debounce);
+      debounce = setTimeout(() => {
+        debounce = null;
+        load();
+      }, REALTIME_DEBOUNCE_MS);
+    };
     reload.current = load;
     load();
     const sub = resubscribable(() => subscribeLive(
       liveId,
-      (e) =>
+      (e) => {
         setState((s) => {
           // eco delle righe scritte da questo dispositivo: sono già in lista
           if (s.events.some((x) => x.id === e.id)) return s;
           // solo cronaca: il punteggio arriva da set_partita
           return { ...s, events: [e, ...s.events].slice(0, LIVE_EVENTS_MAX) };
-        }),
+        });
+        // i punti dell'agente arrivano subito dopo set_partita: una lettura che li contenga tutti
+        loadSoon();
+      },
       // punteggio scritto dall'agente (o primo servizio scelto dall'admin)
-      () => load(),
+      loadSoon,
       // l'azione arriva subito dopo il suo evento: si aggancia alla riga di cronaca
       (a) => setState((s) => (s.events.some((x) => x.id === a.eventId && !x.detail)
         ? { ...s, events: s.events.map((x) => (x.id === a.eventId ? withAction(x, a) : x)) }
         : s)),
     ));
     ensureRealtime.current = sub.ensure;
+    // Riserva: con l'app in primo piano e la partita in corso si controlla il punteggio ogni POLL_MS
+    // (lettura leggera di set_partita) e si riapre il canale Realtime se è caduto
+    const poll = setInterval(() => {
+      if (AppState.currentState !== 'active' || stateRef.current.finished || running) return;
+      if (sub.ensure()) {
+        load();
+        return;
+      }
+      fetchLiveSetsKey(liveId)
+        .then((key) => {
+          if (active && key !== null && key !== lastKey) load();
+        })
+        .catch(() => {});
+    }, POLL_MS);
     return () => {
       active = false;
+      clearInterval(poll);
+      if (debounce) clearTimeout(debounce);
       ensureRealtime.current = () => {};
       reload.current = async () => {};
       sub.close();
