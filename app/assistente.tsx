@@ -8,6 +8,7 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { IconButton } from '@/components/IconButton';
 import { Pressy } from '@/components/Pressy';
+import { TestoChat } from '@/components/TestoChat';
 import { Txt } from '@/components/Txt';
 import { askAssistant, ConsensoAssistenteMancante, type AssistantMessage } from '@/lib/api';
 import { useAssistantAvatar } from '@/lib/avatar';
@@ -181,7 +182,9 @@ function Bubble({ message }: { message: AssistantMessage }) {
     <View style={{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: mine ? '86%' : '100%', paddingHorizontal: space.md, paddingVertical: space.sm, borderRadius: radius.md,
       borderBottomRightRadius: mine ? 6 : radius.md, borderBottomLeftRadius: mine ? radius.md : 6,
       backgroundColor: mine ? palette.gold : c.card, borderWidth: mine ? 0 : 1, borderColor: c.line }}>
-      <Txt size={15} color={mine ? palette.onGold : c.text} selectable>{message.content}</Txt>
+      {mine
+        ? <Txt size={15} color={palette.onGold} selectable>{message.content}</Txt>
+        : <TestoChat testo={message.content} color={c.text} />}
     </View>
   );
   return mine ? bubble : <ConAvatar>{bubble}</ConAvatar>;
