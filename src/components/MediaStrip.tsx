@@ -32,8 +32,8 @@ export function MediaStrip({ items }: { items: MediaItem[] }) {
             </View>
             <View style={{ flex: 1, gap: space.xs }}>
               {/* niente scritta "podcast": l'etichetta resta solo per i video, la durata per tutti */}
-              {video || m.duration ? (
-                <Txt w={700} size={12.5} color={mode === 'dark' ? palette.gold : palette.blue}>{[video ? 'VIDEO' : '', m.duration].filter(Boolean).join('  ·  ')}</Txt>
+              {video || m.label ? (
+                <Txt w={700} size={12.5} color={mode === 'dark' ? palette.gold : palette.blue}>{[video ? 'VIDEO' : '', m.label].filter(Boolean).join('  ·  ')}</Txt>
               ) : null}
               <Txt w={700} size={15.5} numberOfLines={4}>{splitTitle(m.title)}</Txt>
             </View>

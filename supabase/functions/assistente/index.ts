@@ -240,7 +240,7 @@ const ESEGUI: Record<string, (c: Ctx, a: Args) => Promise<unknown>> = {
   async video_podcast({ db }, a) {
     return conDate(await righe(
       db.from('media')
-        .select('tipo, titolo, riferimento_esterno, etichetta_durata, pubblicato_il')
+        .select('tipo, titolo, riferimento_esterno, etichetta, pubblicato_il')
         .eq('pubblicato', true)
         .order('pubblicato_il', { ascending: false })
         .limit(lim(a)),

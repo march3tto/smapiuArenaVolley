@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, AppState, RefreshControl, ScrollView, View, useWindowDimensions, type HostInstance } from 'react-native';
+import { Animated, AppState, ScrollView, View, useWindowDimensions, type HostInstance } from 'react-native';
+import { RefreshControl } from '@/components/RefreshControl';
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Plus, RotateCcw, Timer, Trophy, Volleyball } from 'lucide-react-native';

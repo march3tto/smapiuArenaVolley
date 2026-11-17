@@ -272,7 +272,7 @@ function mapMedia(r: Row): MediaItem {
     title: str(r.titolo),
     ref: str(r.riferimento_esterno),
     cover: (r.url_immagine_copertina as string | null) ?? null,
-    duration: (r.etichetta_durata as string | null) ?? null,
+    label: (r.etichetta as string | null) ?? null,
     date: str(r.pubblicato_il),
   };
 }
@@ -1351,7 +1351,8 @@ export interface MediaDraft {
   title: string;
   /** id YouTube, link YouTube o URL esterno */
   ref: string;
-  duration: string;
+  /** Etichetta libera mostrata accanto a VIDEO/PODCAST e usata come titolo della notifica (es. "Highlights") */
+  label: string;
   cover: string | null;
   published: boolean;
   date: string;
@@ -1363,7 +1364,7 @@ function mapMediaDraft(r: Row): MediaDraft {
     type: r.tipo === 'podcast' ? 'podcast' : 'video',
     title: str(r.titolo),
     ref: str(r.riferimento_esterno),
-    duration: str(r.etichetta_durata),
+    label: str(r.etichetta),
     cover: (r.url_immagine_copertina as string | null) || null,
     published: r.pubblicato === true,
     date: str(r.pubblicato_il),
@@ -1391,7 +1392,7 @@ export async function salvaMedia(m: MediaDraft, cover?: { base64: string } | nul
     coverUrl = supabase.storage.from('news').getPublicUrl(file).data.publicUrl;
   }
   const row = {
-    tipo: m.type, titolo: m.title.trim(), riferimento_esterno: m.ref.trim(), etichetta_durata: m.duration.trim() || null,
+    tipo: m.type, titolo: m.title.trim(), riferimento_esterno: m.ref.trim(), etichetta: m.label.trim() || null,
     url_immagine_copertina: coverUrl, pubblicato: m.published,
   };
   if (m.id) {

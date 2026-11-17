@@ -23,7 +23,22 @@ import { useData } from '@/store/DataProvider';
 import { palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
-const nuovo = (): MediaDraft => ({ id: null, type: 'video', title: '', ref: '', duration: '', cover: null, published: true, date: '' });
+const nuovo = (): MediaDraft => ({ id: null, type: 'video', title: '', ref: '', label: '', cover: null, published: true, date: '' });
+
+/** Copertina calcolata da un link YouTube (https://img.youtube.com/vi/<id>/hqdefault.jpg) */
+const YT_THUMB_RE = /^https:\/\/img\.youtube\.com\/vi\/[^/]+\/hqdefault\.jpg$/;
+const isYoutubeThumb = (url: string | null) => !!url && YT_THUMB_RE.test(url);
+
+/**
+ * Nuovo link: per un video YouTube la copertina diventa la sua miniatura hqdefault, a meno che non ne sia già
+ * stata caricata una a mano; cambiando link si aggiorna, e se il link non è più YouTube la miniatura si toglie.
+ */
+function conLink(m: MediaDraft, ref: string): MediaDraft {
+  const s = parseStream(ref);
+  const manuale = m.cover && !isYoutubeThumb(m.cover);
+  if (manuale) return { ...m, ref };
+  return { ...m, ref, cover: s?.kind === 'youtube' ? youtubeThumb(s.id) : null };
+}
 
 /** Riferimento salvato: per YouTube basta l'id (come leggono MediaList e youtubeThumb), altrimenti l'URL */
 function normalizzaRef(ref: string): string {
@@ -35,6 +50,7 @@ function normalizzaRef(ref: string): string {
 function thumb(m: MediaDraft, local: ImmaginePronta | null): string | null {
   if (local) return local.uri;
   if (m.cover) return m.cover;
+  // contenuti salvati prima della copertina calcolata: miniatura dal link
   const s = parseStream(m.ref);
   return s?.kind === 'youtube' ? youtubeThumb(s.id) : null;
 }
@@ -99,7 +115,8 @@ export default function GestioneMedia() {
   const save = (m: MediaDraft) => run('Salvataggio…', async () => {
     if (!m.title.trim()) throw new Error('Il titolo è obbligatorio.');
     if (!parseStream(m.ref)) throw new Error('Link non valido: incolla un link YouTube o un URL.');
-    await salvaMedia({ ...m, ref: normalizzaRef(m.ref) }, cover);
+    // la copertina YouTube calcolata dal link si salva in url_immagine_copertina (una caricata a mano ha la precedenza)
+    await salvaMedia({ ...conLink(m, m.ref), ref: normalizzaRef(m.ref) }, cover);
     toast.show(m.published ? `${m.type === 'podcast' ? 'Podcast' : 'Video'} pubblicato` : 'Salvato (non pubblicato)');
     setDraft(null);
     setCover(null);
@@ -138,22 +155,24 @@ export default function GestioneMedia() {
             <SegmentedControl stretch value={draft.type} onChange={(type) => setDraft({ ...draft, type })}
               options={[{ value: 'video', label: 'Video' }, { value: 'podcast', label: 'Podcast' }]} />
             <FormField label="Titolo" value={draft.title} onChangeText={(title) => setDraft({ ...draft, title })} />
-            <FormField label="Link" value={draft.ref} onChangeText={(ref) => setDraft({ ...draft, ref })} autoCapitalize="none" autoCorrect={false}
+            <FormField label="Link" value={draft.ref} onChangeText={(ref) => setDraft(conLink(draft, ref))} autoCapitalize="none" autoCorrect={false}
               keyboardType="url" placeholder="https://youtu.be/… o https://…"
               hint={stream?.kind === 'youtube' ? `YouTube: ${stream.id}` : stream ? 'Link esterno' : undefined} />
-            <FormField label="Durata (facoltativa)" value={draft.duration} onChangeText={(duration) => setDraft({ ...draft, duration })} placeholder="Es. 12:30" />
+            <FormField label="Etichetta (facoltativa)" value={draft.label} onChangeText={(label) => setDraft({ ...draft, label })} placeholder="Es. Highlights, Intervista, 12:30"
+              hint="Compare accanto a VIDEO/PODCAST ed è il titolo della notifica" />
 
             <View style={{ gap: space.sm }}>
-              <Txt w={600} size={12} color="muted">Copertina{cover || draft.cover ? '' : stream?.kind === 'youtube' ? ' (miniatura di YouTube)' : ''}</Txt>
+              <Txt w={600} size={12} color="muted">Copertina{!cover && (isYoutubeThumb(draft.cover) || (!draft.cover && stream?.kind === 'youtube')) ? ' (miniatura di YouTube)' : ''}</Txt>
               {preview ? <Image source={preview} style={{ width: '100%', aspectRatio: 16 / 9, borderRadius: 14, backgroundColor: c.fill }} contentFit="cover" /> : null}
               <View style={{ flexDirection: 'row', gap: space.sm }}>
-                <Button size="sm" label={cover || draft.cover ? 'Cambia copertina' : 'Carica copertina'} icon={<ImagePlus size={15} color={c.text} />}
+                <Button size="sm" label={cover || (draft.cover && !isYoutubeThumb(draft.cover)) ? 'Cambia copertina' : isYoutubeThumb(draft.cover) ? 'Usa un’altra copertina' : 'Carica copertina'} icon={<ImagePlus size={15} color={c.text} />}
                   onPress={pickCover} disabled={!!busy} style={{ flex: 1 }} />
-                {cover || draft.cover ? (
+                {/* "Togli" solo per una copertina caricata a mano: si torna alla miniatura di YouTube (se il link lo è) */}
+                {cover || (draft.cover && !isYoutubeThumb(draft.cover)) ? (
                   <Button size="sm" label="Togli" icon={<Trash2 size={15} color={c.text} />} disabled={!!busy}
                     onPress={() => {
                       setCover(null);
-                      setDraft({ ...draft, cover: null });
+                      setDraft(conLink({ ...draft, cover: null }, draft.ref));
                     }} />
                 ) : null}
               </View>
@@ -190,7 +209,7 @@ export default function GestioneMedia() {
                       : <View style={{ width: 72, height: 40.5, borderRadius: 8, backgroundColor: c.fill, alignItems: 'center', justifyContent: 'center' }}><Icon size={18} color={c.muted} /></View>}
                     <View style={{ flex: 1 }}>
                       <Txt w={700} size={14} numberOfLines={2}>{m.title}</Txt>
-                      <Txt size={12} color="muted">{m.type === 'podcast' ? 'Podcast' : 'Video'}{m.duration ? ` · ${m.duration}` : ''}{m.published ? '' : ' · nascosto'}</Txt>
+                      <Txt size={12} color="muted">{m.type === 'podcast' ? 'Podcast' : 'Video'}{m.label ? ` · ${m.label}` : ''}{m.published ? '' : ' · nascosto'}</Txt>
                     </View>
                   </Pressy>
                   <AppSwitch value={m.published} onValueChange={(v) => toggle(m, v)} accessibilityLabel={`Pubblicato: ${m.title}`} />

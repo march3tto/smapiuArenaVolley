@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, ScrollView, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, FlatList, ScrollView, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { RefreshControl } from '@/components/RefreshControl';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CalendarDays, ChevronLeft } from 'lucide-react-native';
@@ -13,10 +14,11 @@ import { Txt } from '@/components/Txt';
 import { GIRONE } from '@/constants';
 import { fetchGiornata, fetchGiornateGirone } from '@/lib/api';
 import { longDate, timeOf } from '@/lib/format';
+import { setWinner } from '@/lib/volley';
 import { useScoreHidden } from '@/store/PlayerProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { LeagueGame } from '@/types';
-import { space } from '@/theme/colors';
+import { blue, palette, space } from '@/theme/colors';
 
 /** Altezza della barra con freccia e titolo */
 const HEADER_H = 44;
@@ -159,8 +161,12 @@ function GiornataPage({ numero, girone }: { numero: number; girone: string }) {
       {games == null ? (
         error ? null : <ActivityIndicator color={c.accent} style={{ marginTop: space.xl }} />
       ) : games.length ? (
-        games.map((g) => (
-          <GameRow key={g.id} game={g} onPress={g.matchId && g.status === 'live' ? () => router.push('/live') : undefined} />
+        ordina(games).map((g, i, all) => (
+          <Fragment key={g.id}>
+            {/* linea tra la nostra partita (in cima) e le altre */}
+            {i > 0 && all[i - 1].matchId != null && g.matchId == null ? <View style={{ height: 1, backgroundColor: c.line, marginVertical: space.xs }} /> : null}
+            <GameRow game={g} onPress={g.matchId && g.status === 'live' ? () => router.push('/live') : undefined} />
+          </Fragment>
         ))
       ) : (
         <Card style={{ alignItems: 'center', gap: space.sm, paddingVertical: space.xl }}>
@@ -171,6 +177,13 @@ function GiornataPage({ numero, girone }: { numero: number; girone: string }) {
     </ScrollView>
   );
 }
+
+/** Prima la nostra partita, poi le altre per data e orario */
+const ordina = (gs: LeagueGame[]) =>
+  [...gs].sort((a, b) => Number(b.matchId != null) - Number(a.matchId != null) || new Date(a.date).getTime() - new Date(b.date).getTime());
+
+/** Bordo dei set vinti: casa in oro, ospite in azzurro (lo stesso in entrambi i temi), come la barra sotto il nome */
+const COLORI_SET = { home: palette.gold, away: blue[200] };
 
 function GameRow({ game: g, onPress }: { game: LeagueGame; onPress?: () => void }) {
   const { c } = useTheme();
@@ -183,6 +196,7 @@ function GameRow({ game: g, onPress }: { game: LeagueGame; onPress?: () => void 
   const played = g.status === 'finished';
   const hasScore = (played || playing) && g.homeSets != null && g.awaySets != null;
   const border = live ? 'rgba(255,77,94,0.45)' : ours ? 'rgba(255,213,3,0.45)' : c.line;
+  const conParziali = !!g.sets?.length && (played || playing) && !hidden;
 
   return (
     <Pressy onPress={onPress} disabled={!onPress} scaleTo={0.98} style={{ borderRadius: 22, backgroundColor: c.card, borderWidth: ours ? 3 : 1, borderColor: border, padding: ours ? space.md - 2 : space.md, gap: space.sm }}>
@@ -195,7 +209,7 @@ function GameRow({ game: g, onPress }: { game: LeagueGame; onPress?: () => void 
       </View>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-        <Team name={g.home} logo={g.homeLogo} won={hasScore && (g.homeSets ?? 0) > (g.awaySets ?? 0) && played} />
+        <Team name={g.home} logo={g.homeLogo} won={hasScore && (g.homeSets ?? 0) > (g.awaySets ?? 0) && played} dot={conParziali ? COLORI_SET.home : undefined} />
         <View style={{ minWidth: 72, alignItems: 'center' }}>
           {hidden ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
@@ -211,27 +225,38 @@ function GameRow({ game: g, onPress }: { game: LeagueGame; onPress?: () => void 
             </View>
           )}
         </View>
-        <Team name={g.away} logo={g.awayLogo} won={hasScore && (g.awaySets ?? 0) > (g.homeSets ?? 0) && played} />
+        <Team name={g.away} logo={g.awayLogo} won={hasScore && (g.awaySets ?? 0) > (g.homeSets ?? 0) && played} dot={conParziali ? COLORI_SET.away : undefined} />
       </View>
 
-      {g.sets && g.sets.length && (played || playing) && !hidden ? (
+      {conParziali && g.sets ? (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space.xs }}>
-          {g.sets.map((s, i) => (
-            <View key={i} style={{ paddingHorizontal: space.sm, paddingVertical: space.xs, borderRadius: 8, backgroundColor: c.fill }}>
-              <Txt w={600} size={12} tnum>{s.home}–{s.away}</Txt>
-            </View>
-          ))}
+          {g.sets.map((s, i) => {
+            // in diretta il set aperto non ha ancora una vincitrice: si colora solo quando è chiuso
+            const chiuso = played ? (s.home > s.away ? 'us' : s.away > s.home ? 'opp' : null) : setWinner(i + 1, { our: s.home, opp: s.away });
+            const vince = chiuso === 'us' ? 'home' : chiuso === 'opp' ? 'away' : null;
+            return (
+              <View key={i} accessibilityLabel={`Set ${i + 1}: ${s.home} a ${s.away}`}
+                style={{ flexDirection: 'row', paddingHorizontal: space.sm - 2, paddingVertical: space.xs - 2, borderRadius: 8, backgroundColor: c.fill,
+                  borderWidth: 2, borderColor: vince ? COLORI_SET[vince] : 'transparent' }}>
+                <Txt w={vince === 'home' ? 800 : 500} size={12} tnum>{s.home}</Txt>
+                <Txt w={500} size={12}>–</Txt>
+                <Txt w={vince === 'away' ? 800 : 500} size={12} tnum>{s.away}</Txt>
+              </View>
+            );
+          })}
         </View>
       ) : null}
     </Pressy>
   );
 }
 
-function Team({ name, logo, won }: { name: string; logo?: LeagueGame['homeLogo']; won: boolean }) {
+/** dot: colore dei set vinti dalla squadra, mostrato sotto il nome come legenda dei parziali */
+function Team({ name, logo, won, dot }: { name: string; logo?: LeagueGame['homeLogo']; won: boolean; dot?: string }) {
   return (
     <View style={{ flex: 1, alignItems: 'center', gap: space.sm }}>
       <TeamBadge name={name} logo={logo} size={44} />
       <Txt w={won ? 800 : 700} size={11.5} center numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>{name}</Txt>
+      {dot ? <View style={{ width: 34, height: 4, borderRadius: 2, backgroundColor: dot, marginTop: -2 }} /> : null}
     </View>
   );
 }

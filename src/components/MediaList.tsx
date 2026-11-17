@@ -52,7 +52,7 @@ export function MediaList({ items }: { items: MediaItem[] }) {
               ) : null}
             </View>
             <View style={{ flex: 1, justifyContent: 'center', gap: space.xs }}>
-              <Txt w={700} size={11} color={palette.gold}>{video ? 'VIDEO' : 'PODCAST'}{m.duration ? `  ·  ${m.duration}` : ''}</Txt>
+              <Txt w={700} size={11} color={palette.gold}>{video ? 'VIDEO' : 'PODCAST'}{m.label ? `  ·  ${m.label}` : ''}</Txt>
               <Txt w={700} size={14.5} numberOfLines={2}>{m.title}</Txt>
               {m.date ? <Txt size={12} color="muted">{newsDate(m.date)}</Txt> : null}
             </View>

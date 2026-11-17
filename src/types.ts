@@ -282,6 +282,6 @@ export interface MediaItem {
   /** ID video YouTube o URL episodio */
   ref: string;
   cover?: string | null;
-  duration?: string | null;
+  label?: string | null;
   date: string;
 }

@@ -1,5 +1,6 @@
 import type { ReactNode, Ref } from 'react';
-import { RefreshControl, ScrollView, type ScrollViewInstance, type StyleProp, type ViewStyle } from 'react-native';
+import { ScrollView, type ScrollViewInstance, type StyleProp, type ViewStyle } from 'react-native';
+import { RefreshControl } from './RefreshControl';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTopBarHeight } from './TopBar';
 import { useTheme } from '@/theme/ThemeProvider';

@@ -934,7 +934,7 @@ export type Database = {
       }
       media: {
         Row: {
-          etichetta_durata: string | null
+          etichetta: string | null
           id: string
           pubblicato: boolean
           pubblicato_il: string
@@ -944,7 +944,7 @@ export type Database = {
           url_immagine_copertina: string | null
         }
         Insert: {
-          etichetta_durata?: string | null
+          etichetta?: string | null
           id?: string
           pubblicato?: boolean
           pubblicato_il?: string
@@ -954,7 +954,7 @@ export type Database = {
           url_immagine_copertina?: string | null
         }
         Update: {
-          etichetta_durata?: string | null
+          etichetta?: string | null
           id?: string
           pubblicato?: boolean
           pubblicato_il?: string

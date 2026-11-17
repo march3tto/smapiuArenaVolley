@@ -5,6 +5,7 @@ import { X } from 'lucide-react-native';
 import { CoverImage } from '@/components/CoverImage';
 import { IconButton } from '@/components/IconButton';
 import { SOURCE_LABEL } from '@/components/NewsCard';
+import { SponsorCasuale } from '@/components/SponsorCasuale';
 import { Txt } from '@/components/Txt';
 import { newsDate } from '@/lib/format';
 import { useData } from '@/store/DataProvider';
@@ -59,6 +60,7 @@ export default function NewsScreen() {
             ) : null}
             <Txt size={13} color="muted">{newsDate(n.date)}</Txt>
           </View>
+          <SponsorCasuale />
         </View>
       </ScrollView>
     </View>

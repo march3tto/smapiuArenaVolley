@@ -105,13 +105,13 @@ async function componi(tipo: Tipo, id: string): Promise<Messaggio | null> {
       data: { tipo: 'notizia', id: n.id }, categoriaId: null, preferenza: 'contenuti',
     };
   }
-  const { data: md } = await db.from('media').select('id, tipo, titolo, etichetta_durata, pubblicato').eq('id', id).maybeSingle();
+  const { data: md } = await db.from('media').select('id, tipo, titolo, etichetta, pubblicato').eq('id', id).maybeSingle();
   if (!md?.pubblicato || md.tipo !== tipo) return null;
   return {
     chiave: `${md.tipo}:${md.id}`,
     riferimentoId: md.id,
     // titolo: l'etichetta (es. "INSIDE THE GAME Ep. 3"), oppure "Nuovo video" / "Nuovo episodio" se manca
-    title: md.tipo === 'video' ? `🎬 ${md.etichetta_durata || 'Nuovo video'}` : `🎙️ ${md.etichetta_durata || 'Nuovo episodio'}`,
+    title: md.tipo === 'video' ? `🎬 ${md.etichetta || 'Nuovo video'}` : `🎙️ ${md.etichetta || 'Nuovo episodio'}`,
     body: md.titolo,
     data: { tipo: md.tipo, id: md.id },
     categoriaId: null,

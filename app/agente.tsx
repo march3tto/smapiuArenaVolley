@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, Platform, RefreshControl, View } from 'react-native';
+import { FlatList, Platform, View } from 'react-native';
+import { RefreshControl } from '@/components/RefreshControl';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Radio, X } from 'lucide-react-native';

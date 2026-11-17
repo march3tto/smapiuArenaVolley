@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { rottaPartita } from '@/lib/navigazione';
 import { CalendarDays } from 'lucide-react-native';
 import { PodiumIcon } from '@/components/PodiumIcon';
 import { Card } from '@/components/Card';
@@ -74,11 +75,10 @@ export default function Risultati() {
                 key={m.id}
                 match={m}
                 liveSets={m.status === 'live' ? { our: live.ourSets, opp: live.oppSets } : undefined}
-                // sempre tutte le gare della sua giornata (anche durante la diretta: da lì la nostra gara apre il live);
-                // direttamente il live solo se la giornata non è nota
-                onPress={m.giornata != null && m.girone ? () => router.push({ pathname: '/giornata/[numero]', params: { numero: String(m.giornata), girone: m.girone ?? '' } })
-                  : m.status === 'live' ? () => router.push('/live')
-                  : undefined}
+                onPress={(() => {
+                  const rotta = rottaPartita(m);
+                  return rotta ? () => router.push(rotta) : undefined;
+                })()}
               />
             ))
           ) : (
