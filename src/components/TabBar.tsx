@@ -25,9 +25,9 @@ const ICONS: Record<string, TabIcon> = {
 };
 
 /** Dimensione delle icone della barra */
-const ICON_SIZE = 22;
-/** Icone più grandi del normale (ICON_SIZE): il tabellone dei risultati è largo e basso, a parità di misura sembra più piccolo */
-const ICON_SCALE: Record<string, number> = { risultati: 1.15 };
+const ICON_SIZE = 30;
+/** Icone con una misura diversa da ICON_SIZE: il tabellone dei risultati è largo e basso, a parità di misura sembra più piccolo */
+const ICON_SIZES: Record<string, number> = { risultati: 40 };
 
 /** Tab nascoste dalla barra (la schermata resta, ma non c'è il pulsante) */
 const HIDDEN = new Set(['giovanili']);
@@ -47,8 +47,10 @@ const NOTCH_FILLET = 10;
 const ICON_DROP = 8;
 /** Spinta in più verso il basso per l'icona centrale (Squadra), sotto il cerchio */
 const CENTER_ICON_DROP = 5;
-/** Indicatore della tab centrale: parte sotto l'incavo (fondo dell'incavo + margine) */
-const CENTER_TOP = NOTCH_R - FAB_LIFT + 1;
+/** Indicatore della tab attiva: barretta oro sotto l'icona, vicino al bordo inferiore della barra */
+const IND_W = 24;
+const IND_H = 3;
+const IND_BOTTOM = 4;
 
 /**
  * Contorno della barra con l'incavo al centro (coordinate con y verso il basso, bordo superiore a y = 0).
@@ -92,8 +94,6 @@ export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTab
   const insets = useSafeAreaInsets();
   const [barW, setBarW] = useState(0);
   const x = useState(() => new Animated.Value(0))[0];
-  // l'indicatore si accorcia sotto l'incavo (tab centrale): si sposta in giù il suo bordo superiore
-  const top = useState(() => new Animated.Value(0))[0];
   const routes = state.routes.filter((r) => !HIDDEN.has(r.name));
   const center = Math.floor(routes.length / 2);
   const innerW = Math.max(0, barW - BAR_PAD * 2);
@@ -103,9 +103,8 @@ export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTab
 
   useEffect(() => {
     if (!barW || activeIndex < 0) return;
-    Animated.spring(x, { toValue: activeIndex * itemW, useNativeDriver: true, speed: 16, bounciness: 10 }).start();
-    Animated.spring(top, { toValue: activeIndex === center ? CENTER_TOP - BAR_PAD : 0, useNativeDriver: true, speed: 16, bounciness: 4 }).start();
-  }, [activeIndex, center, itemW, barW, x, top]);
+    Animated.spring(x, { toValue: activeIndex * itemW + (itemW - IND_W) / 2, useNativeDriver: true, speed: 16, bounciness: 10 }).start();
+  }, [activeIndex, itemW, barW, x]);
 
   // fondo pieno (la forma con l'incavo non si può sfocare): stessi colori della barra di prima, quasi opachi
   const fill = Platform.OS === 'android' ? c.card : mode === 'dark' ? 'rgba(34,77,146,0.97)' : 'rgba(255,255,255,0.97)';
@@ -115,7 +114,7 @@ export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTab
     const { options } = descriptors[route.key];
     const label = typeof options.title === 'string' ? options.title : route.name;
     const Icon = ICONS[route.name] ?? House;
-    const color = focused ? palette.onGold : c.muted;
+    const color = focused ? c.text : c.muted;
     const onPress = () => {
       const event = emitter.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
       if (!focused && !event.defaultPrevented) navigateToTab(route.key);
@@ -124,7 +123,7 @@ export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTab
     return (
       <Pressable key={route.key} onPress={onPress} accessibilityRole="tab" accessibilityState={{ selected: focused }} accessibilityLabel={label}
         style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: ICON_DROP + (i === center ? CENTER_ICON_DROP * 2 : 0) }}>
-        <Icon size={Math.round(ICON_SIZE * (ICON_SCALE[route.name] ?? 1))} color={color} strokeWidth={focused ? 2.4 : 2} />
+        <Icon size={ICON_SIZES[route.name] ?? ICON_SIZE} color={color} strokeWidth={focused ? 2.4 : 2} />
       </Pressable>
     );
   };
@@ -139,10 +138,9 @@ export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTab
         ) : null}
         <View style={{ flex: 1, flexDirection: 'row', padding: BAR_PAD }}>
           {barW > 0 && activeIndex >= 0 ? (
-            // altezza fissa e taglio in alto con translateY + overflow: si anima con il driver nativo
-            <Animated.View style={{ position: 'absolute', top: BAR_PAD, bottom: BAR_PAD, left: BAR_PAD, width: itemW, borderRadius: 18, overflow: 'hidden', transform: [{ translateX: x }] }}>
-              <Animated.View style={{ flex: 1, borderRadius: 18, backgroundColor: palette.gold, transform: [{ translateY: top }] }} />
-            </Animated.View>
+            // barretta oro sotto l'icona attiva: scivola da una tab all'altra con il driver nativo
+            <Animated.View style={{ position: 'absolute', bottom: IND_BOTTOM, left: BAR_PAD, width: IND_W, height: IND_H, borderRadius: IND_H / 2,
+              backgroundColor: palette.gold, transform: [{ translateX: x }] }} />
           ) : null}
           {routes.map(tab)}
         </View>

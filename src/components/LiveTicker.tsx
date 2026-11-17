@@ -55,10 +55,11 @@ export function LiveTicker({ text, label = 'ULTIMA AZIONE', segments, onPress, h
   const boxStyle = { flexDirection: 'row', height: 30, borderRadius: 8, overflow: 'hidden', backgroundColor: palette.gold } as const;
   const content = (
     <>
-      <View style={{ justifyContent: 'center', paddingHorizontal: space.sm, backgroundColor: c.live, zIndex: 1 }}>
+      {/* con onPress i figli non prendono il tocco: va sempre al pulsante (il testo scorre su un contenitore molto largo) */}
+      <View style={{ justifyContent: 'center', paddingHorizontal: space.sm, backgroundColor: c.live, zIndex: 1, pointerEvents: onPress ? 'none' : 'auto' }}>
         <Txt w={800} size={11} color="#FFFFFF" display={false} style={{ letterSpacing: 0.6 }}>{label}</Txt>
       </View>
-      <View style={{ flex: 1, justifyContent: 'center', overflow: 'hidden' }} onLayout={(e) => setBoxW(e.nativeEvent.layout.width)}>
+      <View style={{ flex: 1, justifyContent: 'center', overflow: 'hidden', pointerEvents: onPress ? 'none' : 'auto' }} onLayout={(e) => setBoxW(e.nativeEvent.layout.width)}>
         {still ? (
           <Txt w={700} size={12.5} color={palette.onGold} numberOfLines={1} style={{ paddingHorizontal: space.sm }}>{body}</Txt>
         ) : (
