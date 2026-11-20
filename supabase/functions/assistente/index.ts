@@ -203,18 +203,19 @@ const ESEGUI: Record<string, (c: Ctx, a: Args) => Promise<unknown>> = {
   },
 
   async rosa({ db, stagioneId }, a) {
-    // vista pubblica (rispetta la liberatoria); mai data o anno di nascita
+    // solo colonne pubbliche di giocatrici; mai data o anno di nascita
     let q = perStagione(
-      db.from('giocatrici_pubbliche')
-        .select('nome, cognome, numero_maglia, ruolo, capitana, altezza_cm, livello_squadra, punti, ace, muri')
-        .eq('nostra_squadra', true)
+      db.from('giocatrici')
+        .select('nome, cognome, numero_maglia, ruolo, capitana, altezza_cm, livello_squadra, punti, ace, muri, squadre!squadra_id!inner(nostra_squadra)')
+        .eq('squadre.nostra_squadra', true)
         .eq('attiva', true)
         .order('livello_squadra')
         .order('numero_maglia'),
       stagioneId,
     );
     if (livello(a)) q = q.eq('livello_squadra', livello(a));
-    const rs = leggibili(await righe(q));
+    // il join con squadre serve solo al filtro: non lo si passa al modello
+    const rs = leggibili((await righe(q)).map(({ squadre: _s, ...r }) => r));
     return rs.length ? rs : { info: 'Rosa non disponibile per questa squadra' };
   },
 

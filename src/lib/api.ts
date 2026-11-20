@@ -22,8 +22,6 @@ export const T = {
   votiMvp: 'voti_mvp',
   classifiche: 'classifiche',
   giocatrici: 'giocatrici',
-  /** Vista pubblica della rosa: foto e bio solo con la liberatoria (migrazione 20261016000200_consensi_e_foto) */
-  giocatriciPubbliche: 'giocatrici_pubbliche',
   staff: 'staff',
   categorie: 'categorie_giovanili',
   notizie: 'notizie',
@@ -175,10 +173,16 @@ function mapStanding(r: Row): Standing {
   };
 }
 
+/**
+ * Colonne di giocatrici leggibili da tutti (migrazione 20261120000100_giocatrici_tabella_unica): data di nascita e dati
+ * della liberatoria sono riservati, quindi niente select('*'). Foto e bio ci sono solo con la liberatoria (vincolo).
+ */
+const COLONNE_GIOCATRICI = 'id, stagione_id, squadra_id, livello_squadra, categoria_giovanile_id, nome, cognome, numero_maglia, ruolo, capitana, attiva, ordine, foto_url, bio, consenso_foto, anno_nascita, altezza_cm, punti, ace, muri';
+
 function mapPlayer(r: Row): Player {
   const first = str(r.nome);
   const last = str(r.cognome);
-  // la vista pubblica dà la data completa solo alle maggiorenni; per le minorenni c'è solo l'anno
+  // la data di nascita non è pubblica: si mostra solo l'anno
   const born = num(r.anno_nascita) ?? (typeof r.data_nascita === 'string' ? Number(r.data_nascita.slice(0, 4)) : null);
   return {
     id: str(r.id),
@@ -348,9 +352,9 @@ export async function loadAll(): Promise<AppData> {
     // solo le nostre partite: quelle tra avversarie (nostra_partita = false) servono a giornate e classifica
     db.from(T.partite).select(`*, ${T.setPartita}(*)`).in('stagione_id', ids).eq('nostra_partita', true).order('data_partita'),
     db.from(T.classifiche).select('*').in('stagione_id', ids).order('posizione'),
-    // la vista contiene anche le rose delle avversarie: solo le giocatrici della squadra con nostra_squadra = true
-    db.from(T.giocatriciPubbliche).select('*').in('stagione_id', ids).eq('livello_squadra', 'prima_squadra').eq('attiva', true).eq('nostra_squadra', true).order('ordine'),
-    db.from(T.giocatriciPubbliche).select('*').in('stagione_id', ids).in('livello_squadra', ['serie_b2', 'serie_d']).eq('attiva', true).order('ordine'),
+    // la tabella contiene anche le rose delle avversarie: solo le giocatrici della squadra con nostra_squadra = true
+    db.from(T.giocatrici).select(`${COLONNE_GIOCATRICI}, squadre!squadra_id!inner(nostra_squadra)`).in('stagione_id', ids).eq('livello_squadra', 'prima_squadra').eq('attiva', true).eq('squadre.nostra_squadra', true).order('ordine'),
+    db.from(T.giocatrici).select(COLONNE_GIOCATRICI).in('stagione_id', ids).in('livello_squadra', ['serie_b2', 'serie_d']).eq('attiva', true).order('ordine'),
     db.from(T.notizie).select('*').eq('pubblicata', true)
       // le news delle giovanili per ora non si mostrano (né in Home né in News)
       .or('categoria.is.null,categoria.neq.giovanili')
@@ -866,7 +870,7 @@ const lineupRow = (matchId: string, p: LineupPlayer) => ({
 /** Rosa di una squadra del girone (anche avversaria), per numero di maglia: si sceglie da qui la formazione */
 export async function fetchTeamRoster(teamId: string): Promise<Player[]> {
   if (!supabase) return [];
-  const { data, error } = await supabase.from(T.giocatriciPubbliche).select('*').eq('squadra_id', teamId).eq('attiva', true)
+  const { data, error } = await supabase.from(T.giocatrici).select(COLONNE_GIOCATRICI).eq('squadra_id', teamId).eq('attiva', true)
     .order('numero_maglia', { nullsFirst: false });
   if (error) throw error;
   return ((data as Row[] | null) ?? []).map(mapPlayer);

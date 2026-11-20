@@ -179,7 +179,7 @@ export interface YouthTeam {
 /** Staff tecnico e dirigenti della prima squadra (tabella staff, righe senza categoria giovanile) */
 /** Rosa e tecnici di una squadra regionale (Serie B2, Serie D), dalle tabelle giocatrici e staff */
 export interface RegionalRoster {
-  /** birthDate solo per le maggiorenni (vista pubblica); per le minorenni c'è solo born (anno) */
+  /** birthDate non è pubblica (resta null): c'è solo born (anno) */
   players: { id: string; name: string; number: number | null; birthDate: string | null; born: number | null }[];
   staff: { id: string; name: string; role: string }[];
 }

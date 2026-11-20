@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Animated, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Animated, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
-import * as AppleAuthentication from 'expo-apple-authentication';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Check, Eye, EyeOff, Mail, Settings, User } from 'lucide-react-native';
 import { Button } from '@/components/Button';
 import { AuthField as Field } from '@/components/AuthField';
+import { AppleIcon } from '@/components/AppleIcon';
 import { Checkbox } from '@/components/Checkbox';
 import { FacebookIcon } from '@/components/FacebookIcon';
 import { GoogleIcon } from '@/components/GoogleIcon';
@@ -135,8 +135,8 @@ function LoginScreen() {
   const wide = width >= 900;
   // su telefono la schermata deve stare tutta nello schermo, senza scorrere: sugli schermi bassi si compatta ancora
   const short = !wide && height < 760;
-  // altezza dei pulsanti social, uguale a quella di Button (sm 38, md 46)
-  const socialH = short ? 38 : 46;
+  // diametro dei pulsanti social (solo icona)
+  const socialH = short ? 40 : 44;
   const gutter = wide ? space.xl : space.lg;
 
   const tab = (m: Mode, label: string) => (
@@ -227,16 +227,21 @@ function LoginScreen() {
                       <Txt size={13} color="muted">oppure</Txt>
                       <View style={{ flex: 1, height: 1, backgroundColor: c.line }} />
                     </View>
-                    {/* stessa misura ed evidenza per tutti i provider (App Store, guideline 4.8) */}
-                    <View style={{ gap: space.sm }}>
-                      {socials.map((p) => p === 'apple' ? (
-                        <AppleAuthentication.AppleAuthenticationButton key={p}
-                          buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-                          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
-                          cornerRadius={socialH / 2} style={{ width: '100%', height: socialH, opacity: busy && busy !== p ? 0.5 : 1 }} onPress={() => provider(p)} />
-                      ) : (
-                        <Button key={p} label={`Continua con ${PROVIDER_LABEL[p]}`} size={short ? 'sm' : 'md'} loading={busy === p} disabled={!!busy && busy !== p} onPress={() => provider(p)}
-                          icon={p === 'google' ? <GoogleIcon size={17} /> : <FacebookIcon size={18} color={c.text} />} />
+                    {/* pulsanti solo icona, tutti della stessa misura ed evidenza (App Store, guideline 4.8) */}
+                    <View style={{ flexDirection: 'row', justifyContent: 'center', gap: space.md }}>
+                      {socials.map((p) => (
+                        <Pressable key={p} onPress={() => provider(p)} disabled={!!busy} hitSlop={6}
+                          accessibilityRole="button" accessibilityLabel={`Continua con ${PROVIDER_LABEL[p]}`}
+                          style={({ pressed }) => ({
+                            width: socialH, height: socialH, borderRadius: socialH / 2, backgroundColor: '#fff',
+                            alignItems: 'center', justifyContent: 'center',
+                            opacity: busy && busy !== p ? 0.5 : pressed ? 0.75 : 1,
+                          })}>
+                          {busy === p ? <ActivityIndicator size="small" color={blue[800]} />
+                            : p === 'apple' ? <AppleIcon size={20} />
+                            : p === 'google' ? <GoogleIcon size={19} />
+                            : <FacebookIcon size={20} color="#1877F2" />}
+                        </Pressable>
                       ))}
                     </View>
                     <Txt size={12} color="muted" center style={{ lineHeight: 17 }}>

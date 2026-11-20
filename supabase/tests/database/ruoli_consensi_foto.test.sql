@@ -5,7 +5,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(37);
+select plan(41);
 
 -- ---------- dati di prova ----------
 
@@ -126,9 +126,15 @@ select throws_ok(
 
 insert into public.stagioni (id, etichetta) values ('00000000-0000-4000-8000-0000000000b1', 'Test');
 insert into public.squadre (id, nome, nostra_squadra) values ('00000000-0000-4000-8000-0000000000c1', 'Squadra test', true);
-insert into public.giocatrici (id, stagione_id, squadra_id, nome, cognome, foto_url, bio, consenso_foto, consenso_foto_data) values
-  ('00000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-0000000000c1', 'Senza', 'Liberatoria', 'players/a.jpg', 'bio a', false, null),
-  ('00000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-0000000000c1', 'Con', 'Liberatoria', 'players/b.jpg', 'bio b', true, current_date);
+insert into public.giocatrici (id, stagione_id, squadra_id, nome, cognome, foto_url, bio, consenso_foto, consenso_foto_data, consenso_foto_note, data_nascita) values
+  ('00000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-0000000000c1', 'Senza', 'Liberatoria', null, null, false, null, null, '2012-03-04'),
+  ('00000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-0000000000c1', 'Con', 'Liberatoria', 'players/b.jpg', 'bio b', true, current_date, 'firmata dai genitori', null);
+
+select throws_ok($$ insert into public.giocatrici (stagione_id, squadra_id, nome, cognome, foto_url, consenso_foto)
+                    values ('00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-0000000000c1', 'X', 'Y', 'players/x.jpg', false) $$,
+  '23514', null, 'giocatrici: foto senza liberatoria rifiutata');
+select is((select anno_nascita::int from public.giocatrici where id = '00000000-0000-4000-8000-0000000000d1'), 2012,
+  'giocatrici: anno di nascita ricavato dalla data');
 insert into public.album_foto (id, titolo, pubblicato, consenso_verificato) values
   ('00000000-0000-4000-8000-0000000000e1', 'Bozza', false, false),
   ('00000000-0000-4000-8000-0000000000e2', 'Pubblicato', true, true);
@@ -142,15 +148,15 @@ select throws_ok($$ insert into public.album_foto (titolo, pubblicato) values ('
 set local role anon;
 set local request.jwt.claims = '{"role":"anon"}';
 
-select is((select count(*)::int from public.giocatrici where id in ('00000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-0000000000d2')), 0,
-  'giocatrici: tabella non leggibile dal pubblico');
-select is((select coalesce(foto_url, 'null') || '|' || coalesce(bio, 'null') from public.giocatrici_pubbliche where id = '00000000-0000-4000-8000-0000000000d1'), 'null|null',
-  'giocatrici_pubbliche: senza consenso foto e bio nulle');
-select is((select foto_url || '|' || bio from public.giocatrici_pubbliche where id = '00000000-0000-4000-8000-0000000000d2'), 'players/b.jpg|bio b',
-  'giocatrici_pubbliche: con consenso foto e bio visibili');
-select ok(not has_table_privilege('anon', 'public.giocatrici_pubbliche', 'INSERT,UPDATE,DELETE')
-          and not has_table_privilege('authenticated', 'public.giocatrici_pubbliche', 'INSERT,UPDATE,DELETE'),
-  'giocatrici_pubbliche: sola lettura');
+select is((select count(*)::int from public.giocatrici where id in ('00000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-0000000000d2')), 2,
+  'giocatrici: tabella leggibile dal pubblico');
+select is((select foto_url || '|' || bio from public.giocatrici where id = '00000000-0000-4000-8000-0000000000d2'), 'players/b.jpg|bio b',
+  'giocatrici: con liberatoria foto e bio visibili');
+select throws_ok($$ select data_nascita from public.giocatrici $$, '42501', null, 'giocatrici: data di nascita riservata');
+select throws_ok($$ select consenso_foto_note from public.giocatrici $$, '42501', null, 'giocatrici: note della liberatoria riservate');
+select throws_ok($$ select consenso_foto_data from public.giocatrici $$, '42501', null, 'giocatrici: data della liberatoria riservata');
+with u as (update public.giocatrici set nome = 'Z' where id = '00000000-0000-4000-8000-0000000000d2' returning 1)
+select is((select count(*)::int from u), 0, 'giocatrici: il pubblico non modifica');
 select is((select string_agg(a.titolo || ':' || (select count(*) from public.foto f where f.album_id = a.id), ',') from public.album_foto a
            where a.id in ('00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000e2')), 'Pubblicato:1',
   'album e foto: il pubblico vede solo gli album pubblicati');

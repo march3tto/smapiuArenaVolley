@@ -265,10 +265,11 @@ export default function Settings() {
             {/* in fondo: versione dell'app, copyright e sviluppatore */}
             <View style={{ alignItems: 'center', gap: 2, paddingTop: space.xs, paddingBottom: space.xs }}>
               <Txt size={12} color="muted">Versione {Constants.expoConfig?.version ?? '—'}</Txt>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingHorizontal: space.md }}>
                 <Copyright size={12} color={c.muted} />
-                <Txt size={12} color="muted">{new Date().getFullYear()} · Sviluppato da Marco Rossi</Txt>
+                <Txt size={12} color="muted" style={{ flexShrink: 1, textAlign: 'center' }}>2026 Arena Volley Team Verona | All rights reserved</Txt>
               </View>
+              <Txt size={12} color="muted">App realizzata da Marco Rossi</Txt>
             </View>
           </ScrollView>
         </View>
