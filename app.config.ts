@@ -15,8 +15,10 @@ const PHOTOS_PERMISSION = 'L\'app accede alle foto per caricare il tabellino del
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   // Client ID OAuth di Google Cloud (identificativi pubblici, non segreti): vedi .env.example
-  const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-  const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+  // un segnaposto (es. "...") non conta: farebbe comparire il pulsante e passerebbe uno schema URL errato al plugin
+  const clientIdGoogle = (v?: string) => (v && /^[\w-]+\.apps\.googleusercontent\.com$/.test(v.trim()) ? v.trim() : undefined);
+  const googleWebClientId = clientIdGoogle(process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID);
+  const googleIosClientId = clientIdGoogle(process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID);
   // il plugin di Google Sign-In vuole lo schema URL iOS: il client ID iOS con le parti invertite
   const iosUrlScheme = googleIosClientId
     ? `com.googleusercontent.apps.${googleIosClientId.replace(/\.apps\.googleusercontent\.com$/, '')}`

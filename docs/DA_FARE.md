@@ -78,7 +78,7 @@ già, quindi attivarli non richiede di cambiarne la versione.
 ### Apple (richiede l'account Apple Developer)
 - [x] App ID `it.arenavolleyteam.app` con capability **Sign in with Apple**.
 - [x] Chiave **.p8** con Sign in with Apple (Team ID, Key ID): serve per la revoca alla cancellazione dell'account.
-- [ ] Supabase > Authentication > Providers > Apple: abilitare, Client IDs = `it.arenavolleyteam.app`.
+- [x] Supabase > Authentication > Providers > Apple: abilitare, Client IDs = `it.arenavolleyteam.app`.
 - [x] Secrets: `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_CLIENT_ID`, `APPLE_PRIVATE_KEY`, poi ripubblicare
   `elimina-account`.
 - [x] `EXPO_PUBLIC_LOGIN_APPLE=1` in `.env` e negli ambienti EAS.
@@ -87,7 +87,7 @@ già, quindi attivarli non richiede di cambiarne la versione.
 - [ ] Google Cloud: progetto, schermata di consenso pubblicata (home e informativa su github.io), client **Web**
   (redirect `https://ruqwpjxpmebiejdndoxd.supabase.co/auth/v1/callback`), client **iOS** e **Android** (SHA-1 della
   build EAS e della firma Google Play). Istruzioni: gdpr/README.md, sezione 6.
-- [ ] Supabase > Providers > Google: Client IDs (web, iOS), Client secret del client web, **Skip nonce check** attivo.
+- [x] Supabase > Providers > Google: Client IDs (web, iOS), Client secret del client web, **Skip nonce check** attivo.
 - [ ] `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` e `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` in `.env` e in EAS: il pulsante compare
   da solo.
 - [ ] Richiede la **development build** (non funziona in Expo Go).
