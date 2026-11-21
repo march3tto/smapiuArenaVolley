@@ -138,17 +138,23 @@ già, quindi attivarli non richiede di cambiarne la versione.
 
 ## 4. Tecnici
 
-- [ ] **Schema base mancante** nel repository e migration con **versioni duplicate** (`20261013_…`, `20261014_…`,
-  `20261015_…`): `supabase db reset` e `supabase test db` non funzionano in locale. Generare la baseline con
-  `supabase db pull` e rinominare le migration duplicate (gdpr/README.md, sezione 2).
-- [ ] Eseguire i test pgTAP sul database reale (`supabase test db`): oggi sono verificati solo in un Postgres locale
-  equivalente.
+- [x] **Schema base mancante** e migration con **versioni duplicate**: il 21 novembre 2026 generata la baseline unica
+  `20261121000000_baseline.sql` (pg_dump della produzione), archiviate le vecchie migration in
+  `supabase/migrations_archivio/` (con copia del vecchio registro remoto) e allineato il registro remoto con
+  `supabase migration repair` (gdpr/README.md, sezione 2).
+- [x] Provata la baseline in locale con Docker (21 novembre 2026): `supabase db reset` la applica senza errori e lo
+  schema ricostruito coincide con la produzione (tabelle, colonne, vincoli, indici, funzioni, policy e privilegi).
+- [x] Test pgTAP con `supabase test db` sul database locale ricostruito dalla baseline (identico alla produzione):
+  90 verifiche, tutte passano. Corretti i dati di prova di `tabellino_attacco` (vincolo `partite_nostra_o_neutra`);
+  archiviato `sestetti_set.test.sql` perché la tabella `sestetti_set` non è mai stata creata in produzione.
 - [x] **`.env` tracciato da git**: rimosso con `git rm --cached .env` e aggiunto a `.gitignore`.
-- [ ] Eliminare la bozza superata `src/Claude outputs/profili_auto_creazione_e_blocco_ruolo.sql`.
-- [ ] **Tabella unica `giocatrici`** (migration `20261120000100_giocatrici_tabella_unica`): leggibile da tutti, senza
+- [x] Eliminata la bozza superata `src/Claude outputs/profili_auto_creazione_e_blocco_ruolo.sql` (21 novembre 2026).
+- [x] **Tabella unica `giocatrici`** (migration `20261120000100_giocatrici_tabella_unica`): leggibile da tutti, senza
   la vista `giocatrici_pubbliche`; data di nascita e dati della liberatoria nascosti per colonna, foto e bio solo con
-  liberatoria (vincolo). Applicare la migration, rigenerare `src/lib/database.types.ts`, ridistribuire l'Edge Function
-  `assistente` e pubblicare la nuova versione: le app già installate (che usano `select('*')`) non leggono più la rosa.
-- [ ] **Login sul web** (versione browser): solo email, i pulsanti social non sono previsti.
+  liberatoria (vincolo). Fatto il 21 novembre 2026: migration applicata, `src/lib/database.types.ts` rigenerato, Edge
+  Function `assistente` già aggiornata. Le app già installate (che usano `select('*')`) non leggono più la rosa
+  finché non esce la prossima build.
+- [x] **Login sul web** (versione browser): solo email, i pulsanti social non sono previsti. La versione web serve
+  solo per provare l'app senza fare build EAS.
 - [x] Errori ESLint preesistenti: `npx expo lint` e `npm run typecheck` puliti (8 novembre 2026).
-- [ ] Spostare il progetto Google Cloud (se creato) e gli altri account tecnici su account della società, non personali.
+- [x] Spostare il progetto Google Cloud (se creato) e gli altri account tecnici su account della società, non personali.

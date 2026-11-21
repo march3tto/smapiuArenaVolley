@@ -1,4 +1,4 @@
-// Generato da Supabase (generate_typescript_types) il 2026-11-14: non modificare a mano.
+// Generato da Supabase (supabase gen types) il 2026-11-21: non modificare a mano.
 export type Json =
   | string
   | number
@@ -134,13 +134,6 @@ export type Database = {
             columns: ["giocatrice_id"]
             isOneToOne: false
             referencedRelation: "giocatrici"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "azioni_punto_giocatrice_id_fkey"
-            columns: ["giocatrice_id"]
-            isOneToOne: false
-            referencedRelation: "giocatrici_pubbliche"
             referencedColumns: ["id"]
           },
           {
@@ -639,13 +632,6 @@ export type Database = {
             columns: ["giocatrice_id"]
             isOneToOne: false
             referencedRelation: "giocatrici"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "formazioni_partita_giocatrice_id_fkey"
-            columns: ["giocatrice_id"]
-            isOneToOne: false
-            referencedRelation: "giocatrici_pubbliche"
             referencedColumns: ["id"]
           },
           {
@@ -1680,13 +1666,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "statistiche_attacco_giocatrice_id_fkey"
-            columns: ["giocatrice_id"]
-            isOneToOne: false
-            referencedRelation: "giocatrici_pubbliche"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "statistiche_attacco_partita_id_fkey"
             columns: ["partita_id"]
             isOneToOne: false
@@ -1804,13 +1783,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "voti_mvp_giocatrice_id_fkey"
-            columns: ["giocatrice_id"]
-            isOneToOne: false
-            referencedRelation: "giocatrici_pubbliche"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "voti_mvp_partita_id_fkey"
             columns: ["partita_id"]
             isOneToOne: false
@@ -1856,55 +1828,6 @@ export type Database = {
         }
         Relationships: []
       }
-      giocatrici_pubbliche: {
-        Row: {
-          ace: number | null
-          altezza_cm: number | null
-          anno_nascita: number | null
-          attiva: boolean | null
-          bio: string | null
-          capitana: boolean | null
-          categoria_giovanile_id: string | null
-          cognome: string | null
-          consenso_foto: boolean | null
-          data_nascita: string | null
-          foto_url: string | null
-          id: string | null
-          livello_squadra: Database["public"]["Enums"]["livello_squadra"] | null
-          muri: number | null
-          nome: string | null
-          nostra_squadra: boolean | null
-          numero_maglia: number | null
-          ordine: number | null
-          punti: number | null
-          ruolo: Database["public"]["Enums"]["ruolo_giocatrice"] | null
-          squadra_id: string | null
-          stagione_id: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "giocatrici_categoria_giovanile_id_fkey"
-            columns: ["categoria_giovanile_id"]
-            isOneToOne: false
-            referencedRelation: "categorie_giovanili"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "giocatrici_squadra_id_fkey"
-            columns: ["squadra_id"]
-            isOneToOne: false
-            referencedRelation: "squadre"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "giocatrici_stagione_id_fkey"
-            columns: ["stagione_id"]
-            isOneToOne: false
-            referencedRelation: "stagioni"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       punti_giocatrici_partita: {
         Row: {
           ace: number | null
@@ -1921,13 +1844,6 @@ export type Database = {
             columns: ["giocatrice_id"]
             isOneToOne: false
             referencedRelation: "giocatrici"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "azioni_punto_giocatrice_id_fkey"
-            columns: ["giocatrice_id"]
-            isOneToOne: false
-            referencedRelation: "giocatrici_pubbliche"
             referencedColumns: ["id"]
           },
           {
@@ -1963,6 +1879,24 @@ export type Database = {
         Returns: undefined
       }
       attiva_partite_live: { Args: never; Returns: number }
+      bordo_campo: {
+        Args: never
+        Returns: {
+          aggiornato_il: string
+          casa: string
+          giornata: number
+          girone: string
+          nostra: boolean
+          numero_gara: number
+          ospite: string
+          partita_id: string
+          parziali: Json
+          set_casa: number
+          set_ospite: number
+          stato: string
+          testo: string
+        }[]
+      }
       calcola_classifica: {
         Args: { p_girone: string; p_stagione: string }
         Returns: {

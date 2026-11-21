@@ -18,8 +18,8 @@ insert into auth.users (id, email, aud, role, raw_user_meta_data) values
 update public.profili set ruolo = 'staff' where id = '00000000-0000-4000-8000-0000000000c1';
 
 insert into public.stagioni (id, etichetta, corrente) values ('00000000-0000-4000-8000-00000000f001', 'Test tabellino', false);
-insert into public.partite (id, stagione_id, nostra_partita, data_partita) values
-  ('00000000-0000-4000-8000-00000000f101', '00000000-0000-4000-8000-00000000f001', false, now());
+insert into public.partite (id, stagione_id, nostra_partita, avversario, casa_trasferta, data_partita) values
+  ('00000000-0000-4000-8000-00000000f101', '00000000-0000-4000-8000-00000000f001', true, 'Avversaria test', 'casa', now());
 
 insert into public.tabellini (id, partita_id, numero_set, percorso_immagine, stato, caricato_da) values
   ('00000000-0000-4000-8000-00000000f201', '00000000-0000-4000-8000-00000000f101', 1, 'test/set1.jpg', 'letto', null),
@@ -118,8 +118,8 @@ select is((select sum(punti)::int from public.attacco_giocatrici_partita where p
 
 -- seconda partita: solo il set 1 (con Riccato a 13 punti, più del finale) e il finale
 reset role;
-insert into public.partite (id, stagione_id, nostra_partita, data_partita) values
-  ('00000000-0000-4000-8000-00000000f102', '00000000-0000-4000-8000-00000000f001', false, now());
+insert into public.partite (id, stagione_id, nostra_partita, avversario, casa_trasferta, data_partita) values
+  ('00000000-0000-4000-8000-00000000f102', '00000000-0000-4000-8000-00000000f001', true, 'Avversaria test', 'casa', now());
 insert into public.tabellini (id, partita_id, numero_set, percorso_immagine, stato) values
   ('00000000-0000-4000-8000-00000000f211', '00000000-0000-4000-8000-00000000f102', 1, 'test/b-set1.jpg', 'letto'),
   ('00000000-0000-4000-8000-00000000f213', '00000000-0000-4000-8000-00000000f102', null, 'test/b-finale.jpg', 'letto');

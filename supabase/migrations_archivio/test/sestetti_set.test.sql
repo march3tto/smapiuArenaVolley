@@ -18,9 +18,9 @@ update public.profili set ruolo = 'admin' where id = '00000000-0000-4000-8000-00
 update public.profili set ruolo = 'staff' where id = '00000000-0000-4000-8000-0000000000b2';
 
 insert into public.stagioni (id, etichetta, corrente) values ('00000000-0000-4000-8000-00000000d001', 'Test sestetti', false);
-insert into public.partite (id, stagione_id, nostra_partita, data_partita) values
-  ('00000000-0000-4000-8000-00000000d101', '00000000-0000-4000-8000-00000000d001', false, now()),
-  ('00000000-0000-4000-8000-00000000d102', '00000000-0000-4000-8000-00000000d001', false, now());
+insert into public.partite (id, stagione_id, nostra_partita, avversario, casa_trasferta, data_partita) values
+  ('00000000-0000-4000-8000-00000000d101', '00000000-0000-4000-8000-00000000d001', true, 'Avversaria test', 'casa', now()),
+  ('00000000-0000-4000-8000-00000000d102', '00000000-0000-4000-8000-00000000d001', true, 'Avversaria test', 'casa', now());
 
 -- referto della partita d101: 6 titolari, 3 liberi e una riserva per la nostra squadra, 1 giocatrice avversaria
 insert into public.formazioni_partita (id, partita_id, squadra, numero_maglia, nome, ruolo, ordine) values

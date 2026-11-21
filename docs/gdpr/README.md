@@ -45,7 +45,8 @@ l'app richiede di nuovo i consensi.
 
 ## 2. Database
 
-Migration nuove (da applicare in ordine, **non** sono state applicate al progetto remoto):
+Migration nuove (applicate al progetto remoto; dal 21 novembre 2026 sono incluse nella baseline e archiviate in
+`supabase/migrations_archivio/`):
 
 | File | Contenuto |
 |---|---|
@@ -69,19 +70,21 @@ Effetti visibili subito dopo l'applicazione:
 Come applicarle (scegliere uno):
 
 - SQL Editor di Supabase: incollare ed eseguire i tre file nell'ordine.
-- CLI: `supabase db push` (vedi la nota sullo schema base qui sotto).
+- CLI: `supabase db push` (vedi la nota sulla baseline qui sotto).
 
-### Nota: `supabase db reset` e schema base
+### Migration: baseline unica (21 novembre 2026)
 
-Nel repository manca la migration con lo schema iniziale (tabelle `profili`, `giocatrici`, `partite`…): le migration
-presenti partono da modifiche a tabelle già esistenti. Inoltre alcune hanno la stessa versione (`20261009_…`,
-`20261013_…`, `20261014_…`, `20261015_…` compaiono più volte) e la CLI le rifiuta. Per poter usare
-`supabase db reset` / `supabase test db` in locale:
+Le migration storiche (senza schema iniziale e con versioni duplicate) sono state sostituite da un'unica baseline,
+`supabase/migrations/20261121000000_baseline.sql`, generata con `pg_dump` dal database di produzione: schema `public`
+completo più trigger su `auth.users`, bucket e policy di storage, tabelle in realtime e job `pg_cron`. Non contiene dati
+né segreti (`notifiche_segreto` va creato nel Vault a mano su un database nuovo). Le vecchie migration sono in
+`supabase/migrations_archivio/`, solo come storia. Le migration nuove si aggiungono dopo la baseline.
 
-1. `supabase link --project-ref ruqwpjxpmebiejdndoxd` e `supabase db pull` per generare la migration di base;
-2. rinominare le migration con versione duplicata dando a ciascuna un timestamp univoco (es. `20261013000100_…`),
-   e segnarle come già applicate sul remoto con `supabase migration repair --status applied <versione>`;
-3. `supabase start`, `supabase db reset`, `supabase test db`.
+In locale (serve Docker): `supabase start`, `supabase db reset`, `supabase test db`. L'API locale usa la porta 55321
+(`supabase/config.toml`) perché la 54321 è occupata da CleanMyMac. La baseline contiene una revoca generale dei
+privilegi prima dei `GRANT` del dump: senza, i default privileges di Supabase renderebbero leggibili ad `anon` anche
+le colonne riservate (es. `giocatrici.data_nascita`). Verificata il 21 novembre 2026: lo schema ricostruito coincide
+con la produzione e i test pgTAP passano.
 
 Le tre migration nuove sono state verificate in un Postgres 17 locale (PGlite) con uno schema minimo identico a quello
 remoto per le tabelle coinvolte (`profili`, `giocatrici`, `squadre`, `album_foto`, `foto`, `auth.users`,
@@ -297,8 +300,6 @@ Già pubblicata con l'informativa (sezione 1). Inserire **https://march3tto.gith
 
 - `.env` è tracciato da git (contiene URL e anon key di Supabase, che sono pubbliche): valutare
   `git rm --cached .env` come già indicato in `MIGRAZIONE.md`, prima di aggiungervi altre variabili.
-- `src/Claude outputs/profili_auto_creazione_e_blocco_ruolo.sql` è una bozza mai applicata, superata dalla migration
-  `20261016000100_profili_e_ruoli.sql`: si può eliminare.
 - Non esiste ancora una schermata di gestione utenti per staff/admin: la RPC `imposta_ruolo_utente` è pronta, oggi i
   ruoli si cambiano da SQL o chiamando la RPC.
 - Il registro `account_eliminati` si svuota da solo dopo 3 anni (job `pg_cron` nella migration 300). Nessuna regola

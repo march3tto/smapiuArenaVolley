@@ -1,0 +1,744 @@
+version,statements,name,created_by,idempotency_key,rollback
+20261009211737,"{""-- Dicitura mostrata nell'app (es. \""Primo Allenatore\""); il ruolo resta la categoria generale
+alter table public.staff add column if not exists qualifica text;
+-- Fisioterapisti, massaggiatori, medici
+alter type public.ruolo_staff add value if not exists 'staff_sanitario';""}",staff_qualifica_e_sanitario,marco.rossi.private@gmail.com,,
+20261009211746,"{""-- Staff tecnico reale della prima squadra (Serie A3 2026/27).
+-- Le righe di prova della prima squadra vengono disattivate, non cancellate.
+update public.staff
+set attivo = false
+where categoria_giovanile_id is null
+  and (nome, cognome) in (('Roberto','Sartori'), ('Luca','Bernardi'), ('Giorgio','Mantovani'), ('Carla','Benedetti'));
+
+-- foto_url vuota: l'app usa la foto inclusa (assets/staff/<nome-cognome>.jpg)
+insert into public.staff (nome, cognome, ruolo, qualifica, attivo, ordine)
+values
+  ('Andrea', 'Zappaterra', 'allenatore', 'Primo Allenatore', true, 1),
+  ('Simone', 'Morari', 'allenatore', 'Secondo Allenatore', true, 2),
+  ('Lara', 'Visonà', 'staff_sanitario', 'Fisioterapista', true, 3),
+  ('Barbara', 'Bertollo', 'staff_sanitario', 'Massaggiatrice', true, 4);""}",staff_prima_squadra_2026_27,marco.rossi.private@gmail.com,,
+20261011164546,"{""create table public.squadre (
+  id             uuid primary key default gen_random_uuid(),
+  nome           text not null unique,
+  citta          text,
+  provincia      text,
+  nostra_squadra boolean not null default false,
+  allenatore     text,
+  logo_url       text,
+  campionato_id  uuid references public.campionati(id),
+  girone         text,
+  creato_il      timestamptz not null default now()
+);
+create unique index squadre_una_sola_nostra on public.squadre (nostra_squadra) where nostra_squadra;
+
+alter table public.squadre enable row level security;
+create policy squadre_lettura_pubblica on public.squadre for select using (true);
+create policy squadre_scrittura_staff on public.squadre for all using (e_staff()) with check (e_staff());
+
+insert into public.squadre (nome, citta, provincia, nostra_squadra, allenatore, campionato_id, girone)
+select v.nome, v.citta, v.prov, v.nostra, v.allen, c.id, 'Girone B'
+from (values
+  ('Smapiù Arena Volley Team',      'Castel d''Azzano',   'VR', true,  null::text),
+  ('Azimut Giorgione',              'Castelfranco Veneto','TV', false, 'Enrico Cremasco'),
+  ('Banca Annia Aduna Women',       'Padova',             'PD', false, 'Vincenzo Rondinelli'),
+  ('V&V Modena',                    'Modena',             'MO', false, 'Ivan Tamburello'),
+  ('Olympia di Navigazione Ravenna','Ravenna',            'RA', false, 'Federico Rizzi'),
+  ('CO.GE. Vesuvio Oplonti',        'Torre Annunziata',   'NA', false, 'Bruno Napolitano'),
+  ('Zero5 Castellana Grotte',       'Castellana Grotte',  'BA', false, null),
+  ('Tonno Callipo Calabria',        'Vibo Valentia',      'VV', false, 'Stefano Saja')
+) as v(nome, citta, prov, nostra, allen)
+cross join (select id from public.campionati where nome = 'Serie A3 Femminile') c;
+
+alter table public.giocatrici
+  add column squadra_id uuid references public.squadre(id) on delete restrict,
+  add column anno_nascita smallint check (anno_nascita between 1950 and 2020);
+create index idx_giocatrici_squadra on public.giocatrici (squadra_id);
+
+update public.giocatrici
+set squadra_id = (select id from public.squadre where nostra_squadra)
+where squadra_id is null;
+
+create or replace function public.giocatrici_squadra_predefinita()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if new.squadra_id is null then
+    select id into new.squadra_id from squadre where nostra_squadra limit 1;
+  end if;
+  return new;
+end $$;
+create trigger trg_giocatrici_squadra_predefinita
+  before insert on public.giocatrici
+  for each row execute function public.giocatrici_squadra_predefinita();
+
+alter table public.giocatrici alter column squadra_id set not null;
+
+alter table public.partite     add column squadra_avversaria_id uuid references public.squadre(id);
+alter table public.classifiche add column squadra_id            uuid references public.squadre(id);
+
+with mappa(testo, nome) as (values
+  ('Smapiù Arena Volley Team','Smapiù Arena Volley Team'),
+  ('Azimut Giorgione','Azimut Giorgione'),
+  ('Banca Annia Aduna Padova','Banca Annia Aduna Women'),
+  ('V&V Modena','V&V Modena'),
+  ('Olimpia di Navigazione Ravenna','Olympia di Navigazione Ravenna'),
+  ('CO.GE. Vesuvio Oplonti','CO.GE. Vesuvio Oplonti'),
+  ('Zero5 Castellana Grotte','Zero5 Castellana Grotte'),
+  ('Tonno Callipo Calabria','Tonno Callipo Calabria'))
+update public.partite p set squadra_avversaria_id = s.id
+from mappa m join public.squadre s on s.nome = m.nome
+where p.avversario = m.testo;
+
+with mappa(testo, nome) as (values
+  ('Smapiù Arena Volley Team','Smapiù Arena Volley Team'),
+  ('Azimut Giorgione','Azimut Giorgione'),
+  ('Banca Annia Aduna Padova','Banca Annia Aduna Women'),
+  ('V&V Modena','V&V Modena'),
+  ('Olimpia di Navigazione Ravenna','Olympia di Navigazione Ravenna'),
+  ('CO.GE. Vesuvio Oplonti','CO.GE. Vesuvio Oplonti'),
+  ('Zero5 Castellana Grotte','Zero5 Castellana Grotte'),
+  ('Tonno Callipo Calabria','Tonno Callipo Calabria'))
+update public.classifiche c set squadra_id = s.id
+from mappa m join public.squadre s on s.nome = m.nome
+where c.nome_squadra = m.testo;""}",crea_squadre_e_collega_giocatrici,marco.rossi.private@gmail.com,,
+20261011164615,"{""insert into public.giocatrici
+  (stagione_id, squadra_id, livello_squadra, nome, cognome, ruolo, numero_maglia, altezza_cm, anno_nascita)
+select st.id, sq.id, 'prima_squadra', v.nome, v.cognome, v.ruolo::ruolo_giocatrice, v.num, v.alt, v.anno
+from (values
+  -- Azimut Giorgione
+  ('Azimut Giorgione','Silvia','Romanin','palleggiatrice',null::int,192::smallint,2003::smallint),
+  ('Azimut Giorgione','Margherita','Bottura','palleggiatrice',null,null,2007),
+  ('Azimut Giorgione','Alessia','Cicolini','opposto',null,178,2000),
+  ('Azimut Giorgione','Sara','Esposito','opposto',null,183,2000),
+  ('Azimut Giorgione','Sindi','Mico','schiacciatrice',null,187,2004),
+  ('Azimut Giorgione','Alice','Bellini','schiacciatrice',null,183,2001),
+  ('Azimut Giorgione','Arianna','Rizzo','schiacciatrice',null,180,2001),
+  ('Azimut Giorgione','Alessandra','Bartolomei','schiacciatrice',null,178,2008),
+  ('Azimut Giorgione','Eva','Simioni','schiacciatrice',null,181,2010),
+  ('Azimut Giorgione','Tatjana','Fucka','centrale',null,null,null),
+  ('Azimut Giorgione','Rebeka','Fucka','centrale',null,null,null),
+  ('Azimut Giorgione','Chiara','Zamprogno','centrale',null,186,2008),
+  ('Azimut Giorgione','Ilaria','Fanelli','centrale',null,181,1995),
+  ('Azimut Giorgione','Eleonora','Dreon','libero',null,162,2006),
+  ('Azimut Giorgione','Caterina','Fantini','libero',null,173,2001),
+  -- Aduna Padova
+  ('Banca Annia Aduna Women','Marianna','Giay','palleggiatrice',null,183,2005),
+  ('Banca Annia Aduna Women','Emma','Venturi','palleggiatrice',null,null,2006),
+  ('Banca Annia Aduna Women','Martina','Simoncelli','opposto',null,183,2006),
+  ('Banca Annia Aduna Women','Chiara','Wabersich','opposto',null,178,2003),
+  ('Banca Annia Aduna Women','Aurora','Marchesini','schiacciatrice',null,178,2004),
+  ('Banca Annia Aduna Women','Alessia','Pasa','schiacciatrice',null,176,2004),
+  ('Banca Annia Aduna Women','Irene','Gomiero','schiacciatrice',null,180,1990),
+  ('Banca Annia Aduna Women','Elisa','Vecerina','schiacciatrice',null,178,2002),
+  ('Banca Annia Aduna Women','Francesca','Volpin','centrale',null,185,1995),
+  ('Banca Annia Aduna Women','Linda','Damian','centrale',null,null,2005),
+  ('Banca Annia Aduna Women','Sofia','Fenzio','centrale',null,184,2005),
+  ('Banca Annia Aduna Women','Ludovica','Marinucci','centrale',null,184,2007),
+  ('Banca Annia Aduna Women','Marta','Masiero','libero',null,177,1998),
+  ('Banca Annia Aduna Women','Linda','Callegaro','libero',null,170,2006),
+  -- V&V Modena
+  ('V&V Modena','Theresa','Barner','palleggiatrice',4,null,null),
+  ('V&V Modena','Beatrice','Balconati','palleggiatrice',8,175,2004),
+  ('V&V Modena','Sonia','Ratti','opposto',18,null,null),
+  ('V&V Modena','Amelia','Pasini','opposto',6,null,null),
+  ('V&V Modena','Linda','Cabassa','schiacciatrice',10,null,null),
+  ('V&V Modena','Chiara','Martinato','schiacciatrice',12,183,2005),
+  ('V&V Modena','Anja','Nella','schiacciatrice',14,null,null),
+  ('V&V Modena','Valentina','Adani','schiacciatrice',17,null,null),
+  ('V&V Modena','Sofia','Migliorini','centrale',9,null,null),
+  ('V&V Modena','Marta','Semprini Cesari','centrale',13,null,null),
+  ('V&V Modena','Anna','Pettiti','centrale',15,null,null),
+  ('V&V Modena','Monica','Tirisegu Oke','centrale',2,null,null),
+  ('V&V Modena','Victoria','Cavallieri','libero',7,null,null),
+  ('V&V Modena','Lia','Righi','libero',1,null,null),
+  -- Olympia Ravenna
+  ('Olympia di Navigazione Ravenna','Chiara','Poggi','palleggiatrice',null,186,2001),
+  ('Olympia di Navigazione Ravenna','Deizi','Nika','palleggiatrice',null,175,2005),
+  ('Olympia di Navigazione Ravenna','Agnese','Benzoni','opposto',null,183,2006),
+  ('Olympia di Navigazione Ravenna','Lucia','Busso','schiacciatrice',null,183,2003),
+  ('Olympia di Navigazione Ravenna','Linda','Kovalčíková','schiacciatrice',null,180,2008),
+  ('Olympia di Navigazione Ravenna','Camilla','Ferrari','schiacciatrice',null,181,2002),
+  ('Olympia di Navigazione Ravenna','Giorgia','Micelli','schiacciatrice',null,180,2005),
+  ('Olympia di Navigazione Ravenna','Beatrice','Bacchilega','centrale',null,183,2003),
+  ('Olympia di Navigazione Ravenna','Giuditta','Romano','centrale',null,187,2003),
+  ('Olympia di Navigazione Ravenna','Erika','Bendoni','centrale',null,184,2001),
+  ('Olympia di Navigazione Ravenna','Aurora','Franchi','libero',null,172,2003),
+  ('Olympia di Navigazione Ravenna','Lucrezia','De Dominicis','libero',null,167,2004),
+  -- Vesuvio Oplonti
+  ('CO.GE. Vesuvio Oplonti','Emma','Sturniolo','palleggiatrice',null,174,2003),
+  ('CO.GE. Vesuvio Oplonti','Giulia','Picchi','palleggiatrice',null,180,2002),
+  ('CO.GE. Vesuvio Oplonti','Sofia','Felappi','opposto',null,184,2003),
+  ('CO.GE. Vesuvio Oplonti','Ginevra','Bazzani','opposto',null,185,2002),
+  ('CO.GE. Vesuvio Oplonti','Giorgia','Coveccia','schiacciatrice',null,179,2004),
+  ('CO.GE. Vesuvio Oplonti','Gioia','Riccato','schiacciatrice',null,186,2002),
+  ('CO.GE. Vesuvio Oplonti','Sara','Bassi','schiacciatrice',null,183,2007),
+  ('CO.GE. Vesuvio Oplonti','Vittoria','Zuliani','schiacciatrice',null,183,2004),
+  ('CO.GE. Vesuvio Oplonti','Jasmin Nicol','Danaila','centrale',null,181,2005),
+  ('CO.GE. Vesuvio Oplonti','Bibiana','Guzin','centrale',null,184,2004),
+  ('CO.GE. Vesuvio Oplonti','Chiara Alice','Cecchini','centrale',null,181,2003),
+  ('CO.GE. Vesuvio Oplonti','Jessica','Lanari','libero',null,165,1993),
+  ('CO.GE. Vesuvio Oplonti','Melissa','Criscuolo','libero',null,160,2007),
+  -- Castellana Grotte
+  ('Zero5 Castellana Grotte','Francesca','Saveriano','palleggiatrice',null,174,1993),
+  ('Zero5 Castellana Grotte','Martina','Merati','palleggiatrice',null,170,2002),
+  ('Zero5 Castellana Grotte','Federica','Stroppa','opposto',null,182,1997),
+  ('Zero5 Castellana Grotte','Alessia','Corradetti','schiacciatrice',null,176,2001),
+  ('Zero5 Castellana Grotte','Vera','Bondarenko','schiacciatrice',null,null,null),
+  ('Zero5 Castellana Grotte','Ginevra','Camerini','schiacciatrice',null,null,null),
+  ('Zero5 Castellana Grotte','Giorgia','Rizza','schiacciatrice',null,null,null),
+  ('Zero5 Castellana Grotte','Asya','Zingoni','centrale',null,180,1999),
+  ('Zero5 Castellana Grotte','Camilla','Grazia','centrale',null,193,2000),
+  ('Zero5 Castellana Grotte','Sara','Marchesano','centrale',null,185,2002),
+  ('Zero5 Castellana Grotte','Cecilia','Oggioni','libero',null,null,null),
+  ('Zero5 Castellana Grotte','Alessandra','Locorotondo','libero',null,166,2008),
+  -- Tonno Callipo
+  ('Tonno Callipo Calabria','Romina','Courroux','palleggiatrice',null,180,1998),
+  ('Tonno Callipo Calabria','Chiara','Scacchetti','palleggiatrice',null,175,1995),
+  ('Tonno Callipo Calabria','Giulia','Colombo','opposto',null,181,2007),
+  ('Tonno Callipo Calabria','Irene','Botarelli','opposto',null,188,1996),
+  ('Tonno Callipo Calabria','Valentina','Pomili','schiacciatrice',null,182,1994),
+  ('Tonno Callipo Calabria','Giulia','Felappi','schiacciatrice',null,181,2002),
+  ('Tonno Callipo Calabria','Laura','Grigolo','schiacciatrice',null,186,1996),
+  ('Tonno Callipo Calabria','Ágnes','Pallag','schiacciatrice',null,182,1993),
+  ('Tonno Callipo Calabria','Sarah','Mazzuca','centrale',null,180,2002),
+  ('Tonno Callipo Calabria','Chiara','Albano','centrale',null,185,1999),
+  ('Tonno Callipo Calabria','Giada','Civitico','centrale',null,188,2000),
+  ('Tonno Callipo Calabria','Chiara','Riparbelli','centrale',null,188,1996),
+  ('Tonno Callipo Calabria','Marta','Gazzerro','libero',null,170,2005),
+  ('Tonno Callipo Calabria','Marta','Pecalli','libero',null,165,2001)
+) as v(squadra, nome, cognome, ruolo, num, alt, anno)
+join public.squadre sq on sq.nome = v.squadra
+cross join (select id from public.stagioni where etichetta = 'FIPAV A3 F Girone B') st;""}",rose_avversarie_a3_girone_b_2026_27,marco.rossi.private@gmail.com,,
+20261012220838,"{""alter type public.livello_squadra add value if not exists 'serie_b2';
+alter type public.livello_squadra add value if not exists 'serie_d';
+
+insert into public.categorie_giovanili (nome, descrizione, ordine)
+select v.nome, null, v.ordine
+from (values ('Serie B2', 5), ('Serie D', 6)) as v(nome, ordine)
+where not exists (select 1 from public.categorie_giovanili c where c.nome = v.nome);""}",livelli_serie_b2_d,marco.rossi.private@gmail.com,,
+20261012220855,"{""with squadra as (
+  select id from public.squadre where nostra_squadra
+), stagione as (
+  select g.stagione_id as id
+  from public.giocatrici g join public.squadre s on s.id = g.squadra_id and s.nostra_squadra
+  where g.livello_squadra = 'prima_squadra'
+  limit 1
+), rosa (livello, categoria, ordine, numero, nome, cognome, nascita) as (
+  values
+    ('serie_b2', 'Serie B2', 1, 7, 'Matilda', 'Aurenghi', '2009-04-28'),
+    ('serie_b2', 'Serie B2', 2, 18, 'Gaia', 'Bissolo', '2008-02-06'),
+    ('serie_b2', 'Serie B2', 3, 1, 'Irene', 'Ciotti', '2010-05-08'),
+    ('serie_b2', 'Serie B2', 4, 8, 'Elisa', 'Fusa', '2009-09-04'),
+    ('serie_b2', 'Serie B2', 5, 5, 'Matilde', 'Galetti', '2008-12-17'),
+    ('serie_b2', 'Serie B2', 6, 9, 'Alexa', 'Hubacech', '2009-05-03'),
+    ('serie_b2', 'Serie B2', 7, 14, 'Emma', 'Iannone', '2011-04-20'),
+    ('serie_b2', 'Serie B2', 8, 19, 'Irene', 'Lenzi', '2010-09-15'),
+    ('serie_b2', 'Serie B2', 9, 12, 'Maddalena', 'Molinaroli', '2009-11-10'),
+    ('serie_b2', 'Serie B2', 10, 10, 'Teresa Ifeoma', 'Okonji', '2009-10-03'),
+    ('serie_b2', 'Serie B2', 11, 15, 'Desiree', 'Raffa', '2010-05-24'),
+    ('serie_b2', 'Serie B2', 12, 16, 'Anna', 'Sabato', '2010-12-10'),
+    ('serie_b2', 'Serie B2', 13, 4, 'Greta', 'Schiavo', '2008-02-04'),
+    ('serie_b2', 'Serie B2', 14, 13, 'Alessia', 'Stefanoni', '2009-07-26'),
+    ('serie_d', 'Serie D', 1, 5, 'Desiree', 'Benaglia', '2010-12-29'),
+    ('serie_d', 'Serie D', 2, 3, 'Stella', 'Berti', '2010-09-20'),
+    ('serie_d', 'Serie D', 3, 9, 'Noemi', 'Bolla', '2010-03-09'),
+    ('serie_d', 'Serie D', 4, 8, 'Antonella', 'Capasso', '2010-07-01'),
+    ('serie_d', 'Serie D', 5, 4, 'Martina', 'Fusini', '2010-10-04'),
+    ('serie_d', 'Serie D', 6, 10, 'Mia', 'Genovese', '2011-12-12'),
+    ('serie_d', 'Serie D', 7, 17, 'Emma', 'Iannone', '2011-04-20'),
+    ('serie_d', 'Serie D', 8, 2, 'Anita', 'Mazzi', '2011-05-05'),
+    ('serie_d', 'Serie D', 9, 18, 'Alice', 'Murari', '2010-06-27'),
+    ('serie_d', 'Serie D', 10, 6, 'Chiara', 'Nuvolini', '2011-06-18'),
+    ('serie_d', 'Serie D', 11, 13, 'Lucrezia', 'Pasut', '2011-07-13'),
+    ('serie_d', 'Serie D', 12, 7, 'Maddalena', 'Poletto', '2011-07-11'),
+    ('serie_d', 'Serie D', 13, 11, 'Martina', 'Zamboni', '2011-03-11')
+)
+insert into public.giocatrici (stagione_id, squadra_id, livello_squadra, categoria_giovanile_id, nome, cognome, numero_maglia, data_nascita, anno_nascita, ordine, attiva)
+select st.id, sq.id, r.livello::public.livello_squadra, c.id, r.nome, r.cognome, r.numero, r.nascita::date, extract(year from r.nascita::date)::smallint, r.ordine, true
+from rosa r
+cross join squadra sq
+cross join stagione st
+join public.categorie_giovanili c on c.nome = r.categoria
+where not exists (
+  select 1 from public.giocatrici g
+  where g.livello_squadra = r.livello::public.livello_squadra and g.nome = r.nome and g.cognome = r.cognome
+);""}",giocatrici_serie_b2_d,marco.rossi.private@gmail.com,,
+20261012221124,"{""insert into public.staff (nome, cognome, ruolo, qualifica, categoria_giovanile_id, attivo, ordine)
+select v.nome, v.cognome, v.ruolo::public.ruolo_staff, v.qualifica, c.id, true, v.ordine
+from (values
+  ('Serie B2', 'Pasqualino', 'Leone', 'allenatore_giovanili', '1° Allenatore', 1),
+  ('Serie B2', 'Marco', 'Zordan', 'allenatore_giovanili', '2° Allenatore', 2),
+  ('Serie B2', 'Federico', 'Molinaroli', 'dirigente', 'Accompagnatore Ufficiale', 3),
+  ('Serie D', 'Luca', 'Beltrame', 'allenatore_giovanili', '1° Allenatore', 1),
+  ('Serie D', 'Mattia', 'Donato', 'allenatore_giovanili', '2° Allenatore', 2)
+) as v(categoria, nome, cognome, ruolo, qualifica, ordine)
+join public.categorie_giovanili c on c.nome = v.categoria
+where not exists (
+  select 1 from public.staff s
+  where s.categoria_giovanile_id = c.id and s.nome = v.nome and s.cognome = v.cognome
+);""}",staff_serie_b2_d,marco.rossi.private@gmail.com,,
+20261017211502,"{""alter table public.partite
+  add column if not exists url_a3live text,
+  add column if not exists parziali jsonb,
+  add column if not exists stato_a3live text,
+  add column if not exists letto_a3live_il timestamptz;
+
+comment on column public.partite.url_a3live is 'Pagina della gara su a3live.federvolley.it (es. https://a3live.federvolley.it/gara/100006); letta dall''agente risultati';
+comment on column public.partite.parziali is 'Parziali dei set dal nostro punto di vista: [{\""set\"":1,\""nostri\"":25,\""avversari\"":19}, ...]';
+comment on column public.partite.stato_a3live is 'Ultimo status letto sulla pagina a3live (upcoming / live / finished)';
+comment on column public.partite.letto_a3live_il is 'Ultima lettura riuscita della pagina a3live';""}",partite_url_a3live_parziali,marco.rossi.private@gmail.com,,
+20261017212912,"{""create table public.gare_campionato (
+  id uuid primary key default gen_random_uuid(),
+  campionato_id uuid not null references public.campionati(id),
+  stagione_id uuid references public.stagioni(id),
+  girone text not null,
+  numero_gara integer not null,
+  giornata integer not null check (giornata between 1 and 30),
+  fase text not null check (fase in ('andata','ritorno')),
+  data_partita timestamptz not null,
+  squadra_casa_id uuid not null references public.squadre(id),
+  squadra_ospite_id uuid not null references public.squadre(id),
+  partita_id uuid references public.partite(id) on delete set null,
+  stato public.stato_partita not null default 'programmata',
+  set_casa integer check (set_casa between 0 and 3),
+  set_ospite integer check (set_ospite between 0 and 3),
+  parziali jsonb,
+  url_a3live text,
+  fonte text default 'federvolley.it',
+  creato_il timestamptz not null default now(),
+  aggiornato_il timestamptz not null default now(),
+  unique (campionato_id, numero_gara),
+  check (squadra_casa_id <> squadra_ospite_id)
+);
+comment on table public.gare_campionato is 'Calendario completo del girone (tutte le gare, non solo le nostre). Fonte: calendario ufficiale federvolley.it';
+comment on column public.gare_campionato.parziali is 'Parziali dal punto di vista della squadra di casa: [{\""set\"":1,\""casa\"":25,\""ospite\"":19}, ...]';
+create index gare_campionato_giornata_idx on public.gare_campionato (campionato_id, girone, giornata);
+create index gare_campionato_casa_idx on public.gare_campionato (squadra_casa_id);
+create index gare_campionato_ospite_idx on public.gare_campionato (squadra_ospite_id);
+create index gare_campionato_partita_idx on public.gare_campionato (partita_id);
+create index gare_campionato_stagione_idx on public.gare_campionato (stagione_id);
+alter table public.gare_campionato enable row level security;
+create policy gare_campionato_lettura_pubblica on public.gare_campionato for select using (true);
+create policy gare_campionato_scrittura_staff on public.gare_campionato for all using (e_staff()) with check (e_staff());""}",crea_gare_campionato,marco.rossi.private@gmail.com,,
+20261019224930,"{""create or replace function public.voto_mvp_valido(p_partita uuid, p_giocatrice uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.formazioni_partita f
+    join public.partite p on p.id = f.partita_id
+    where f.partita_id = p_partita and f.giocatrice_id = p_giocatrice
+      and p.stato in ('live', 'conclusa')
+  );
+$$;""}",mvp_anche_avversarie,marco.rossi.private@gmail.com,,
+20261020202952,"{""alter table public.set_partita
+  add column if not exists primo_servizio text check (primo_servizio in ('nostra', 'avversaria'));
+comment on column public.set_partita.primo_servizio is 'Squadra al servizio sullo 0-0 del set (nostra/avversaria); null = regola predefinita';""}",primo_servizio_set,marco.rossi.private@gmail.com,,
+20261020215125,"{""alter table public.push_token
+  add column if not exists notifiche_attive boolean not null default true,
+  add column if not exists inizio_partita boolean not null default true,
+  add column if not exists fine_set boolean not null default true,
+  add column if not exists risultato_finale boolean not null default true,
+  add column if not exists contenuti boolean not null default true;
+
+comment on column public.push_token.notifiche_attive is 'Interruttore generale di Impostazioni: false = nessuna notifica';
+comment on column public.push_token.inizio_partita is 'Promemoria pre-partita e inizio partita';
+comment on column public.push_token.fine_set is 'Fine di ogni set (tranne quello decisivo)';
+comment on column public.push_token.risultato_finale is 'Set decisivo con il risultato finale';
+comment on column public.push_token.contenuti is 'Nuove news, video e podcast';
+
+create or replace function public.preferenze_push_token(
+  p_token text, p_attive boolean, p_inizio boolean, p_set boolean, p_finale boolean, p_contenuti boolean
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if p_token is null or p_token !~ '^Expo(nent)?PushToken\\[[^\\]]{1,200}\\]$' then
+    raise exception 'Token push non valido';
+  end if;
+  update public.push_token
+     set notifiche_attive = coalesce(p_attive, notifiche_attive),
+         inizio_partita = coalesce(p_inizio, inizio_partita),
+         fine_set = coalesce(p_set, fine_set),
+         risultato_finale = coalesce(p_finale, risultato_finale),
+         contenuti = coalesce(p_contenuti, contenuti),
+         aggiornato_il = now()
+   where token = p_token;
+end; $$;
+
+revoke execute on function public.preferenze_push_token(text, boolean, boolean, boolean, boolean, boolean) from public;
+grant execute on function public.preferenze_push_token(text, boolean, boolean, boolean, boolean, boolean) to anon, authenticated;""}",preferenze_notifiche,marco.rossi.private@gmail.com,,
+20261023212456,"{""alter table public.pubblicita
+  add column if not exists frequenza_minuti integer not null default 30 check (frequenza_minuti > 0);""}",pubblicita_frequenza,marco.rossi.private@gmail.com,,
+20261101220737,"{""-- Log dell'agente livescore (a3live): eventi leggibili da staff/admin nell'app.
+-- Scrive solo l'agente con la chiave service_role (bypassa la RLS).
+create table if not exists public.log_agente (
+  id bigint generated always as identity primary key,
+  creato_il timestamptz not null default now(),
+  agente text not null,
+  livello text not null default 'info' check (livello in ('info', 'avviso', 'errore')),
+  evento text not null,
+  partita_id uuid references public.partite(id) on delete set null,
+  numero_gara integer,
+  messaggio text not null,
+  dettagli jsonb
+);
+
+comment on table public.log_agente is 'Eventi dell''agente livescore a3live (mac, zima): avvio, finestra aperta/chiusa, aggiornamenti scritti, battito, feed fermo, errori. Pulizia automatica dopo 60 giorni.';
+comment on column public.log_agente.evento is 'avvio, stop, attesa, finestra_aperta, finestra_chiusa, aggiornamento, correzione, battito, feed_fermo, feed_ripartito, feed_mancante, errore';
+
+create index if not exists log_agente_creato_il_idx on public.log_agente (creato_il desc);
+create index if not exists log_agente_partita_idx on public.log_agente (partita_id, creato_il desc) where partita_id is not null;
+
+alter table public.log_agente enable row level security;
+
+drop policy if exists log_agente_lettura_staff on public.log_agente;
+create policy log_agente_lettura_staff on public.log_agente
+  for select to authenticated using (public.e_staff());
+
+revoke insert, update, delete on public.log_agente from anon, authenticated;
+grant select on public.log_agente to authenticated;
+
+-- Stato sintetico: ultimo segnale di ogni agente
+create or replace view public.stato_agenti with (security_invoker = on) as
+select distinct on (agente)
+  agente,
+  creato_il as ultimo_segnale,
+  evento    as ultimo_evento,
+  livello   as ultimo_livello,
+  messaggio as ultimo_messaggio
+from public.log_agente
+order by agente, creato_il desc;
+
+revoke all on public.stato_agenti from anon;
+grant select on public.stato_agenti to authenticated;
+
+-- Realtime per la schermata admin
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'log_agente'
+  ) then
+    alter publication supabase_realtime add table public.log_agente;
+  end if;
+end $$;
+
+-- Pulizia giornaliera dei log oltre i 60 giorni
+select cron.unschedule('pulizia-log-agente') where exists (select 1 from cron.job where jobname = 'pulizia-log-agente');
+select cron.schedule('pulizia-log-agente', '30 3 * * *', $c$delete from public.log_agente where creato_il < now() - interval '60 days'$c$);
+""}",log_agente,marco.rossi.private@gmail.com,,
+20261108001221,"{""alter type public.tipo_consenso add value if not exists 'assistente_ai';""}",consenso_assistente_ai,marco.rossi.private@gmail.com,,
+20261108004532,"{""create or replace view public.giocatrici_pubbliche with (security_invoker = false) as
+select
+  g.id,
+  g.stagione_id,
+  g.squadra_id,
+  s.nostra_squadra,
+  g.livello_squadra,
+  g.categoria_giovanile_id,
+  g.nome,
+  g.cognome,
+  g.numero_maglia,
+  g.ruolo,
+  case when g.consenso_foto then g.foto_url end as foto_url,
+  case when g.consenso_foto then g.bio end as bio,
+  g.consenso_foto,
+  g.attiva,
+  g.ordine,
+  case when g.data_nascita <= (current_date - interval '18 years')::date then g.data_nascita end as data_nascita,
+  coalesce(g.anno_nascita, extract(year from g.data_nascita)::smallint) as anno_nascita,
+  g.altezza_cm,
+  g.punti,
+  g.ace,
+  g.muri,
+  g.capitana
+from public.giocatrici g
+join public.squadre s on s.id = g.squadra_id;
+
+revoke all on public.giocatrici_pubbliche from anon, authenticated;
+grant select on public.giocatrici_pubbliche to anon, authenticated;""}",nascita_minorenni_solo_anno,marco.rossi.private@gmail.com,,
+20261111225320,"{""create or replace function public.partite_lette_agente(giorni integer default 3)
+returns table (partita_id uuid, ultimo_aggiornamento timestamptz)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select l.partita_id, max(l.creato_il) as ultimo_aggiornamento
+  from public.log_agente l
+  where l.partita_id is not null
+    and l.evento in ('aggiornamento', 'correzione')
+    and l.creato_il >= now() - make_interval(days => least(greatest(giorni, 1), 14))
+  group by l.partita_id
+$$;
+
+comment on function public.partite_lette_agente(integer) is 'Partite con aggiornamenti dell''agente livescore negli ultimi N giorni (max 14): solo id e ora, per la home.';
+
+revoke all on function public.partite_lette_agente(integer) from public;
+grant execute on function public.partite_lette_agente(integer) to anon, authenticated;""}",partite_lette_agente,marco.rossi.private@gmail.com,,
+20261111230522,"{""create or replace function public.tabellone_testo(t jsonb)
+returns text
+language sql
+immutable
+set search_path = public
+as $$
+  select case
+    when t->>'stato' = 'conclusa' then
+      format('%s %s-%s %s · finale (%s)', t->>'casa', t->>'set_casa', t->>'set_ospite', t->>'ospite',
+             (select string_agg(format('%s-%s', x->>'casa', x->>'ospite'), ' ' order by (x->>'set')::int)
+                from jsonb_array_elements(coalesce(t->'parziali', '[]')) x))
+    when jsonb_array_length(coalesce(t->'parziali', '[]')) = 0 then
+      format('%s - %s · in corso', t->>'casa', t->>'ospite')
+    else (
+      select format('%s %s-%s %s · %s° set · set %s-%s', t->>'casa', u->>'casa', u->>'ospite', t->>'ospite',
+                    u->>'set', t->>'set_casa', t->>'set_ospite')
+        from jsonb_array_elements(t->'parziali') u
+       order by (u->>'set')::int desc limit 1)
+  end
+$$;
+
+create or replace function public.punteggi_agente(p_ore integer default 6)
+returns table (
+  numero_gara integer,
+  partita_id uuid,
+  casa text,
+  ospite text,
+  nostra boolean,
+  stato text,
+  set_casa integer,
+  set_ospite integer,
+  parziali jsonb,
+  testo text,
+  aggiornato_il timestamptz
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select * from (
+    select distinct on (l.numero_gara)
+      l.numero_gara                                              as g_numero,
+      l.partita_id                                               as g_partita,
+      l.dettagli->'tabellone'->>'casa'                           as g_casa,
+      l.dettagli->'tabellone'->>'ospite'                         as g_ospite,
+      coalesce((l.dettagli->'tabellone'->>'nostra')::boolean, false) as g_nostra,
+      l.dettagli->'tabellone'->>'stato'                          as g_stato,
+      coalesce((l.dettagli->'tabellone'->>'set_casa')::int, 0)   as g_set_casa,
+      coalesce((l.dettagli->'tabellone'->>'set_ospite')::int, 0) as g_set_ospite,
+      coalesce(l.dettagli->'tabellone'->'parziali', '[]'::jsonb) as g_parziali,
+      public.tabellone_testo(l.dettagli->'tabellone')            as g_testo,
+      l.creato_il                                                as g_quando
+    from public.log_agente l
+    where l.evento in ('aggiornamento', 'correzione')
+      and l.dettagli ? 'tabellone'
+      and l.numero_gara is not null
+      and l.creato_il > now() - make_interval(hours => least(greatest(coalesce(p_ore, 6), 1), 48))
+    order by l.numero_gara, l.creato_il desc, l.id desc
+  ) t
+  order by t.g_nostra desc, (t.g_stato = 'conclusa'), t.g_quando desc
+$$;
+
+revoke all on function public.punteggi_agente(integer) from public;
+grant execute on function public.punteggi_agente(integer) to anon, authenticated;
+
+create index if not exists log_agente_punteggi_idx on public.log_agente (numero_gara, creato_il desc)
+  where evento in ('aggiornamento', 'correzione');
+
+do $$
+declare
+  r record;
+  stato_set jsonb := '{}';
+  g text; s jsonb; pz jsonb; tab jsonb; sc int; so int; casa_n text; osp_n text; in_casa boolean;
+begin
+  for r in
+    select l.id, l.numero_gara, l.dettagli, p.nostra_partita, p.casa_trasferta, p.avversario,
+           sq_c.nome as nome_casa, sq_o.nome as nome_ospite
+      from public.log_agente l
+      join public.partite p on p.id = l.partita_id
+      left join public.squadre sq_c on sq_c.id = p.squadra_casa_id
+      left join public.squadre sq_o on sq_o.id = p.squadra_ospite_id
+     where l.evento in ('aggiornamento', 'correzione')
+       and l.dettagli is not null
+       and not (l.dettagli ? 'tabellone')
+     order by l.id
+  loop
+    g := r.numero_gara::text;
+    in_casa := r.casa_trasferta::text = 'casa';
+    casa_n := coalesce(r.nome_casa, case when r.nostra_partita and in_casa then 'Smapiù Arena Volley Team' else r.avversario end, 'Casa');
+    osp_n  := coalesce(r.nome_ospite, case when r.nostra_partita and not in_casa then 'Smapiù Arena Volley Team' else r.avversario end, 'Ospite');
+
+    if r.nostra_partita then
+      if not (r.dettagli ? 'set') or jsonb_typeof(r.dettagli->'set') <> 'array' then
+        continue;
+      end if;
+      s := coalesce(stato_set->g, '{}');
+      for pz in select * from jsonb_array_elements(r.dettagli->'set') loop
+        s := s || jsonb_build_object(pz->>'numero_set', jsonb_build_object(
+               'casa',   case when in_casa then pz->'punti_nostri' else pz->'punti_avversario' end,
+               'ospite', case when in_casa then pz->'punti_avversario' else pz->'punti_nostri' end,
+               'fatto',  coalesce(pz->'completato', 'false')));
+      end loop;
+      stato_set := stato_set || jsonb_build_object(g, s);
+      select coalesce(jsonb_agg(jsonb_build_object('set', k::int, 'casa', v->'casa', 'ospite', v->'ospite') order by k::int), '[]'),
+             count(*) filter (where (v->>'fatto')::boolean and (v->>'casa')::int > (v->>'ospite')::int),
+             count(*) filter (where (v->>'fatto')::boolean and (v->>'ospite')::int > (v->>'casa')::int)
+        into pz, sc, so
+        from jsonb_each(s) as e(k, v);
+      tab := jsonb_build_object('numero_gara', r.numero_gara, 'casa', casa_n, 'ospite', osp_n, 'nostra', true,
+               'stato', case when greatest(sc, so) = 3 then 'conclusa' else 'live' end,
+               'set_casa', sc, 'set_ospite', so, 'parziali', pz);
+    else
+      tab := jsonb_build_object('numero_gara', r.numero_gara, 'casa', casa_n, 'ospite', osp_n, 'nostra', false,
+               'stato', coalesce(r.dettagli->>'stato', 'live'),
+               'set_casa', coalesce((r.dettagli->'set'->>0)::int, 0),
+               'set_ospite', coalesce((r.dettagli->'set'->>1)::int, 0),
+               'parziali', coalesce(r.dettagli->'parziali', '[]'));
+    end if;
+
+    update public.log_agente
+       set dettagli = dettagli || jsonb_build_object('tabellone', tab, 'messaggio_originale', messaggio),
+           messaggio = format('%s [gara %s%s]', public.tabellone_testo(tab), r.numero_gara,
+                              case when r.nostra_partita then ', nostra in ' || coalesce(r.casa_trasferta::text, '?') else '' end)
+     where id = r.id;
+  end loop;
+end $$;""}",punteggi_agente,marco.rossi.private@gmail.com,,
+20261111232440,"{""create or replace function public.tabellone_testo(t jsonb)
+returns text
+language sql
+immutable
+set search_path = public
+as $$
+  select case
+    when t->>'stato' = 'conclusa' then
+      format('%s %s-%s %s · finale (%s)', t->>'casa', t->>'set_casa', t->>'set_ospite', t->>'ospite',
+             (select string_agg(format('%s-%s', x->>'casa', x->>'ospite'), ' ' order by (x->>'set')::int)
+                from jsonb_array_elements(coalesce(t->'parziali', '[]')) x))
+    when jsonb_array_length(coalesce(t->'parziali', '[]')) = 0 then
+      format('%s - %s · in corso', t->>'casa', t->>'ospite')
+    else (
+      select format('%s %s-%s %s · %s° set (%s-%s)', t->>'casa', u->>'casa', u->>'ospite', t->>'ospite',
+                    u->>'set', t->>'set_casa', t->>'set_ospite')
+        from jsonb_array_elements(t->'parziali') u
+       order by (u->>'set')::int desc limit 1)
+  end
+$$;
+
+update public.log_agente
+   set messaggio = public.tabellone_testo(dettagli->'tabellone')
+ where evento in ('aggiornamento', 'correzione')
+   and dettagli ? 'tabellone';""}",punteggi_agente_formato,marco.rossi.private@gmail.com,,
+20261111233623,"{""drop function if exists public.punteggi_agente(integer);
+
+create or replace function public.punteggi_agente(p_minuti integer default 5)
+returns table (
+  numero_gara integer,
+  partita_id uuid,
+  casa text,
+  ospite text,
+  nostra boolean,
+  stato text,
+  set_casa integer,
+  set_ospite integer,
+  parziali jsonb,
+  testo text,
+  aggiornato_il timestamptz
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select * from (
+    select distinct on (l.numero_gara)
+      l.numero_gara                                              as g_numero,
+      l.partita_id                                               as g_partita,
+      l.dettagli->'tabellone'->>'casa'                           as g_casa,
+      l.dettagli->'tabellone'->>'ospite'                         as g_ospite,
+      coalesce((l.dettagli->'tabellone'->>'nostra')::boolean, false) as g_nostra,
+      l.dettagli->'tabellone'->>'stato'                          as g_stato,
+      coalesce((l.dettagli->'tabellone'->>'set_casa')::int, 0)   as g_set_casa,
+      coalesce((l.dettagli->'tabellone'->>'set_ospite')::int, 0) as g_set_ospite,
+      coalesce(l.dettagli->'tabellone'->'parziali', '[]'::jsonb) as g_parziali,
+      public.tabellone_testo(l.dettagli->'tabellone')            as g_testo,
+      l.creato_il                                                as g_quando
+    from public.log_agente l
+    where l.evento in ('aggiornamento', 'correzione')
+      and l.dettagli ? 'tabellone'
+      and l.numero_gara is not null
+      and l.creato_il > now() - make_interval(mins => least(greatest(coalesce(p_minuti, 5), 1), 720))
+    order by l.numero_gara, l.creato_il desc, l.id desc
+  ) t
+  order by t.g_nostra desc, (t.g_stato = 'conclusa'), t.g_quando desc
+$$;
+
+revoke all on function public.punteggi_agente(integer) from public;
+grant execute on function public.punteggi_agente(integer) to anon, authenticated;""}",punteggi_agente_minuti,marco.rossi.private@gmail.com,,
+20261111234451,"{""alter table public.eventi_live add column if not exists fonte text;
+comment on column public.eventi_live.fonte is 'agente = punto scritto dall''agente livescore; null = inserito dall''app';
+
+do $$
+declare
+  r record;
+  prev jsonb := '{}';
+  prev_t jsonb := '{}';
+  x jsonb; k text; n0 int; l0 int; n1 int; l1 int; dn int; dl int; fn int; fl int; tot int; i int;
+  t0 timestamptz; noi_nome text; loro_nome text; in_casa boolean; chi text;
+begin
+  for r in
+    select l.partita_id, l.creato_il, l.dettagli->'tabellone' as tab, p.casa_trasferta::text as ct
+      from public.log_agente l
+      join public.partite p on p.id = l.partita_id
+     where l.evento in ('aggiornamento', 'correzione')
+       and l.agente <> 'replay'
+       and (l.dettagli->'tabellone'->>'nostra')::boolean
+       and not exists (select 1 from public.eventi_live e where e.partita_id = l.partita_id and e.fonte = 'agente')
+     order by l.creato_il, l.id
+  loop
+    k := r.partita_id::text;
+    in_casa := r.ct = 'casa';
+    noi_nome  := case when in_casa then r.tab->>'casa' else r.tab->>'ospite' end;
+    loro_nome := case when in_casa then r.tab->>'ospite' else r.tab->>'casa' end;
+    t0 := coalesce((prev_t->>k)::timestamptz, r.creato_il - interval '30 seconds');
+
+    for x in select * from jsonb_array_elements(coalesce(r.tab->'parziali', '[]')) loop
+      n1 := case when in_casa then (x->>'casa')::int else (x->>'ospite')::int end;
+      l1 := case when in_casa then (x->>'ospite')::int else (x->>'casa')::int end;
+      n0 := coalesce((prev->k->(x->>'set')->>0)::int, 0);
+      l0 := coalesce((prev->k->(x->>'set')->>1)::int, 0);
+      dn := n1 - n0; dl := l1 - l0;
+      if dn >= 0 and dl >= 0 and dn + dl > 0 then
+        tot := dn + dl; fn := 0; fl := 0; i := 0;
+        while fn < dn or fl < dl loop
+          i := i + 1;
+          if fl >= dl or (fn < dn and fn * dl <= fl * dn) then
+            fn := fn + 1; chi := 'nostra';
+          else
+            fl := fl + 1; chi := 'avversaria';
+          end if;
+          insert into public.eventi_live (partita_id, numero_set, punteggio_nostro, punteggio_avversario,
+                                          descrizione, squadra, fonte, creato_il)
+          values (r.partita_id, (x->>'set')::int, n0 + fn, l0 + fl,
+                  format('Punto %s (%s-%s)', case when chi = 'nostra' then noi_nome else loro_nome end, n0 + fn, l0 + fl),
+                  chi, 'agente', t0 + (r.creato_il - t0) * i / tot);
+        end loop;
+      end if;
+      prev := jsonb_set(prev, array[k], coalesce(prev->k, '{}') || jsonb_build_object(x->>'set', jsonb_build_array(n1, l1)));
+    end loop;
+    prev_t := prev_t || jsonb_build_object(k, r.creato_il);
+  end loop;
+end $$;""}",eventi_live_da_agente,marco.rossi.private@gmail.com,,
+20261117222704,"{""do $$
+begin
+  if exists (select 1 from information_schema.columns
+             where table_schema = 'public' and table_name = 'media' and column_name = 'etichetta_durata') then
+    alter table public.media rename column etichetta_durata to etichetta;
+  end if;
+end $$;""}",media_etichetta,marco.rossi.private@gmail.com,,
+20261120000100,,giocatrici_tabella_unica,,,
