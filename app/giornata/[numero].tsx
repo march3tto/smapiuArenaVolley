@@ -55,17 +55,21 @@ export default function Giornata() {
   const index = days ? Math.max(0, days.indexOf(current)) : 0;
   // initialScrollIndex sulle liste orizzontali a pagine non è affidabile nell'app nativa (nuova architettura): la lista
   // può partire dalla 1ª giornata e il primo evento di scroll (offset 0) cambierebbe la giornata scelta. Si posiziona
-  // a mano appena il contenuto è misurato e fino ad allora gli eventi di scroll non cambiano la giornata corrente.
+  // a mano a ogni misura del contenuto finché la lista non è davvero arrivata lì: sul web il primo contenuto misurato
+  // può essere più corto (il browser riduce lo scroll, es. alla 2ª giornata), quindi gli eventi di scroll cambiano la
+  // giornata corrente solo dopo che uno di essi ha confermato la posizione scelta.
   const positioned = useRef(false);
+  const target = days ? Math.max(0, days.indexOf(start)) : 0;
   const position = () => {
     if (positioned.current || !days) return;
-    const i = Math.max(0, days.indexOf(start));
-    list.current?.scrollToOffset({ offset: i * width, animated: false });
-    positioned.current = true;
+    list.current?.scrollToOffset({ offset: target * width, animated: false });
   };
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    if (!positioned.current) return;
     const i = Math.round(e.nativeEvent.contentOffset.x / width);
+    if (!positioned.current) {
+      if (i !== target) return;
+      positioned.current = true;
+    }
     if (days && days[i] != null && days[i] !== current) setCurrent(days[i]);
   };
 
