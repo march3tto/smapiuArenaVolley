@@ -1076,7 +1076,8 @@ export interface AgentScore {
   home: string;
   away: string;
   ours: boolean;
-  status: 'live' | 'conclusa' | string;
+  /** programmata: gara della giornata non ancora iniziata (testo "Casa - Ospite · inizia alle 18:00") */
+  status: 'live' | 'conclusa' | 'programmata' | string;
   setsHome: number;
   setsAway: number;
   partials: { set: number; home: number; away: number }[];
@@ -1090,7 +1091,8 @@ export interface AgentScore {
 
 /**
  * Pubblica (funzione security definer bordo_campo): i punteggi di tutte le gare della giornata in corso,
- * finché l'agente la sta seguendo (vuota fuori dalla finestra). La nostra per prima, poi le live, poi le finali.
+ * finché l'agente la sta seguendo (vuota fuori dalla finestra). La nostra per prima, poi le live, poi quelle in programma
+ * (con l'orario d'inizio, finché l'agente non legge il primo punteggio: migrazione 20261121164952), poi le finali.
  * Senza la migrazione 20261115000200 si ripiega sulle gare aggiornate negli ultimi 5 minuti.
  */
 export async function fetchAgentScores(): Promise<AgentScore[]> {
