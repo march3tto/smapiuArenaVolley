@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import * as Haptics from 'expo-haptics';
 import { AppState, Platform } from 'react-native';
-import { LIVE_EVENTS_MAX, demoRevision, fetchLive, fetchLiveSetsKey, newId, pushLiveNote, resubscribable, setFirstServe, subscribeDemo, subscribeLive, type DemoChannel, withAction } from '@/lib/api';
+import { fetchLivescoreFuoriServizio, pushLivePoint, LIVE_EVENTS_MAX, demoRevision, fetchLive, fetchLiveSetsKey, newId, pushLiveNote, resubscribable, setFirstServe, subscribeDemo, subscribeLive, type DemoChannel, withAction } from '@/lib/api';
 import { hasSupabase } from '@/lib/supabase';
 import { demoLive as demoInitial } from '@/data/mock';
 import { firstServer, pointWinners, rotationState } from '@/lib/rotations';
@@ -37,6 +37,8 @@ interface LiveCtx extends LiveState {
   canScore: boolean;
   /** Diretta vera (casa e trasferta): il punteggio lo scrive l'agente a3live, il + aggiunge solo cronaca senza punti */
   autoScore: boolean;
+  /** Livescore FIPAV fuori servizio (nessun punteggio dall'agente da oltre 15'): l'admin inserisce il punteggio a mano */
+  feedDown: boolean;
   /** La partita demo si può far ripartire da questo dispositivo */
   canResetDemo: boolean;
   /** Diretta vera con admin: la cronaca scritta qui viene salvata su Supabase */
@@ -67,6 +69,8 @@ const Ctx = createContext<LiveCtx | null>(null);
 
 /** Controllo di riserva del punteggio se il Realtime perde un aggiornamento (canale caduto senza accorgersene) */
 const POLL_MS = 10000;
+/** Controllo del livescore FIPAV fuori servizio durante la diretta vera */
+const FEED_CHECK_MS = 60_000;
 /** Le righe che l'agente scrive insieme (set e punti) arrivano come più eventi Realtime: una lettura sola */
 const REALTIME_DEBOUNCE_MS = 250;
 
@@ -218,9 +222,12 @@ export function LiveProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(t);
   }, [timeout]);
   const isDemo = !!liveMatch?.demoLive;
-  // partite vere: punteggio dall'agente a3live (set_partita), in casa come in trasferta
-  const autoScore = !!liveMatch && !isDemo;
-  const scoringLive = autoScore && user?.role === 'admin';
+  const realLive = !!liveMatch && !isDemo;
+  // livescore FIPAV fuori servizio: controllato dal database ogni FEED_CHECK_MS durante la diretta vera
+  const [feedDown, setFeedDown] = useState(false);
+  // partite vere: punteggio dall'agente a3live (set_partita), in casa come in trasferta; a mano solo col feed fuori servizio
+  const autoScore = realLive && !feedDown;
+  const scoringLive = realLive && user?.role === 'admin';
   // con Supabase la demo è condivisa tra i dispositivi e la segna solo l'admin; senza, ognuno la prova per conto suo
   const scoringDemo = isDemo && (!hasSupabase || user?.role === 'admin');
   // demo condivisa: versione dello stato e canale broadcast
@@ -235,6 +242,8 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   const saveQueue = useRef<Promise<void>>(Promise.resolve());
   const pending = useRef(0);
   const failed = useRef(false);
+  // una rilettura arrivata con salvataggi in coda è stata rimandata: si rifà quando la coda si svuota
+  const deferred = useRef(false);
   const reload = useRef<() => Promise<void>>(async () => {});
   // riapre il canale Realtime della diretta se è caduto (es. iOS in background)
   const ensureRealtime = useRef<() => void>(() => {});
@@ -286,6 +295,12 @@ export function LiveProvider({ children }: { children: ReactNode }) {
     const loadOnce = async () => {
       const snap = await fetchLive(liveId);
       if (!snap || !active) return;
+      // salvataggi ancora in coda (punti a mano, cronaca): il database è indietro rispetto allo schermo e la
+      // lettura riporterebbe indietro il punteggio, facendo ripartire i tocchi successivi da un punteggio vecchio
+      if (pending.current > 0) {
+        deferred.current = true;
+        return;
+      }
       lastKey = snap.setsKey;
       const done = snap.sets.filter((_, i) => snap.completed[i]);
       const current = snap.sets.find((_, i) => !snap.completed[i]) ?? { our: 0, opp: 0 };
@@ -393,10 +408,37 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   }, [liveId, isDemo]);
 
   // prima il canale (così non si perde niente di quello che arriva durante la lettura), poi la lettura dal database
+  const checkFeed = useRef<() => Promise<void>>(async () => {});
   const refresh = useCallback(async () => {
     ensureRealtime.current();
-    await reload.current();
+    await Promise.all([reload.current(), checkFeed.current()]);
   }, []);
+
+  // Livescore FIPAV fuori servizio? Solo per la diretta vera non ancora finita, con l'app in primo piano.
+  // Quando l'agente torna a scrivere punteggi il controllo torna falso e il punteggio ufficiale riprende il suo posto.
+  const liveFinished = state.finished;
+  useEffect(() => {
+    if (!realLive || !liveMatch || liveFinished) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- nessuna diretta vera da controllare
+      setFeedDown(false);
+      checkFeed.current = async () => {};
+      return;
+    }
+    const id = liveMatch.id;
+    let active = true;
+    const check = async () => {
+      const down = await fetchLivescoreFuoriServizio(id);
+      if (active) setFeedDown(down);
+    };
+    checkFeed.current = check;
+    check();
+    const t = setInterval(() => { if (AppState.currentState === 'active') check(); }, FEED_CHECK_MS);
+    return () => {
+      active = false;
+      clearInterval(t);
+      checkFeed.current = async () => {};
+    };
+  }, [realLive, liveMatch?.id, liveFinished]); // eslint-disable-line react-hooks/exhaustive-deps -- conta solo l'id della partita
 
   /** Demo condivisa: manda il nuovo stato agli altri dispositivi */
   const shareDemo = useCallback((next: LiveState) => {
@@ -406,17 +448,49 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addPoint = useCallback((side: 'us' | 'opp', detail?: PointDetail) => {
-    // partite vere: i punti li assegna solo l'agente
-    if (autoScore || Date.now() < timeoutUntil.current) return;
+    // partite vere: i punti li assegna l'agente; a mano solo l'admin col livescore fuori servizio
+    if (autoScore || (realLive && !scoringLive) || Date.now() < timeoutUntil.current) return;
     const prev = stateRef.current;
-    const next = scorePoint(prev, side, detail, teamNames(liveMatch));
-    if (next === prev) return;
+    const scored = scorePoint(prev, side, detail, teamNames(liveMatch));
+    if (scored === prev) return;
+    // righe nuove in testa alla lista; nella diretta vera hanno un id definitivo (uuid) perché si salvano
+    const fresh = prev.events.length ? scored.events.slice(0, scored.events.indexOf(prev.events[0])) : scored.events;
+    const added = scoringLive ? fresh.map((e) => ({ ...e, id: newId() })) : fresh;
+    const next = scoringLive ? { ...scored, events: [...added, ...scored.events.slice(fresh.length)] } : scored;
     stateRef.current = next;
     setState(next);
     setLastPoint({ side, key: Date.now() });
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     if (isDemo) shareDemo(next);
-  }, [isDemo, autoScore, liveMatch, shareDemo]);
+    if (!scoringLive || !liveMatch) return;
+
+    // se il set si è chiuso si salva il suo punteggio finale (completato); il set nuovo nasce col primo punto
+    const closed = next.history.length > prev.history.length;
+    const point = {
+      set: prev.set,
+      score: closed ? next.history[next.history.length - 1] : { our: next.our, opp: next.opp },
+      completed: closed,
+      events: added,
+    };
+    setSaveError(null);
+    pending.current += 1;
+    saveQueue.current = saveQueue.current
+      .then(() => pushLivePoint(liveMatch.id, point))
+      .catch((err: unknown) => {
+        console.warn('Punto non salvato', err);
+        failed.current = true;
+        setSaveError('Punto non salvato: controlla la connessione e riprova.');
+      })
+      .finally(() => {
+        pending.current -= 1;
+        // in caso di errore (o con riletture rimandate), finiti i salvataggi in coda, si torna allo stato del database
+        if (pending.current === 0 && (failed.current || deferred.current)) {
+          failed.current = false;
+          deferred.current = false;
+          reload.current();
+        }
+      });
+  }, [isDemo, autoScore, realLive, scoringLive, liveMatch, shareDemo]);
 
   const addNote = useCallback((text: string, side?: 'us' | 'opp') => {
     const s = stateRef.current;
@@ -439,8 +513,9 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       })
       .finally(() => {
         pending.current -= 1;
-        if (pending.current === 0 && failed.current) {
+        if (pending.current === 0 && (failed.current || deferred.current)) {
           failed.current = false;
+          deferred.current = false;
           reload.current();
         }
       });
@@ -481,8 +556,9 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       })
       .finally(() => {
         pending.current -= 1;
-        if (pending.current === 0 && failed.current) {
+        if (pending.current === 0 && (failed.current || deferred.current)) {
           failed.current = false;
+          deferred.current = false;
           reload.current();
         }
       });
@@ -502,6 +578,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       standing: state.finished ? standingPoints(won) : null,
       canScore: (scoringDemo || scoringLive) && !state.finished,
       autoScore,
+      feedDown,
       canResetDemo: scoringDemo,
       scoringLive,
       saveError,
@@ -516,7 +593,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       chooseServe,
       refresh,
     };
-  }, [state, liveMatch, lastPoint, scoringDemo, autoScore, scoringLive, saveError, addPoint, addNote, timeout, callTimeout, resetDemo, chooseServe, refresh]);
+  }, [state, liveMatch, lastPoint, scoringDemo, autoScore, feedDown, scoringLive, saveError, addPoint, addNote, timeout, callTimeout, resetDemo, chooseServe, refresh]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

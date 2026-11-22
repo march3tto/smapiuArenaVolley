@@ -1956,6 +1956,7 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
       libera_dispositivo_push: { Args: { p_token: string }; Returns: undefined }
+      livescore_fuori_servizio: { Args: { p_partita: string }; Returns: boolean }
       notifica_game_day: { Args: never; Returns: number }
       notifica_prepartite: { Args: never; Returns: number }
       partite_lette_agente: {

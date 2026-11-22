@@ -3,7 +3,7 @@ import { Animated, AppState, ScrollView, View, useWindowDimensions, type HostIns
 import { RefreshControl } from '@/components/RefreshControl';
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Plus, RotateCcw, Timer, Trophy, Volleyball } from 'lucide-react-native';
+import { AlertTriangle, Plus, RotateCcw, Timer, Trophy, Volleyball } from 'lucide-react-native';
 import { AttaccoPanel } from '@/components/AttaccoPanel';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { Button } from '@/components/Button';
@@ -179,6 +179,16 @@ export default function Live() {
               onPlus={live.canScore ? (anchor) => setPicker({ side: R.side, name: R.name, anchor }) : undefined} locked={!!live.timeout} />
           </View>
 
+          {/* livescore FIPAV fermo: lo vedono tutti; l'admin torna a segnare a mano */}
+          {live.feedDown && !live.finished ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm, padding: space.sm, borderRadius: 12, backgroundColor: c.fill }}>
+              <AlertTriangle size={14} color={c.live} />
+              <Txt w={700} size={12.5} color="live" center style={{ flexShrink: 1 }}>
+                {live.scoringLive ? 'Livescore FIPAV fuori servizio: inserisci tu il punteggio con il +' : 'Livescore FIPAV fuori servizio: punteggio aggiornato dallo staff'}
+              </Txt>
+            </View>
+          ) : null}
+
           {live.timeout ? <TimeoutBanner team={live.timeout.side === L.side ? L.name : R.name} until={live.timeout.until} /> : null}
 
           {live.standing && !hidden ? (
@@ -227,7 +237,9 @@ export default function Live() {
               <Txt size={12} color="muted" center>
                 {live.autoScore
                   ? 'Punteggio automatico dal livescore FIPAV. Admin: tocca + per raccontare un\'azione in cronaca, senza assegnare punti.'
-                  : 'Partita dimostrativa: tocca + per assegnare il punto e scegliere l\'azione.'}
+                  : live.feedDown
+                    ? 'Punteggio a mano: tocca + per assegnare il punto. Quando il livescore FIPAV riparte, il punteggio torna automatico (vale quello ufficiale).'
+                    : 'Partita dimostrativa: tocca + per assegnare il punto e scegliere l\'azione.'}
               </Txt>
             ) : null}
             {live.saveError ? <Txt size={12} color="live" center>{live.saveError}</Txt> : null}

@@ -737,6 +737,55 @@ export function newId(): string {
   });
 }
 
+/**
+ * Livescore FIPAV fuori servizio per la nostra partita (migrazione 20261121190000): partita live, iniziata da oltre 15'
+ * e nessun punteggio dall'agente negli ultimi 15'. In quel caso l'admin torna a inserire il punteggio a mano.
+ * Funzione assente o errore: false (resta il punteggio automatico).
+ */
+export async function fetchLivescoreFuoriServizio(matchId: string): Promise<boolean> {
+  if (!supabase) return false;
+  const { data, error } = await supabase.rpc('livescore_fuori_servizio', { p_partita: matchId });
+  if (error) {
+    if (error.code !== 'PGRST202') console.warn('Stato livescore non letto', error.message);
+    return false;
+  }
+  return data === true;
+}
+
+/** Azione del punto (giocatrice, fondamentale, zona) per le statistiche: se non si salva resta la riga di cronaca */
+async function pushAction(matchId: string, e: LiveEvent): Promise<void> {
+  if (!supabase || !e.detail) return;
+  const d = e.detail;
+  const { error } = await supabase.from(T.azioniPunto).insert({
+    partita_id: matchId, evento_id: e.id, numero_set: e.set, squadra: e.side === 'opp' ? 'avversaria' : 'nostra',
+    azione: d.action, fase: d.phase, zona: d.zone ?? null,
+    formazione_id: d.player?.lineupId ?? null, giocatrice_id: d.player?.playerId ?? null, nome_giocatrice: d.player?.name ?? null,
+    punteggio_nostro: e.our, punteggio_avversario: e.opp, frase_ai: d.aiText === true,
+  });
+  if (error) console.warn('Azione del punto non salvata', error.message);
+}
+
+/**
+ * Admin, solo con il livescore FIPAV fuori servizio: punto inserito a mano.
+ * Righe di cronaca (dalla più vecchia) e poi il punteggio del set in set_partita;
+ * i set vinti e la fine partita li calcola il trigger aggiorna_risultato_partita.
+ */
+export async function pushLivePoint(
+  matchId: string,
+  p: { set: number; score: { our: number; opp: number }; completed: boolean; events: LiveEvent[] },
+): Promise<void> {
+  if (!supabase) return;
+  for (const e of [...p.events].reverse()) {
+    await pushLiveNote(matchId, e);
+    if (e.detail) await pushAction(matchId, e);
+  }
+  const { error } = await supabase.from(T.setPartita).upsert(
+    { partita_id: matchId, numero_set: p.set, punti_nostri: p.score.our, punti_avversario: p.score.opp, completato: p.completed },
+    { onConflict: 'partita_id,numero_set' },
+  );
+  if (error) throw error;
+}
+
 /** Admin: riga di cronaca senza punto (azione dal +, dettata a voce, timeout, cambio), col punteggio del momento */
 export async function pushLiveNote(matchId: string, e: LiveEvent): Promise<void> {
   if (!supabase) return;
