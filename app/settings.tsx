@@ -234,8 +234,8 @@ export default function Settings() {
               </Block>
             )}
 
-            {/* solo per gli utenti registrati */}
-            {user ? (
+            {/* per ora solo per gli amministratori: l'opzione non è ancora pronta per il pubblico */}
+            {user?.role === 'admin' ? (
               <Block icon={<Megaphone size={16} color={c.accent} />} title="Pubblicità">
                 <Item title="Elimina pubblicità" sub="Non mostrare più gli annunci al centro dello schermo." first
                   right={toggleSwitch(noAds, setNoAds)} />

@@ -128,6 +128,10 @@ già, quindi attivarli non richiede di cambiarne la versione.
 - [ ] **Assistente AI** (Edge Function `assistente`): Groq riceve anche le domande degli utenti. Informativa aggiornata
   (punti 6, 7, 8, versione `2026-10-v2`): aggiungere il trattamento al registro.
 - [ ] **Expo**: verificare il DPA per le notifiche push.
+- [ ] Account **mai completati** (creati senza mai accettare l'informativa, es. accesso Apple chiuso sull'onboarding):
+  pronta la migration `20261124000000` (job `pulizia-account-senza-consensi`, eliminazione dopo 7 giorni) e la riga
+  nell'informativa (punto 8), **non applicata**. Prima di applicarla: SMTP attivo (altrimenti elimina anche le
+  registrazioni email mai confermate) e informativa pubblicata.
 - [ ] Decidere una regola per gli **account inattivi** (oggi restano finché l'utente non li elimina, come dichiarato
   nell'informativa) e la pulizia dei **token push** non più usati.
 - [ ] Valutare se conservare la **prova dei consensi** per un periodo dopo la cancellazione dell'account (oggi viene

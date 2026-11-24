@@ -19,9 +19,20 @@
     "production": {
       "autoIncrement": true,
       "environment": "production"
+    },
+    "demo": {
+      "extends": "production",
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_ALLOW_CAPTURE": "true"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascAppId": "6836070860"
+      }
+    }
   }
 }

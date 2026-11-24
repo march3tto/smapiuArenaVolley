@@ -187,12 +187,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     let active = true;
     let retry: ReturnType<typeof setTimeout> | undefined;
     // con un errore (rete, sessione non ancora pronta) non si scende a "pubblico": si riprova, altrimenti un admin
-    // perderebbe le funzioni della diretta fino al riavvio dell'app
+    // perderebbe le funzioni della diretta fino al riavvio dell'app. Anche la riga mancante è quasi sempre la sessione
+    // non ancora pronta (al primo accesso Apple la lettura parte come anonimo e la RLS non restituisce nulla), perché
+    // il profilo lo crea un trigger alla registrazione: si riprova qualche volta prima di considerarlo "pubblico"
     const load = (attempt: number) => {
       supabase!.from('profili').select('ruolo, categoria_giovanile_id').eq('id', uid).maybeSingle().then(({ data, error }) => {
         if (!active) return;
-        if (error) {
-          console.warn('Profilo non caricato', error.message);
+        if (error || (!data && attempt < 4)) {
+          console.warn('Profilo non caricato', error?.message ?? 'riga non trovata');
           retry = setTimeout(() => load(attempt + 1), Math.min(30000, 2000 * 2 ** attempt));
           return;
         }
@@ -218,16 +220,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!supabase || !uid) return;
     let active = true;
-    loadConsents(uid, email)
-      .then((c) => {
-        if (active) setConsentState({ uid, consents: c, status: consensiValidi(c) ? 'ok' : 'mancanti' });
-      })
-      .catch((e) => {
-        console.warn('Consensi non verificabili', e);
-        if (active) setConsentState({ uid, consents: {}, status: 'errore' });
-      });
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    // con un errore (rete, o sessione non ancora pronta: al primo accesso Apple la lettura parte insieme al salvataggio
+    // del nome e può tornare 401) si riprova, altrimenti l'onboarding consensi non comparirebbe fino al riavvio
+    const load = (attempt: number) => {
+      loadConsents(uid, email)
+        .then((c) => {
+          if (active) setConsentState({ uid, consents: c, status: consensiValidi(c) ? 'ok' : 'mancanti' });
+        })
+        .catch((e) => {
+          if (!active) return;
+          console.warn('Consensi non verificabili', e);
+          setConsentState({ uid, consents: {}, status: 'errore' });
+          retry = setTimeout(() => load(attempt + 1), Math.min(30000, 1000 * 2 ** attempt));
+        });
+    };
+    load(0);
     return () => {
       active = false;
+      clearTimeout(retry);
     };
   }, [uid, email, loadConsents]);
 
