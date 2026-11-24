@@ -5,7 +5,7 @@ import { fetchLivescoreFuoriServizio, pushLivePoint, LIVE_EVENTS_MAX, demoRevisi
 import { hasSupabase } from '@/lib/supabase';
 import { demoLive as demoInitial } from '@/data/mock';
 import { firstServer, pointWinners, rotationState } from '@/lib/rotations';
-import { isSideSwitch, matchWinner, setWinner, setsWon, standingPoints } from '@/lib/volley';
+import { isSideSwitch, matchWinner, setWinner, setsWon } from '@/lib/volley';
 import { useApp } from './AppProvider';
 import { useData } from './DataProvider';
 import type { LiveEvent, Match, PlayerRole, PointAction, PointDetail, PointPhase, SetScore } from '@/types';
@@ -31,8 +31,6 @@ interface LiveCtx extends LiveState {
   oppSets: number;
   /** Ultimo punto: serve alle animazioni (+1) */
   lastPoint: { side: 'us' | 'opp'; key: number } | null;
-  /** Punti in classifica a partita finita */
-  standing: { our: number; opp: number } | null;
   /** Il + si usa nella partita demo (con Supabase solo l'admin) e da un admin nella diretta vera, finché non è finita */
   canScore: boolean;
   /** Diretta vera (casa e trasferta): il punteggio lo scrive l'agente a3live, il + aggiunge solo cronaca senza punti */
@@ -575,7 +573,6 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       ourSets: won.our,
       oppSets: won.opp,
       lastPoint,
-      standing: state.finished ? standingPoints(won) : null,
       canScore: (scoringDemo || scoringLive) && !state.finished,
       autoScore,
       feedDown,

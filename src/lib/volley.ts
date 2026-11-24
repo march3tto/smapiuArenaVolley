@@ -36,15 +36,6 @@ export function matchWinner(won: { our: number; opp: number }): 'us' | 'opp' | n
   return null;
 }
 
-/** Punti in classifica a fine partita (campionati italiani) */
-export function standingPoints(won: { our: number; opp: number }): { our: number; opp: number } | null {
-  const w = matchWinner(won);
-  if (!w) return null;
-  const tieBreak = Math.min(won.our, won.opp) === 2;
-  const [winner, loser] = tieBreak ? [2, 1] : [3, 0];
-  return w === 'us' ? { our: winner, opp: loser } : { our: loser, opp: winner };
-}
-
 /** Vero quando il punto appena fatto porta una squadra a 8 nel tie-break (cambio campo) */
 export function isSideSwitch(set: number, before: SetScore, after: SetScore): boolean {
   return set === TIE_BREAK_SET && Math.max(before.our, before.opp) < TIE_BREAK_SWITCH && Math.max(after.our, after.opp) === TIE_BREAK_SWITCH;

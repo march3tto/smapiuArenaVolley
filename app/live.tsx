@@ -141,7 +141,6 @@ export default function Live() {
   const serverOf = (side: 'us' | 'opp') => onCourt(side).find((p) => p.zone === 1) ?? null;
   // punti totali della partita (tutti i set), per le statistiche di squadra
   const totals = { us: rowsSets.reduce((n, s) => n + s.our, 0), opp: rowsSets.reduce((n, s) => n + s.opp, 0) };
-  const pts = (side: 'us' | 'opp') => (side === 'us' ? live.standing?.our : live.standing?.opp) ?? 0;
   // posizioni attuali in campo: solo nel riquadro del punto, nelle formazioni resta lo Starting Six
   const onCourt = (side: 'us' | 'opp'): LineupPlayer[] => (side === 'us' ? lineup.us : lineup.opp)
     .map((p) => (p.zone == null ? p : { ...p, zone: rotateZone(p.zone, live.rotation[side]) }));
@@ -191,13 +190,6 @@ export default function Live() {
 
           {live.timeout ? <TimeoutBanner team={live.timeout.side === L.side ? L.name : R.name} until={live.timeout.until} /> : null}
 
-          {live.standing && !hidden ? (
-            <View style={{ flexDirection: 'row', justifyContent: 'center', gap: space.sm, padding: space.md, borderRadius: 16, backgroundColor: c.fill }}>
-              <Txt size={13} color="muted">Punti in classifica</Txt>
-              <Txt w={800} size={13} tnum>{pts(L.side)} – {pts(R.side)}</Txt>
-            </View>
-          ) : null}
-  
           <View style={{ borderTopWidth: 1, borderTopColor: c.line, paddingTop: space.md }}>
             <View style={{ flexDirection: 'row' }}>
               <Txt size={12} color="muted" style={{ flex: 1 }}> </Txt>
