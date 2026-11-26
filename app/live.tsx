@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, AppState, ScrollView, View, useWindowDimensions, type HostInstance } from 'react-native';
+import { Animated, AppState, ScrollView, View, type HostInstance } from 'react-native';
 import { RefreshControl } from '@/components/RefreshControl';
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -60,7 +60,6 @@ export default function Live() {
     if (scheda === 'mvp') setPanel('mvp');
   }
   // quattro schede: a larghezza piena solo se le etichette ci stanno, altrimenti scorrono
-  const wide = useWindowDimensions().width >= 480;
   // riquadro del punto aperto dal pulsante + di una squadra
   const [picker, setPicker] = useState<{ side: 'us' | 'opp'; name: string; anchor: Anchor } | null>(null);
   // cronaca: azioni filtrate per set ('all' = tutti)
@@ -160,7 +159,7 @@ export default function Live() {
       <ScrollView style={{ flex: 1, backgroundColor: c.bg }} refreshControl={refreshControl} contentContainerStyle={{ padding: space.md, gap: space.md, paddingBottom: insets.bottom + space.xl, width: '100%', maxWidth: 900, alignSelf: 'center' }}>
         <Card style={{ gap: space.md, borderColor: 'rgba(255,213,3,0.5)', borderWidth: 1.5 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm }}>
-            {live.finished ? <Trophy size={14} color={c.accent} /> : <LiveDot />}
+            {live.finished ? <Trophy size={14} color={c.accent} fill={c.accent} /> : <LiveDot />}
             <Txt w={700} size={13} color={live.finished ? 'accent' : 'live'}>{live.finished ? 'Finale' : 'In diretta'}</Txt>
             <Txt size={13} color="muted" numberOfLines={1} style={{ flexShrink: 1 }}>· {m.venue}</Txt>
           </View>
@@ -209,8 +208,11 @@ export default function Live() {
                   return hidden ? (
                     <View key={i} style={{ width: 34, alignItems: 'center' }}><HiddenScore width={26} height={22} radius={6} /></View>
                   ) : (
-                    <Txt key={i} w={won || current ? 800 : 400} size={13} center tnum color={won ? 'accent' : 'text'}
-                      style={{ width: 34, backgroundColor: current ? c.fill : undefined, paddingVertical: space.xs, borderRadius: 6 }}>{mine}</Txt>
+                    // set vinto: numero su pastiglia oro piena, ben visibile anche in modalità chiara
+                    <View key={i} style={{ width: 34, alignItems: 'center' }}>
+                      <Txt w={won || current ? 800 : 400} size={13} center tnum color={won ? palette.onGold : 'text'}
+                        style={{ minWidth: 28, backgroundColor: won ? palette.gold : current ? c.fill : undefined, paddingVertical: space.xs, borderRadius: 6, overflow: 'hidden' }}>{mine}</Txt>
+                    </View>
                   );
                 })}
               </View>
@@ -249,7 +251,7 @@ export default function Live() {
         {/* schede sotto il punteggio: formazioni, cronaca (l'ultima azione è in alto), voto MVP e statistiche */}
         <Card style={{ gap: space.xs }}>
           <View style={{ marginBottom: space.sm }}>
-            <SegmentedControl stretch={wide} value={panel} onChange={setPanel}
+            <SegmentedControl stretch value={panel} onChange={setPanel}
               options={[{ value: 'formazioni', label: 'Formazioni' }, ...(SHOW_CRONACA ? [{ value: 'cronaca' as const, label: 'Cronaca' }] : []), { value: 'mvp', label: 'Vota MVP' }, { value: 'statistiche', label: 'Statistiche' }]} />
           </View>
           {panel === 'formazioni' ? (
@@ -290,11 +292,9 @@ export default function Live() {
             Anche nella demo, per provarlo: la partita demo ha una riga parcheggiata in partite (migrazione 20261114000400).
             "Nostra" nel tabellino è sempre Smapiù Arena, anche quando nella demo gioca un'altra squadra */}
         {hasSupabase ? (
-          <Card>
-            <AttaccoPanel matchId={m.id} names={{ us: US, opp: m.opponent }} canUpload={ai} reloadKey={reloadKey}
-              // proposta: il set appena chiuso; a partita finita il foglio finale
-              suggestedSet={live.finished ? null : Math.max(1, live.history.length)} />
-          </Card>
+          <AttaccoPanel matchId={m.id} names={{ us: US, opp: m.opponent }} canUpload={ai} reloadKey={reloadKey}
+            // proposta: il set appena chiuso; a partita finita il foglio finale
+            suggestedSet={live.finished ? null : Math.max(1, live.history.length)} />
         ) : null}
 
         {picker ? (

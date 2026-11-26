@@ -54,7 +54,7 @@ export function TestoChat({ testo, size = 15, color }: { testo: string; size?: n
       blocchi.push(
         <View key={i} style={{ flexDirection: 'row', gap: space.sm, paddingLeft: 2 }}>
           <Txt size={size} color={numero ? color : c.muted} tnum style={{ minWidth: numero ? 18 : 8 }}>{numero ? `${numero}.` : '•'}</Txt>
-          <Txt size={size} color={color} style={{ flex: 1, lineHeight: Math.round(size * 1.4) }} selectable>
+          <Txt size={size} color={color} style={{ flexShrink: 1, lineHeight: Math.round(size * 1.4) }} selectable>
             <Inline testo={riga.replace(ELENCO_RE, '')} size={size} color={color} />
           </Txt>
         </View>,
