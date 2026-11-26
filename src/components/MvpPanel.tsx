@@ -3,7 +3,6 @@ import { LayoutAnimation, Pressable, ScrollView, View, type StyleProp, type View
 import { useRouter } from 'expo-router';
 import { ChevronDown, Flame, Heart, Info, Lock, Trophy, Users } from 'lucide-react-native';
 import { Button } from './Button';
-import { Mesh } from './HiddenScore';
 import { ROLE_LABEL } from './LineupPanel';
 import { Pressy } from './Pressy';
 import { SearchField, matchesPlayer } from './SearchField';
@@ -12,15 +11,18 @@ import { matchPlayerStats, type PlayerStats } from './StatsPanel';
 import { TeamBadge } from './TeamBadge';
 import { useToast } from './Toast';
 import { Txt, type TxtProps } from './Txt';
-import { fetchMvpVotes, unvoteMvp, voteMvp } from '@/lib/api';
+import { fetchMvpVotes, resubscribable, subscribeMvpVotes, unvoteMvp, voteMvp } from '@/lib/api';
 import { hasSupabase } from '@/lib/supabase';
 import { useApp } from '@/store/AppProvider';
 import { palette, radius, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { ImgSrc, LineupPlayer, LiveEvent, Match } from '@/types';
 
-/** I voti degli altri utenti per la stessa partita si ricaricano mentre il pannello è aperto */
-const REFRESH_MS = 10000;
+/**
+ * I voti degli altri utenti arrivano in tempo reale (subscribeMvpVotes); in più, mentre il pannello è aperto, si rileggono
+ * ogni tanto: recupera i voti persi se il canale cade e riapre il canale (es. app tornata dal background)
+ */
+const REFRESH_MS = 30000;
 /** Finestra del voto: si apre all'inizio di questo set */
 const MVP_FROM_SET = 3;
 const CLOSED_MSG = 'Il voto MVP si apre all\'inizio del 3° set.';
@@ -83,9 +85,17 @@ export function MvpPanel({ match, awayMatch, teams, events, set, finished, onLea
     // eslint-disable-next-line react-hooks/set-state-in-effect -- caricamento dati da Supabase all'apertura (lo stato si aggiorna a fetch finita)
     load();
     if (local) return;
-    const t = setInterval(load, REFRESH_MS);
-    return () => clearInterval(t);
-  }, [load, local]);
+    // ogni variazione arriva con il nuovo totale della giocatrice: si aggiorna solo quel numero
+    const live = resubscribable(() => subscribeMvpVotes(match.id, (playerId, votes) => setCounts((s) => (s[playerId] === votes ? s : { ...s, [playerId]: votes }))));
+    const t = setInterval(() => {
+      live.ensure();
+      load();
+    }, REFRESH_MS);
+    return () => {
+      clearInterval(t);
+      live.close();
+    };
+  }, [load, local, match.id]);
 
   /** Tocco su una giocatrice: la vota (o sposta il voto su di lei); toccare di nuovo quella votata toglie il voto */
   const vote = async (playerId: string) => {
@@ -174,7 +184,7 @@ export function MvpPanel({ match, awayMatch, teams, events, set, finished, onLea
         <View style={{ gap: space.md, padding: space.md, borderRadius: radius.md, borderWidth: 1.5, borderColor: palette.gold, backgroundColor: c.card }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
             <View style={{ width: 40, height: 40, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,213,3,0.14)' }}>
-              <Lock size={18} color={palette.gold} strokeWidth={2.5} />
+              <Lock size={18} color={palette.gold} fill={palette.gold} strokeWidth={2.5} />
             </View>
             <Txt w={700} size={14} style={{ flex: 1 }}>Accedi per votare la tua MVP della partita</Txt>
           </View>
@@ -205,9 +215,9 @@ export function MvpPanel({ match, awayMatch, teams, events, set, finished, onLea
 
       {performers.length ? (
         <View style={{ gap: space.sm }}>
-          <SectionLabel icon={<Flame size={14} color={c.accent} />} label="Top performer" />
+          <SectionLabel icon={<Flame size={14} color={c.accent} fill={c.accent} />} label="Top performer" />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
-            {performers.map((r, i) => <PerformerCard key={r.p.id} r={r} rank={i + 1} {...rowProps(r)} />)}
+            {performers.map((r) => <PerformerCard key={r.p.id} r={r} {...rowProps(r)} />)}
           </ScrollView>
         </View>
       ) : null}
@@ -218,7 +228,7 @@ export function MvpPanel({ match, awayMatch, teams, events, set, finished, onLea
           accessibilityLabel={`Tutte le giocatrici. ${listOpen ? 'Chiudi' : 'Apri'} l'elenco`}
           style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, padding: space.md }}>
           <View style={{ flex: 1 }}>
-            <SectionLabel icon={<Users size={14} color={c.accent} />} label="Tutte le giocatrici" />
+            <SectionLabel icon={<Users size={14} color={c.accent} fill={c.accent} />} label="Tutte le giocatrici" />
           </View>
           <ChevronDown size={18} color={listOpen ? c.accent : c.muted} style={{ transform: [{ rotate: listOpen ? '180deg' : '0deg' }] }} />
         </Pressable>
@@ -270,13 +280,13 @@ function LeaderBody({ p, team, best, total }: { p: LineupPlayer; team: MvpTeam; 
       <PlayerName name={p.name} size={14} center upper style={{ alignSelf: 'stretch', minHeight: 40, justifyContent: 'center' }} />
       {/* spazio per il numero di maglia, che sporge dall'angolo dello stemma */}
       <View style={{ marginBottom: 6 }}>
-        <Jersey p={p} team={team} size={LEADER_BADGE} gold solid />
+        <Jersey p={p} team={team} size={LEADER_BADGE} />
       </View>
       {/* voti della giocatrice sul totale dei voti espressi */}
-      {/* i voti che la fanno vincere più grandi (+15%), tutto nel colore del testo della card */}
+      {/* stesso carattere dei voti nelle card delle giocatrici; i voti che la fanno vincere più grandi */}
       <View accessible accessibilityLabel={`${best} voti su ${total}`} style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center' }}>
-        <Txt w={900} display size={17} tnum>{best}</Txt>
-        <Txt w={900} display size={15} tnum>/{total} {total === 1 ? 'voto' : 'voti'}</Txt>
+        <Txt w={800} size={16} tnum>{best}</Txt>
+        <Txt w={700} size={14} tnum>/{total} {total === 1 ? 'voto' : 'voti'}</Txt>
       </View>
     </>
   );
@@ -319,8 +329,8 @@ function HeartButton({ selected, locked, busy, onPress, name, votes }: VoteProps
   );
 }
 
-/** Stemma della squadra grande, con il numero di maglia nell'angolo (se manca, niente numero); gold: numero su fondo oro; solid: fondo pieno, senza trama */
-function Jersey({ p, team, size, gold, solid }: { p: LineupPlayer; team: MvpTeam; size: number; gold?: boolean; solid?: boolean }) {
+/** Stemma della squadra grande, con il numero di maglia nell'angolo (se manca, niente numero) su fondo blu notte pieno, sempre uguale */
+function Jersey({ p, team, size }: { p: LineupPlayer; team: MvpTeam; size: number }) {
   const { c } = useTheme();
   const n = Math.round(size * 0.46);
   return (
@@ -328,35 +338,30 @@ function Jersey({ p, team, size, gold, solid }: { p: LineupPlayer; team: MvpTeam
       <TeamBadge name={team.name} logo={team.logo} size={size} />
       {p.number != null ? (
         <View style={{ position: 'absolute', right: -6, bottom: -6, minWidth: n, height: n, paddingHorizontal: 3, borderRadius: Math.round(n * 0.3), overflow: 'hidden',
-          alignItems: 'center', justifyContent: 'center', backgroundColor: gold ? palette.gold : c.cardAlt, borderWidth: 1.5, borderColor: gold ? palette.gold : c.lineStrong }}>
-          {solid ? null : <Mesh width={n} color={gold ? 'rgba(6,26,58,0.16)' : c.line} />}
-          <Txt w={900} display size={Math.round(n * 0.56)} color={gold ? palette.onGold : c.text} tnum>{p.number}</Txt>
+          alignItems: 'center', justifyContent: 'center', backgroundColor: palette.navy, borderWidth: 1.5, borderColor: c.card }}>
+          <Txt w={900} display size={Math.round(n * 0.56)} color={palette.white} tnum>{p.number}</Txt>
         </View>
       ) : null}
     </View>
   );
 }
 
-/** Card del carosello: posizione per punti e cuore in alto, nome e cognome al centro, sotto stemma con il numero e punti */
-function PerformerCard({ r, rank, ...vote }: VoteProps & { r: Ranked; rank: number }) {
+/** Card del carosello: cuore in alto a destra, nome e cognome al centro, sotto stemma con il numero e punti */
+function PerformerCard({ r, ...vote }: VoteProps & { r: Ranked }) {
   const { c } = useTheme();
   const { p, st, team } = r;
-  const first = rank === 1;
   const pts = st?.points ?? 0;
   return (
     <Pressy onPress={vote.onPress} disabled={vote.busy} scaleTo={0.97} accessible={false}
       style={{ width: 136, borderRadius: radius.md, borderWidth: vote.selected ? 1.5 : 1, borderColor: vote.selected ? palette.gold : c.line,
         backgroundColor: c.card, padding: space.sm, gap: space.sm }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingHorizontal: space.sm, height: 22, borderRadius: radius.pill, backgroundColor: first ? palette.gold : c.fill2 }}>
-          <Txt w={900} display size={15} color={first ? palette.onGold : 'muted'}>{rank}°</Txt>
-        </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
         <HeartButton {...vote} name={p.name} />
       </View>
       {/* al centro nome e cognome; altezza fissa perché le card del carosello restino allineate */}
       <PlayerName name={p.name} size={14} center style={{ minHeight: 44, justifyContent: 'center' }} />
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.xs, marginBottom: 6 }}>
-        <Jersey p={p} team={team} size={34} gold={first || vote.selected} />
+        <Jersey p={p} team={team} size={34} />
         <Txt w={700} size={12.5} color="accent" tnum>{pts} pt</Txt>
       </View>
     </Pressy>
@@ -372,11 +377,11 @@ function VoteRow({ p, st, team, best, ...vote }: VoteProps & { p: LineupPlayer; 
     <Pressy onPress={vote.onPress} disabled={vote.busy} scaleTo={0.98} accessible={false}
       style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.sm, paddingLeft: space.md, borderRadius: radius.md, borderWidth: vote.selected ? 1.5 : 1,
         borderColor: vote.selected ? palette.gold : c.line, backgroundColor: vote.selected ? 'rgba(255,213,3,0.08)' : c.card, overflow: 'hidden' }}>
-      <Jersey p={p} team={team} size={40} gold={vote.selected} />
+      <Jersey p={p} team={team} size={40} />
       <View style={{ flex: 1, minWidth: 0, gap: space.xs }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
           <PlayerName name={p.name} size={13.5} style={{ flexShrink: 1 }} />
-          {leader ? <Trophy size={13} color={c.accent} accessibilityLabel="In testa" /> : null}
+          {leader ? <Trophy size={13} color={c.accent} fill={c.accent} accessibilityLabel="In testa" /> : null}
         </View>
         <Txt size={11.5} color="muted" tnum numberOfLines={1}>
           {team.name}{p.role ? ` · ${ROLE_LABEL[p.role]}` : ''}

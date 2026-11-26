@@ -8,7 +8,8 @@ import type { NotifPrefs } from '@/types';
 
 /*
  * Notifiche push per gli utenti con accesso, attivate SOLO da Impostazioni con un tocco esplicito.
- * Nessuna funzione di questo file va chiamata all'avvio: l'unica che può mostrare il popup di sistema è attivaNotifiche.
+ * Nessuna funzione di questo file va chiamata all'avvio: l'unica che può mostrare il popup di sistema è attivaNotifiche
+ * (riattivaDopoAccesso la usa solo con il permesso già concesso, quindi senza popup).
  * Il token del dispositivo sta nella tabella dispositivi_push (migration 20261107000100), una riga per token,
  * con le scelte per tipo di Impostazioni che la function invia-notifica usa per filtrare i destinatari.
  */
@@ -28,6 +29,8 @@ export type PreferenzeNotifiche = Omit<NotifPrefs, 'youth' | 'enabled'>;
 
 /** Ultimo token registrato da questo dispositivo: serve a disattivarlo o rimuoverlo senza richiamare le API native */
 const CHIAVE_TOKEN = 'av-push-token';
+/** Il dispositivo era registrato quando l'utente è uscito: al prossimo accesso si registra di nuovo da solo */
+const CHIAVE_RIATTIVA = 'av-push-riattiva';
 const TABELLA = 'dispositivi_push';
 
 const piattaformaSupportata = Platform.OS === 'ios' || Platform.OS === 'android';
@@ -190,10 +193,13 @@ export async function salvaPreferenzeNotifiche(userId: string, preferenze: Prefe
 /**
  * Elimina il token di questo dispositivo dall'account. Va chiamata PRIMA di supabase.auth.signOut():
  * dopo il logout la RLS non permetterebbe più di toccare la riga. Non blocca mai il logout.
+ * ricorda: se il dispositivo era registrato, al prossimo accesso le notifiche si riattivano da sole (riattivaDopoAccesso);
+ * false per l'eliminazione dell'account.
  */
-export async function rimuoviTokenAlLogout(): Promise<void> {
+export async function rimuoviTokenAlLogout(ricorda = true): Promise<void> {
   try {
     const token = await loadJSON<string>(CHIAVE_TOKEN);
+    if (token && ricorda) await saveJSON(CHIAVE_RIATTIVA, true);
     if (token && supabase) {
       const { error } = await supabase.from(TABELLA).delete().eq('token', token);
       if (error) console.warn('Notifiche: rimozione del dispositivo non riuscita', error.message);
@@ -202,5 +208,28 @@ export async function rimuoviTokenAlLogout(): Promise<void> {
     console.warn('Notifiche: rimozione del dispositivo non riuscita', e);
   } finally {
     await removeKey(CHIAVE_TOKEN);
+  }
+}
+
+/**
+ * Dopo un accesso: se le notifiche erano attive su questo dispositivo quando l'utente è uscito, le registra di nuovo
+ * per l'account appena entrato. Senza, tra logout e nuovo accesso il dispositivo non riceveva più nulla finché
+ * l'utente non riaccendeva l'interruttore in Impostazioni. Mai popup: solo con il permesso di sistema già concesso.
+ * true se ha registrato il dispositivo.
+ */
+export async function riattivaDopoAccesso(userId: string, preferenze: PreferenzeNotifiche): Promise<boolean> {
+  try {
+    if (!(await loadJSON<boolean>(CHIAVE_RIATTIVA))) return false;
+    if ((await permessoNotifiche()) !== 'granted') {
+      await removeKey(CHIAVE_RIATTIVA);
+      return false;
+    }
+    const esito = await attivaNotifiche(userId, preferenze);
+    await removeKey(CHIAVE_RIATTIVA);
+    return esito === 'attivate';
+  } catch (e) {
+    // si riprova al prossimo avvio
+    console.warn('Notifiche: riattivazione dopo l\'accesso non riuscita', e);
+    return false;
   }
 }

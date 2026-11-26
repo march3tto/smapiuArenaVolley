@@ -1,11 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
 import { FunctionsHttpError, type User } from '@supabase/supabase-js';
 import { demoMode, supabase } from '@/lib/supabase';
 import { loadJSON, removeKey, saveJSON } from '@/lib/storage';
 import { accediCon, codiceAutorizzazioneApple, esciDaiProvider, providerCorrente, providerDiUtente, salvaProviderCorrente, type SocialProvider } from '@/lib/auth';
 import { caricaConsensi, consensiValidi, registraConsensi, registraConsensiInAttesa, rimuoviConsensiInAttesa, salvaConsensiInAttesa, type Consensi, type TipoConsenso } from '@/lib/privacy';
-import { rimuoviTokenAlLogout } from '@/services/notifiche';
+import { riattivaDopoAccesso, rimuoviTokenAlLogout } from '@/services/notifiche';
 import type { AppUser, NotifPrefs } from '@/types';
 
 /** nessuno = non collegato; errore = non verificabili (rete, migrazione non applicata): l'app non blocca l'utente */
@@ -380,7 +380,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     await esciDaiProvider(providers, true);
     // l'utente non esiste più sul server (dispositivi_push eliminati a cascata): basta chiudere la sessione locale
-    await rimuoviTokenAlLogout();
+    await rimuoviTokenAlLogout(false);
     await supabase.auth.signOut({ scope: 'local' });
     await clearLocal();
     return data?.codice ?? '';
@@ -393,6 +393,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return next;
     });
   }, []);
+
+  // Nuovo accesso: se le notifiche erano attive prima del logout si registrano di nuovo, con le scelte di Impostazioni
+  // (le scelte si leggono dal ref: cambiarle non deve far ripartire la riattivazione)
+  const prefsRef = useRef(prefs);
+  useEffect(() => {
+    prefsRef.current = prefs;
+  }, [prefs]);
+  useEffect(() => {
+    if (!ready || !uid) return;
+    const { start, sets, final, news, gameDay, mvp } = prefsRef.current;
+    const tipi = { start, sets, final, news, gameDay, mvp };
+    riattivaDopoAccesso(uid, tipi).then((ok) => {
+      if (ok) updatePrefs({ enabled: true });
+    });
+  }, [ready, uid, updatePrefs]);
 
   const toggleYouth = useCallback((id: string) => {
     const on = !prefs.youth.includes(id);

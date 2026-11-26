@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { Camera } from 'lucide-react-native';
 import { Button } from './Button';
+import { Card } from './Card';
 import { SegmentedControl } from './SegmentedControl';
 import { TabellinoSheet } from './TabellinoSheet';
 import { Txt } from './Txt';
@@ -76,7 +77,7 @@ export function AttaccoPanel({ matchId, names, canUpload, suggestedSet, reloadKe
   if (!rows.length && !canUpload) return null;
 
   return (
-    <View style={{ gap: space.sm }}>
+    <Card style={{ gap: space.sm }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
         <View style={{ flex: 1 }}>
           <Txt w={800} size={13} color="muted" style={{ letterSpacing: 1.4, textTransform: 'uppercase' }}>Attacco</Txt>
@@ -138,6 +139,6 @@ export function AttaccoPanel({ matchId, names, canUpload, suggestedSet, reloadKe
       )}
 
       {sheet ? <TabellinoSheet matchId={matchId} suggestedSet={suggestedSet} onClose={() => setSheet(false)} onSaved={load} /> : null}
-    </View>
+    </Card>
   );
 }

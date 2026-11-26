@@ -10,7 +10,7 @@ import { Txt } from '@/components/Txt';
 import { newsDate } from '@/lib/format';
 import { useData } from '@/store/DataProvider';
 import { useTheme } from '@/theme/ThemeProvider';
-import { space } from '@/theme/colors';
+import { palette, space } from '@/theme/colors';
 
 /** Notizia completa: copertina, titolo, testo diviso in paragrafi e, in fondo, categoria e data */
 export default function NewsScreen() {
@@ -50,8 +50,8 @@ export default function NewsScreen() {
           </View>
           {/* categoria e data in fondo, dopo il testo */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.lg, paddingTop: space.md, borderTopWidth: 1, borderTopColor: c.line }}>
-            <View style={{ paddingHorizontal: space.sm, paddingVertical: space.xs, borderRadius: 999, backgroundColor: c.fill2 }}>
-              <Txt w={700} size={12} color="accent">{n.category}</Txt>
+            <View style={{ paddingHorizontal: space.sm, paddingVertical: space.xs, borderRadius: 999, backgroundColor: palette.gold }}>
+              <Txt w={700} size={12} color={palette.onGold}>{n.category}</Txt>
             </View>
             {n.source ? (
               <View style={{ paddingHorizontal: space.sm, paddingVertical: space.xs, borderRadius: 999, borderWidth: 1, borderColor: c.line }} accessibilityLabel={`Fonte: ${SOURCE_LABEL[n.source]}`}>

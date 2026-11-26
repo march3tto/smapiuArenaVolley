@@ -47,7 +47,13 @@ const NOTCH_FILLET = 10;
 const ICON_DROP = 8;
 /** Spinta in più verso il basso per l'icona centrale (Squadra), sotto il cerchio */
 const CENTER_ICON_DROP = 5;
-/** Indicatore della tab attiva: barretta oro sotto l'icona, vicino al bordo inferiore della barra */
+/**
+ * Parte della misura dell'icona occupata dal disegno (le icone lucide hanno un margine nel riquadro 24×24):
+ * serve a dare all'indicatore la stessa larghezza dell'icona
+ */
+const DRAWN: Record<string, number> = { risultati: 23 / 24, altro: 18 / 24 };
+const DRAWN_DEFAULT = 20 / 24;
+/** Indicatore della tab attiva: barretta oro larga quanto l'icona, vicino al bordo inferiore della barra */
 const IND_W = 24;
 const IND_H = 3;
 const IND_BOTTOM = 4;
@@ -94,17 +100,25 @@ export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTab
   const insets = useSafeAreaInsets();
   const [barW, setBarW] = useState(0);
   const x = useState(() => new Animated.Value(0))[0];
+  // larghezza dell'indicatore come scala di IND_W: con il driver nativo si anima solo transform, non width
+  const sx = useState(() => new Animated.Value(1))[0];
   const routes = state.routes.filter((r) => !HIDDEN.has(r.name));
   const center = Math.floor(routes.length / 2);
   const innerW = Math.max(0, barW - BAR_PAD * 2);
   const itemW = routes.length ? innerW / routes.length : 0;
   const activeKey = state.routes[state.index]?.key;
   const activeIndex = routes.findIndex((r) => r.key === activeKey);
+  const activeName = routes[activeIndex]?.name ?? '';
 
   useEffect(() => {
     if (!barW || activeIndex < 0) return;
-    Animated.spring(x, { toValue: activeIndex * itemW + (itemW - IND_W) / 2, useNativeDriver: true, speed: 16, bounciness: 10 }).start();
-  }, [activeIndex, itemW, barW, x]);
+    const w = (ICON_SIZES[activeName] ?? ICON_SIZE) * (DRAWN[activeName] ?? DRAWN_DEFAULT);
+    // la scala parte dal centro della barretta: basta centrarla nella tab
+    Animated.parallel([
+      Animated.spring(x, { toValue: activeIndex * itemW + (itemW - IND_W) / 2, useNativeDriver: true, speed: 16, bounciness: 10 }),
+      Animated.spring(sx, { toValue: w / IND_W, useNativeDriver: true, speed: 16, bounciness: 6 }),
+    ]).start();
+  }, [activeIndex, activeName, itemW, barW, x, sx]);
 
   // fondo pieno (la forma con l'incavo non si può sfocare): stessi colori della barra di prima, quasi opachi
   const fill = Platform.OS === 'android' ? c.card : mode === 'dark' ? 'rgba(34,77,146,0.97)' : 'rgba(255,255,255,0.97)';
@@ -114,7 +128,6 @@ export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTab
     const { options } = descriptors[route.key];
     const label = typeof options.title === 'string' ? options.title : route.name;
     const Icon = ICONS[route.name] ?? House;
-    const color = focused ? c.text : c.muted;
     const onPress = () => {
       const event = emitter.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
       if (!focused && !event.defaultPrevented) navigateToTab(route.key);
@@ -123,7 +136,8 @@ export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTab
     return (
       <Pressable key={route.key} onPress={onPress} accessibilityRole="tab" accessibilityState={{ selected: focused }} accessibilityLabel={label}
         style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: ICON_DROP + (i === center ? CENTER_ICON_DROP * 2 : 0) }}>
-        <Icon size={ICON_SIZES[route.name] ?? ICON_SIZE} color={color} strokeWidth={focused ? 2.4 : 2} />
+        {/* icona uguale da attiva e da non attiva: la tab scelta la segna solo la barretta oro */}
+        <Icon size={ICON_SIZES[route.name] ?? ICON_SIZE} color={c.text} strokeWidth={2} />
       </Pressable>
     );
   };
@@ -140,7 +154,7 @@ export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTab
           {barW > 0 && activeIndex >= 0 ? (
             // barretta oro sotto l'icona attiva: scivola da una tab all'altra con il driver nativo
             <Animated.View style={{ position: 'absolute', bottom: IND_BOTTOM, left: BAR_PAD, width: IND_W, height: IND_H, borderRadius: IND_H / 2,
-              backgroundColor: palette.gold, transform: [{ translateX: x }] }} />
+              backgroundColor: palette.gold, transform: [{ translateX: x }, { scaleX: sx }] }} />
           ) : null}
           {routes.map(tab)}
         </View>

@@ -43,7 +43,7 @@ export function MediaList({ items }: { items: MediaItem[] }) {
         return (
           <Pressy key={m.id} onPress={() => openMedia(m)} scaleTo={0.98} accessibilityRole="button" accessibilityLabel={m.title}
             style={{ flexDirection: 'row', gap: space.md, padding: space.sm, borderRadius: 18, backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
-            <View style={{ width: 112, aspectRatio: 16 / 9, borderRadius: 12, overflow: 'hidden', backgroundColor: c.fill, alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ width: 112, minHeight: 63, alignSelf: 'stretch', borderRadius: 12, overflow: 'hidden', backgroundColor: c.fill, alignItems: 'center', justifyContent: 'center' }}>
               {cover ? <Image source={cover} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} contentFit="cover" /> : null}
               {video ? (
                 <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(6,26,58,0.6)', alignItems: 'center', justifyContent: 'center' }}>

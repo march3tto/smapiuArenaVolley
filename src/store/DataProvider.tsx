@@ -18,6 +18,8 @@ const Ctx = createContext<DataCtx | null>(null);
 
 /** Modifiche alle partite entro questo tempo: una sola ricarica */
 const MATCHES_DEBOUNCE_MS = 1500;
+/** Oltre questo tempo lo spinner del pull-to-refresh si chiude anche se la lettura non è finita */
+const SPINNER_MAX_MS = 20000;
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const { demoLive } = useApp();
@@ -27,8 +29,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // riapre i canali Realtime di partite e classifica se non sono più SUBSCRIBED
   const ensureRealtime = useRef<() => void>(() => {});
 
-  // Una lettura alla volta: chi arriva mentre è in corso fa ripartire una lettura subito dopo (dati sempre freschi,
-  // niente risposte fuori ordine che riportano indietro i dati)
+  // Ogni lettura ha un numero progressivo: si applica solo se è più recente dell'ultima applicata
+  // (niente risposte fuori ordine che riportano indietro i dati)
+  const seq = useRef(0);
+  const applied = useRef(0);
+  const loadOnce = useCallback(async () => {
+    const n = ++seq.current;
+    try {
+      const d = await loadAll();
+      if (n < applied.current) return;
+      applied.current = n;
+      setData(d);
+      setError(null);
+    } catch (e) {
+      // con Supabase si tengono gli ultimi dati caricati e si mostra l'errore
+      if (n >= applied.current) setError(e instanceof Error ? e.message : 'Errore di caricamento');
+    }
+  }, []);
+
+  // Ricariche silenziose (Realtime): una alla volta, chi arriva mentre è in corso ne fa ripartire una subito dopo
   const inFlight = useRef<Promise<void> | null>(null);
   const again = useRef(false);
   const reload = useCallback((): Promise<void> => {
@@ -39,31 +58,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const run = (async () => {
       do {
         again.current = false;
-        try {
-          setData(await loadAll());
-          setError(null);
-        } catch (e) {
-          // con Supabase si tengono gli ultimi dati caricati e si mostra l'errore
-          setError(e instanceof Error ? e.message : 'Errore di caricamento');
-        }
+        await loadOnce();
       } while (again.current);
     })().finally(() => {
       inFlight.current = null;
     });
     inFlight.current = run;
     return run;
-  }, []);
+  }, [loadOnce]);
 
-  // Ricarica chiesta dall'utente (trascinando verso il basso) o all'apertura: solo questa mostra lo spinner
+  // Ricarica chiesta dall'utente (trascinando verso il basso) o all'apertura: solo questa mostra lo spinner.
+  // Aspetta solo la propria lettura, non la coda delle ricariche Realtime: in diretta l'agente aggiorna le partite
+  // ogni pochi secondi e la coda può non svuotarsi mai, lasciando lo spinner bloccato.
+  // In più lo spinner si chiude comunque dopo SPINNER_MAX_MS (la lettura, se arriva, aggiorna i dati lo stesso).
+  const pending = useRef(0);
   const refresh = useCallback(async () => {
     ensureRealtime.current();
+    pending.current++;
     setLoading(true);
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
-      await reload();
+      await Promise.race([loadOnce(), new Promise<void>((r) => { timer = setTimeout(r, SPINNER_MAX_MS); })]);
     } finally {
-      setLoading(false);
+      clearTimeout(timer);
+      if (--pending.current === 0) setLoading(false);
     }
-  }, [reload]);
+  }, [loadOnce]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- caricamento dati da Supabase all'apertura (lo stato si aggiorna a fetch finita)

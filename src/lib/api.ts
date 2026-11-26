@@ -20,6 +20,7 @@ export const T = {
   azioniPunto: 'azioni_punto',
   formazioni: 'formazioni_partita',
   votiMvp: 'voti_mvp',
+  votiMvpConteggi: 'voti_mvp_conteggi',
   classifiche: 'classifiche',
   giocatrici: 'giocatrici',
   staff: 'staff',
@@ -1014,6 +1015,20 @@ export async function fetchMvpVotes(matchId: string, userId: string | null): Pro
   const counts: Record<string, number> = {};
   for (const r of (cnt.data as Row[] | null) ?? []) counts[str(r.giocatrice_id)] = num(r.voti) ?? 0;
   return { counts, mine: ((own.data as Row | null)?.giocatrice_id as string | null) ?? null };
+}
+
+/**
+ * Voti MVP in tempo reale (migrazione 20261127000000_voti_mvp_tempo_reale): a ogni voto dato, spostato o tolto
+ * arriva il nuovo totale della giocatrice, senza ricaricare
+ */
+export function subscribeMvpVotes(matchId: string, onCount: (playerId: string, votes: number) => void): Subscription {
+  if (!supabase) return NO_SUBSCRIPTION;
+  return tracked(supabase
+    .channel(`voti-mvp-${matchId}-${Math.random().toString(36).slice(2, 8)}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: T.votiMvpConteggi, filter: `partita_id=eq.${matchId}` }, (payload) => {
+      const row = payload.new as Row | undefined;
+      if (row && row.giocatrice_id) onCount(str(row.giocatrice_id), num(row.voti) ?? 0);
+    }));
 }
 
 /** Un voto per utente e partita: votare di nuovo cambia la giocatrice scelta */
