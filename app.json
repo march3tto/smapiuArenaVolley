@@ -3,7 +3,7 @@
     "name": "Smapiu Arena Volley",
     "slug": "smapiuArenaVolley",
     "scheme": "arenavolley",
-    "version": "1.3.0",
+    "version": "1.3.5",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",

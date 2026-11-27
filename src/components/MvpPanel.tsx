@@ -148,10 +148,24 @@ export function MvpPanel({ match, awayMatch, teams, events, set, finished, onLea
   // carosello: titolari (e libero) e chi è entrata e ha fatto punti, da entrambe le squadre, per punti della partita
   const performers = useMemo(() => everyone.filter((r) => r.p.zone != null || r.p.isLibero || (r.st?.points ?? 0) > 0)
     .sort((a, b) => (b.st?.points ?? 0) - (a.st?.points ?? 0) || (b.st?.attacks ?? 0) - (a.st?.attacks ?? 0) || (a.p.number ?? 99) - (b.p.number ?? 99)), [everyone]);
-  // la più votata: a parità di voti, quella con più punti
-  const leader = best > 0
-    ? everyone.filter((r) => counts[voteId(r.p)!] === best).sort((a, b) => (b.st?.points ?? 0) - (a.st?.points ?? 0))[0]
-    : undefined;
+  // le più votate (a pari merito possono essere più di una), ordinate per punti e poi attacchi della partita
+  const tied = useMemo(() => (best > 0
+    ? everyone.filter((r) => counts[voteId(r.p)!] === best)
+      .sort((a, b) => (b.st?.points ?? 0) - (a.st?.points ?? 0) || (b.st?.attacks ?? 0) - (a.st?.attacks ?? 0))
+    : []), [best, everyone, counts, voteId]);
+  // in diretta il pari merito si mostra così com'è; a partita finita si spareggia con i punti, poi con gli attacchi,
+  // e se resta la parità l'MVP è condivisa
+  const podium = useMemo(() => {
+    if (!finished || tied.length < 2) return { winners: tied, decidedBy: null as string | null };
+    const pts = (r: Ranked) => r.st?.points ?? 0;
+    const att = (r: Ranked) => r.st?.attacks ?? 0;
+    const byPoints = tied.filter((r) => pts(r) === pts(tied[0]));
+    if (byPoints.length === 1) return { winners: byPoints, decidedBy: 'i punti' };
+    const byAttacks = byPoints.filter((r) => att(r) === att(byPoints[0]));
+    if (byAttacks.length === 1) return { winners: byAttacks, decidedBy: 'gli attacchi' };
+    return { winners: byAttacks, decidedBy: null };
+  }, [finished, tied]);
+  const leader = podium.winners.length === 1 ? podium.winners[0] : undefined;
   // ricerca per nome o numero di maglia, sulla squadra scelta
   const shown = useMemo(() => everyone.filter((r) => (filter === 'all' || r.team.side === filter) && matchesPlayer(r.p, query)), [everyone, filter, query]);
 
@@ -199,6 +213,8 @@ export function MvpPanel({ match, awayMatch, teams, events, set, finished, onLea
         paddingVertical: space.sm + 2, paddingHorizontal: space.md, gap: space.xs + 2, alignItems: 'center' }}>
         {leader ? (
           <LeaderBody p={leader.p} team={leader.team} best={best} total={total} />
+        ) : podium.winners.length > 1 ? (
+          <TieBody rows={podium.winners} shared={finished} best={best} total={total} />
         ) : (
           // senza voti: lo stesso contenuto, invisibile, tiene le misure della card; sopra il messaggio
           <View style={{ alignSelf: 'stretch', alignItems: 'center' }}>
@@ -212,6 +228,10 @@ export function MvpPanel({ match, awayMatch, teams, events, set, finished, onLea
           </View>
         )}
       </View>
+      {/* a partita finita, se lo spareggio ha deciso, si dice come (fuori dalla card, che non cambia misura) */}
+      {leader && podium.decidedBy ? (
+        <Txt size={12} color="muted" center style={{ marginTop: -space.xs }}>Pari merito nei voti: decisivi {podium.decidedBy}.</Txt>
+      ) : null}
 
       {performers.length ? (
         <View style={{ gap: space.sm }}>
@@ -287,6 +307,43 @@ function LeaderBody({ p, team, best, total }: { p: LineupPlayer; team: MvpTeam; 
       <View accessible accessibilityLabel={`${best} voti su ${total}`} style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center' }}>
         <Txt w={800} size={16} tnum>{best}</Txt>
         <Txt w={700} size={14} tnum>/{total} {total === 1 ? 'voto' : 'voti'}</Txt>
+      </View>
+    </>
+  );
+}
+
+/** Giocatrici a pari merito mostrate nella card del riepilogo; le altre finiscono nel "+N" */
+const TIE_SHOWN = 2;
+
+/**
+ * Card del riepilogo con più giocatrici a pari merito: titolo ("Pari merito" in diretta, "MVP condivisa" a partita finita),
+ * cognomi, stemmi affiancati (al massimo due, poi "+N") e voti di ciascuna sul totale; stesse misure di LeaderBody
+ */
+function TieBody({ rows, shared, best, total }: { rows: Ranked[]; shared: boolean; best: number; total: number }) {
+  const { c } = useTheme();
+  const shown = rows.slice(0, TIE_SHOWN);
+  const more = rows.length - shown.length;
+  const surname = (name: string) => name.trim().split(/\s+/).slice(1).join(' ') || name.trim();
+  const names = shown.map((r) => surname(r.p.name)).join(' · ') + (more > 0 ? ` +${more}` : '');
+  const label = shared ? 'MVP condivisa' : 'Pari merito';
+  return (
+    <>
+      <View accessible accessibilityLabel={`${label}: ${rows.map((r) => r.p.name).join(', ')}`}
+        style={{ alignSelf: 'stretch', minHeight: 40, justifyContent: 'center', alignItems: 'center' }}>
+        <Txt w={800} size={11} color="accent" center style={{ textTransform: 'uppercase', letterSpacing: 0.8 }}>{label}</Txt>
+        <Txt w={800} size={14} center numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ textTransform: 'uppercase' }}>{names}</Txt>
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, marginBottom: 6 }}>
+        {shown.map((r) => <Jersey key={r.p.id} p={r.p} team={r.team} size={LEADER_BADGE} />)}
+        {more > 0 ? (
+          <View style={{ width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: c.fill }}>
+            <Txt w={800} size={12} tnum>+{more}</Txt>
+          </View>
+        ) : null}
+      </View>
+      <View accessible accessibilityLabel={`${best} voti ciascuna su ${total}`} style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center' }}>
+        <Txt w={800} size={16} tnum>{best}</Txt>
+        <Txt w={700} size={14} tnum>/{total} voti ciascuna</Txt>
       </View>
     </>
   );

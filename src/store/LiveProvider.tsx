@@ -265,8 +265,10 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       const ch = subscribeDemo<LiveState>(
         'live',
         liveId,
-        (rev, next) => {
+        (rev, shared) => {
           if (rev <= demoRev.current) return;
+          // lo stato può arrivare da una versione dell'app con meno campi (es. senza readings): si completano con i valori vuoti
+          const next: LiveState = { ...EMPTY, ...shared };
           demoRev.current = rev;
           // animazione +1 solo se è stato giocato un punto in più
           if (played(next) > played(stateRef.current) && next.events[0]) setLastPoint({ side: next.events[0].side, key: Date.now() });

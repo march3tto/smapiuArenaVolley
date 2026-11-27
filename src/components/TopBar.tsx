@@ -10,6 +10,7 @@ import { Pressy } from './Pressy';
 import { SocialMenu } from './SocialMenu';
 import { Txt } from './Txt';
 import { LOGO_BRAND, LOGO_BRAND_LIGHT } from '@/data/assets';
+import { bersaglioGuida } from '@/lib/tutorial';
 import { useApp } from '@/store/AppProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/colors';
@@ -87,18 +88,20 @@ export function TopBar() {
         </BlurView>
         <BlurView intensity={blur} tint={tint} style={capsule}>
           {/* utente registrato: le sue iniziali a sinistra dell'ingranaggio, nella stessa capsula */}
-          <Pressy onPress={() => router.push('/settings')} scaleTo={0.88} hitSlop={6} accessibilityRole="button"
-            accessibilityLabel={initials ? `Impostazioni, account di ${initials}` : 'Impostazioni, non hai effettuato l\'accesso'}
-            style={{ height: 40, minWidth: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.xs,
-              paddingLeft: initials ? space.sm + 4 : space.sm, paddingRight: space.sm + 3 }}>
-            {initials ? <Txt w={800} size={13} style={{ letterSpacing: 0.4 }}>{initials}</Txt> : (
-              // ospite: sagoma generica in un cerchio grigio
-              <View style={{ width: GUEST_SIZE, height: GUEST_SIZE, borderRadius: GUEST_SIZE / 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backgroundColor: c.muted }}>
-                <UserRound size={GUEST_SIZE - 6} color={c.card} fill={c.card} strokeWidth={1.5} style={{ marginTop: 4 }} />
-              </View>
-            )}
-            <Settings size={18} color={c.text} />
-          </Pressy>
+          <View ref={bersaglioGuida('impostazioni')} collapsable={false}>
+            <Pressy onPress={() => router.push('/settings')} scaleTo={0.88} hitSlop={6} accessibilityRole="button"
+              accessibilityLabel={initials ? `Impostazioni, account di ${initials}` : 'Impostazioni, non hai effettuato l\'accesso'}
+              style={{ height: 40, minWidth: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.xs,
+                paddingLeft: initials ? space.sm + 4 : space.sm, paddingRight: space.sm + 3 }}>
+              {initials ? <Txt w={800} size={13} style={{ letterSpacing: 0.4 }}>{initials}</Txt> : (
+                // ospite: sagoma generica in un cerchio grigio
+                <View style={{ width: GUEST_SIZE, height: GUEST_SIZE, borderRadius: GUEST_SIZE / 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backgroundColor: c.muted }}>
+                  <UserRound size={GUEST_SIZE - 6} color={c.card} fill={c.card} strokeWidth={1.5} style={{ marginTop: 4 }} />
+                </View>
+              )}
+              <Settings size={18} color={c.text} />
+            </Pressy>
+          </View>
         </BlurView>
       </View>
     </View>

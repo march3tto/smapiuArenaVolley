@@ -12,6 +12,7 @@ import { ScoreboardIcon } from './ScoreboardIcon';
 import { useToast } from './Toast';
 import { Txt } from './Txt';
 import { AVATARS, avatarLabel, useAssistantAvatar } from '@/lib/avatar';
+import { bersaglioGuida } from '@/lib/tutorial';
 import { palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -134,7 +135,7 @@ export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTab
     };
     // solo icona: il nome resta per VoiceOver/TalkBack
     return (
-      <Pressable key={route.key} onPress={onPress} accessibilityRole="tab" accessibilityState={{ selected: focused }} accessibilityLabel={label}
+      <Pressable key={route.key} ref={bersaglioGuida(`tab-${route.name}`)} onPress={onPress} accessibilityRole="tab" accessibilityState={{ selected: focused }} accessibilityLabel={label}
         style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: ICON_DROP + (i === center ? CENTER_ICON_DROP * 2 : 0) }}>
         {/* icona uguale da attiva e da non attiva: la tab scelta la segna solo la barretta oro */}
         <Icon size={ICON_SIZES[route.name] ?? ICON_SIZE} color={c.text} strokeWidth={2} />
@@ -187,7 +188,8 @@ function AssistantButton() {
 
   return (
     <>
-      <View ref={ref} collapsable={false} style={{ borderRadius: FAB / 2, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 8 }}>
+      {/* la stessa vista serve al selettore degli avatar e alla guida di benvenuto */}
+      <View ref={(n) => { ref.current = n; return bersaglioGuida('assistente')(n); }} collapsable={false} style={{ borderRadius: FAB / 2, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 8 }}>
         <Pressy onPress={() => router.push('/assistente')} onLongPress={openPicker} delayLongPress={350} scaleTo={0.9}
           accessibilityRole="button" accessibilityLabel="Assistente" accessibilityHint="Tieni premuto per scegliere l'avatar" hitSlop={4}
           style={{ width: FAB, height: FAB, borderRadius: FAB / 2, overflow: 'hidden', backgroundColor: palette.gold }}>

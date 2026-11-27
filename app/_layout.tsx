@@ -22,6 +22,7 @@ import { useScreenCaptureGuard } from '@/components/ScreenCaptureGuard';
 import { ToastProvider } from '@/components/Toast';
 import { FONT } from '@/theme/colors';
 import { useAperturaNotifiche } from '@/notifications';
+import { useTutorial } from '@/lib/tutorial';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -64,6 +65,7 @@ export default function RootLayout() {
 function RootStack() {
   const { c, mode } = useTheme();
   const { ready, user, consentStatus, recovering } = useApp();
+  const { daMostrare } = useTutorial();
   const router = useRouter();
   const pathname = usePathname();
   // evento PASSWORD_RECOVERY da qualunque punto (anche se il link non ha aperto direttamente la schermata)
@@ -115,8 +117,8 @@ function RootStack() {
       </Stack>
       {/* diretta video: agganciata nella Live o in finestrella sopra qualsiasi schermata */}
       <FloatingPlayer />
-      {/* pubblicità al centro dello schermo, con la frequenza indicata nella tabella pubblicita */}
-      {overlay && ready && !(user && consentStatus === 'mancanti') ? <AdPopup /> : null}
+      {/* pubblicità al centro dello schermo, con la frequenza indicata nella tabella pubblicita (mai durante la guida di benvenuto) */}
+      {overlay && ready && !daMostrare && !(user && consentStatus === 'mancanti') ? <AdPopup /> : null}
       {/* sopra tutto (navigazione compresa) finché mancano i consensi obbligatori */}
       {overlay && user && consentStatus === 'mancanti' ? <ConsentGate /> : null}
       {/* solo PWA: avviso "Nuova versione disponibile" (sul nativo non mostra nulla) */}

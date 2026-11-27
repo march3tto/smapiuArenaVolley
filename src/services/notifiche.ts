@@ -212,6 +212,17 @@ export async function rimuoviTokenAlLogout(ricorda = true): Promise<void> {
 }
 
 /**
+ * Sessione chiusa senza passare da signOut() (refresh token non più valido, sessione revocata altrove): se il dispositivo
+ * era registrato, al prossimo accesso si registra di nuovo da solo. Il token resta collegato al vecchio utente sul server:
+ * lo libera attivaNotifiche con l'RPC libera_dispositivo_push (errore 42501).
+ * Dopo un logout normale o l'eliminazione dell'account CHIAVE_TOKEN è già stata rimossa da rimuoviTokenAlLogout,
+ * quindi qui non succede nulla. Solo AsyncStorage: si può chiamare dentro onAuthStateChange.
+ */
+export async function ricordaRiattivazioneSeRegistrato(): Promise<void> {
+  if (await loadJSON<string>(CHIAVE_TOKEN)) await saveJSON(CHIAVE_RIATTIVA, true);
+}
+
+/**
  * Dopo un accesso: se le notifiche erano attive su questo dispositivo quando l'utente è uscito, le registra di nuovo
  * per l'account appena entrato. Senza, tra logout e nuovo accesso il dispositivo non riceveva più nulla finché
  * l'utente non riaccendeva l'interruttore in Impostazioni. Mai popup: solo con il permesso di sistema già concesso.

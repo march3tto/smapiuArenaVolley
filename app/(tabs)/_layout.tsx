@@ -4,12 +4,15 @@ import { Tabs } from 'expo-router/tabs';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { TabBar } from '@/components/TabBar';
 import { TopBar } from '@/components/TopBar';
+import { WelcomeTutorial } from '@/components/WelcomeTutorial';
+import { useTutorial } from '@/lib/tutorial';
 import { useApp } from '@/store/AppProvider';
 import { useData } from '@/store/DataProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 
 export default function TabsLayout() {
-  const { ready, user, guest } = useApp();
+  const { ready, user, guest, consentStatus } = useApp();
+  const { daMostrare } = useTutorial();
   const { loading } = useData();
   const { c } = useTheme();
   // l'immagine di caricamento si mostra solo al primo avvio, non a ogni aggiornamento dei dati
@@ -21,14 +24,21 @@ export default function TabsLayout() {
   // al primo avvio si apre la finestra di accesso/registrazione (o si entra come ospite)
   if (!user && !guest) return <Redirect href="/login" />;
 
+  // la guida arriva dopo l'eventuale richiesta dei consensi, non sotto
+  const guida = daMostrare && consentStatus !== 'mancanti' && consentStatus !== 'caricamento';
+
   return (
-    <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ header: () => <TopBar />, headerTransparent: true, sceneStyle: { backgroundColor: c.bg } }}>
-      <Tabs.Screen name="index" options={{ title: 'Home' }} />
-      <Tabs.Screen name="risultati" options={{ title: 'Risultati' }} />
-      <Tabs.Screen name="squadra" options={{ title: 'Squadra' }} />
-      <Tabs.Screen name="giovanili" options={{ title: 'Giovanili' }} />
-      <Tabs.Screen name="news" options={{ title: 'News' }} />
-      <Tabs.Screen name="altro" options={{ title: 'Altro' }} />
-    </Tabs>
+    <>
+      <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ header: () => <TopBar />, headerTransparent: true, sceneStyle: { backgroundColor: c.bg } }}>
+        <Tabs.Screen name="index" options={{ title: 'Home' }} />
+        <Tabs.Screen name="risultati" options={{ title: 'Risultati' }} />
+        <Tabs.Screen name="squadra" options={{ title: 'Squadra' }} />
+        <Tabs.Screen name="giovanili" options={{ title: 'Giovanili' }} />
+        <Tabs.Screen name="news" options={{ title: 'News' }} />
+        <Tabs.Screen name="altro" options={{ title: 'Altro' }} />
+      </Tabs>
+      {/* dopo le tab, così copre anche tab bar e top bar */}
+      {guida ? <WelcomeTutorial /> : null}
+    </>
   );
 }

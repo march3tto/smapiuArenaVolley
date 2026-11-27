@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Alert, Animated, AppState, LayoutAnimation, Linking, Platform, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import Constants from 'expo-constants';
-import { Bell, ChevronDown, Copyright, LogOut, ChevronRight, Megaphone, Moon, Radio, Settings as SettingsIcon, ShieldCheck, Volleyball, X } from 'lucide-react-native';
+import { Bell, BookOpen, ChevronDown, Copyright, LogOut, ChevronRight, Megaphone, Moon, Radio, Settings as SettingsIcon, ShieldCheck, Volleyball, X } from 'lucide-react-native';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { AppSwitch } from '@/components/AppSwitch';
@@ -11,6 +11,7 @@ import { ThemeSwitch } from '@/components/ThemeSwitch';
 import { Txt } from '@/components/Txt';
 import { useToast } from '@/components/Toast';
 import { useApp } from '@/store/AppProvider';
+import { useTutorial } from '@/lib/tutorial';
 import { attivaNotifiche, disattivaNotifiche, permessoNotifiche, salvaPreferenzeNotifiche, statoNotifiche, type PreferenzeNotifiche } from '@/services/notifiche';
 import { palette, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -31,8 +32,9 @@ export default function Settings() {
   const { c, mode, toggle } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { rivedi } = useTutorial();
   const toast = useToast();
-  const { prefs, updatePrefs, demoLive, setDemoLive, noAds, setNoAds, user, signOut } = useApp();
+  const { prefs, updatePrefs, notifRiattivate, demoLive, setDemoLive, noAds, setNoAds, user, signOut } = useApp();
   const { height } = useWindowDimensions();
   // il riquadro sale dal basso mentre lo sfondo si scurisce (dissolvenza della schermata)
   const [rise] = useState(() => new Animated.Value(60));
@@ -63,6 +65,14 @@ export default function Settings() {
       console.warn('Impostazioni: stato delle notifiche non disponibile', e);
     }
   }, [userId, notifOccupato]);
+
+  // la riattivazione dopo l'accesso può finire con la schermata già aperta: a ogni nuova riattivazione si riallinea
+  const riattivazioniViste = useRef(notifRiattivate);
+  useEffect(() => {
+    if (riattivazioniViste.current === notifRiattivate) return;
+    riattivazioniViste.current = notifRiattivate;
+    riallineaNotifiche();
+  }, [notifRiattivate, riallineaNotifiche]);
 
   // al focus della schermata e al ritorno dalle impostazioni di sistema (l'app torna attiva, la schermata resta a fuoco)
   useFocusEffect(useCallback(() => {
@@ -233,6 +243,14 @@ export default function Settings() {
                 </Pressable>
               </Block>
             )}
+
+            <Block icon={<BookOpen size={16} color={c.accent} />} title="Guida">
+              {/* si chiude il riquadro e la guida riparte dalla pagina di benvenuto */}
+              <Pressable onPress={() => { router.back(); rivedi(); }} accessibilityRole="button" accessibilityLabel="Rivedi la guida">
+                <Item title="Rivedi la guida" sub="Il tour delle sezioni dell'app, dall'inizio." first
+                  right={<ChevronRight size={17} color={c.muted} />} />
+              </Pressable>
+            </Block>
 
             {/* per ora solo per gli amministratori: l'opzione non è ancora pronta per il pubblico */}
             {user?.role === 'admin' ? (

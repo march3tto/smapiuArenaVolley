@@ -5,7 +5,7 @@ import { demoMode, supabase } from '@/lib/supabase';
 import { loadJSON, removeKey, saveJSON } from '@/lib/storage';
 import { accediCon, codiceAutorizzazioneApple, esciDaiProvider, providerCorrente, providerDiUtente, salvaProviderCorrente, type SocialProvider } from '@/lib/auth';
 import { caricaConsensi, consensiValidi, registraConsensi, registraConsensiInAttesa, rimuoviConsensiInAttesa, salvaConsensiInAttesa, type Consensi, type TipoConsenso } from '@/lib/privacy';
-import { riattivaDopoAccesso, rimuoviTokenAlLogout } from '@/services/notifiche';
+import { riattivaDopoAccesso, ricordaRiattivazioneSeRegistrato, rimuoviTokenAlLogout } from '@/services/notifiche';
 import type { AppUser, NotifPrefs } from '@/types';
 
 /** nessuno = non collegato; errore = non verificabili (rete, migrazione non applicata): l'app non blocca l'utente */
@@ -52,6 +52,8 @@ interface AppCtx {
   /** Ritorna il codice di conferma della cancellazione */
   deleteAccount: () => Promise<string>;
   updatePrefs: (patch: Partial<NotifPrefs>) => void;
+  /** Cresce ogni volta che le notifiche si riattivano da sole dopo un accesso: Impostazioni, se aperta, riallinea l'interruttore */
+  notifRiattivate: number;
   /** Ritorna true se ora la categoria è seguita */
   toggleYouth: (id: string) => boolean;
   setDemoLive: (on: boolean) => void;
@@ -170,7 +172,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       // emesso da exchangeCodeForSession / verifyOtp quando il link viene dall'email di recupero password
       if (event === 'PASSWORD_RECOVERY') setRecovering(true);
-      else if (event === 'SIGNED_OUT') setRecovering(false);
+      else if (event === 'SIGNED_OUT') {
+        setRecovering(false);
+        // sessione scaduta senza signOut(): al prossimo accesso il dispositivo si registra di nuovo (non si attende:
+        // dentro onAuthStateChange niente await; dopo un signOut() normale il token è già stato rimosso e non fa nulla)
+        ricordaRiattivazioneSeRegistrato();
+      }
       const u = session?.user;
       // ruolo e categoria restano quelli già letti se l'utente non cambia (es. refresh del token, nome aggiornato)
       setUser((prev) => (u ? toAppUser(u, prev) : null));
@@ -326,7 +333,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // prima del signOut: dopo, la RLS non permetterebbe più di eliminare il token del dispositivo
       await rimuoviTokenAlLogout();
       await esciDaiProvider(user?.providers ?? []);
-      await supabase.auth.signOut();
+      // solo questo dispositivo: con lo scope globale (predefinito) si chiudeva la sessione anche sugli altri
+      await supabase.auth.signOut({ scope: 'local' });
     }
     await clearLocal();
   }, [user?.providers, clearLocal]);
@@ -400,13 +408,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     prefsRef.current = prefs;
   }, [prefs]);
+  // Parte all'avvio con una sessione salvata e a ogni accesso ad app aperta (uid da null a valore, o cambio account)
+  const [notifRiattivate, setNotifRiattivate] = useState(0);
   useEffect(() => {
     if (!ready || !uid) return;
+    let active = true;
     const { start, sets, final, news, gameDay, mvp } = prefsRef.current;
     const tipi = { start, sets, final, news, gameDay, mvp };
     riattivaDopoAccesso(uid, tipi).then((ok) => {
-      if (ok) updatePrefs({ enabled: true });
+      if (!ok || !active) return;
+      updatePrefs({ enabled: true });
+      setNotifRiattivate((n) => n + 1);
     });
+    return () => {
+      active = false;
+    };
   }, [ready, uid, updatePrefs]);
 
   const toggleYouth = useCallback((id: string) => {
@@ -435,8 +451,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     ready, user, guest, prefs, demoLive: demoOn, noAds, adsHidden, consents, consentStatus,
     signIn, signUp, signInWithProvider, resetPassword, recovering, updatePassword, endRecovery, continueAsGuest, signOut,
     acceptConsents, setMarketing, setAssistantConsent, setYouthCategory, deleteAccount,
-    updatePrefs, toggleYouth, setDemoLive, setNoAds,
-  }), [ready, user, guest, prefs, demoOn, noAds, adsHidden, consents, consentStatus, signIn, signUp, signInWithProvider, resetPassword, recovering, updatePassword, endRecovery, continueAsGuest, signOut, acceptConsents, setMarketing, setAssistantConsent, setYouthCategory, deleteAccount, updatePrefs, toggleYouth, setDemoLive, setNoAds]);
+    updatePrefs, notifRiattivate, toggleYouth, setDemoLive, setNoAds,
+  }), [ready, user, guest, prefs, demoOn, noAds, adsHidden, consents, consentStatus, signIn, signUp, signInWithProvider, resetPassword, recovering, updatePassword, endRecovery, continueAsGuest, signOut, acceptConsents, setMarketing, setAssistantConsent, setYouthCategory, deleteAccount, updatePrefs, notifRiattivate, toggleYouth, setDemoLive, setNoAds]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
