@@ -46,7 +46,7 @@ export default function News() {
       {cat === MEDIA ? null : (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.md, justifyContent: 'center' }}>
           {list.map((n) => (
-            <NewsCard key={n.id} item={n} width={cardW} onPress={() => router.push({ pathname: '/notizia/[id]', params: { id: n.id } })} />
+            <NewsCard key={n.id} item={n} width={cardW} onPress={() => router.push({ pathname: '/notizia/[id]', params: { id: n.id, cat } })} />
           ))}
         </View>
       )}
