@@ -3,13 +3,14 @@ import { ActivityIndicator, Animated, FlatList, KeyboardAvoidingView, Platform, 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { ExternalLink, RotateCcw, SendHorizontal, ShieldCheck, X } from 'lucide-react-native';
+import { ExternalLink, RotateCcw, ShieldCheck, X } from 'lucide-react-native';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { IconButton } from '@/components/IconButton';
 import { Pressy } from '@/components/Pressy';
 import { TestoChat } from '@/components/TestoChat';
 import { Txt } from '@/components/Txt';
+import { VolleyBall } from '@/components/VolleyBall';
 import { askAssistant, ConsensoAssistenteMancante, type AssistantMessage } from '@/lib/api';
 import { useAssistantAvatar } from '@/lib/avatar';
 import { apriInformativa } from '@/lib/privacy';
@@ -17,7 +18,7 @@ import { useApp } from '@/store/AppProvider';
 import { FONT, palette, radius, space } from '@/theme/colors';
 import { useTheme } from '@/theme/ThemeProvider';
 
-const SUGGERIMENTI = ['Prossima partita', 'Ultimo risultato', 'Classifica', 'Chi è la capitana?', 'Rosa Serie D', 'Cos’è il libero?'];
+const SUGGERIMENTI = ['Prossima partita', 'Ultimo risultato', 'Classifica', 'Chi è la capitana?', 'Cos’è il libero?'];
 const MAX_CARATTERI = 1000;
 
 /** Assistente AI in chat: partite, risultati, rosa, news della società e pallavolo in generale (solo utenti con account) */
@@ -40,7 +41,7 @@ export default function Assistente() {
   // benvenuto mostrato come primo messaggio: solo a schermo, non fa parte dello storico inviato al server
   const benvenuto: AssistantMessage = {
     role: 'assistant',
-    content: `Ciao! Sono ${nomeAvatar}, chiedimi delle partite, dei risultati, della classifica, della rosa o delle news. Posso anche spiegarti le regole della pallavolo.`,
+    content: `Ciao! Sono **${nomeAvatar}**, chiedimi delle partite, dei risultati, della classifica, della rosa o delle news. Posso anche spiegarti le regole della pallavolo.`,
   };
 
   const send = async (history: AssistantMessage[]) => {
@@ -143,10 +144,12 @@ export default function Assistente() {
                     paddingHorizontal: space.md, paddingTop: space.md, paddingBottom: space.md, fontFamily: FONT[500], fontSize: 16, color: c.text, opacity: blocked ? 0.5 : 1 }}
                 />
                 <IconButton label="Invia" size={46} active={!disabled && !!text.trim()} onPress={() => ask(text)}>
-                  {loading ? <ActivityIndicator size="small" color={c.muted} /> : <SendHorizontal size={19} color={!disabled && text.trim() ? palette.onGold : c.muted} />}
+                  {/* pallone da pallavolo al posto dell'aeroplano di carta: sbiadito finché non c'è testo da inviare */}
+                  {loading ? <ActivityIndicator size="small" color={c.muted} /> : (
+                    <View style={{ opacity: !disabled && text.trim() ? 1 : 0.45 }}><VolleyBall size={26} /></View>
+                  )}
                 </IconButton>
               </View>
-              <Txt size={11.5} color="muted" center>Risposte generate da AI: verifica i dati importanti nel calendario.</Txt>
             </View>
           </>
         )}

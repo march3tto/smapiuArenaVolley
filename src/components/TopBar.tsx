@@ -83,9 +83,11 @@ export function TopBar() {
             <Image source={mode === 'dark' ? LOGO_BRAND : LOGO_BRAND_LIGHT} style={{ width: logo.w, height: logo.h }} contentFit="contain" />
           </Pressable>
         </Animated.View>
-        <BlurView intensity={blur} tint={tint} style={capsule}>
-          <SocialMenu progress={progress} open={social} onOpenChange={setSocial} />
-        </BlurView>
+        <View ref={bersaglioGuida('social')} collapsable={false}>
+          <BlurView intensity={blur} tint={tint} style={capsule}>
+            <SocialMenu progress={progress} open={social} onOpenChange={setSocial} />
+          </BlurView>
+        </View>
         <BlurView intensity={blur} tint={tint} style={capsule}>
           {/* utente registrato: le sue iniziali a sinistra dell'ingranaggio, nella stessa capsula */}
           <View ref={bersaglioGuida('impostazioni')} collapsable={false}>

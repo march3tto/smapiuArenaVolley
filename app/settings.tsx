@@ -3,12 +3,13 @@ import { Alert, Animated, AppState, LayoutAnimation, Linking, Platform, Pressabl
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import Constants from 'expo-constants';
-import { Bell, BookOpen, ChevronDown, Copyright, LogOut, ChevronRight, Megaphone, Moon, Radio, Settings as SettingsIcon, ShieldCheck, Volleyball, X } from 'lucide-react-native';
+import { Bell, BookOpen, ChevronDown, Copyright, LogOut, ChevronRight, Megaphone, Moon, Settings as SettingsIcon, Shield, X, Zap } from 'lucide-react-native';
 import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { AppSwitch } from '@/components/AppSwitch';
 import { ThemeSwitch } from '@/components/ThemeSwitch';
 import { Txt } from '@/components/Txt';
+import { VolleyBall } from '@/components/VolleyBall';
 import { useToast } from '@/components/Toast';
 import { useApp } from '@/store/AppProvider';
 import { useTutorial } from '@/lib/tutorial';
@@ -207,16 +208,16 @@ export default function Settings() {
               </IconButton>
             </View>
 
-            <Block icon={<Moon size={16} color={c.accent} />} title="Aspetto">
-              <Item title="Modalità scura" sub={mode === 'dark' ? 'Attiva' : 'Disattivata'} first
+            <Block icon={<Moon size={16} color={c.accent} fill={c.accent} />} title="Aspetto">
+              <Item title="Modalità scura" first
                 right={<ThemeSwitch dark={mode === 'dark'} onChange={(d) => { if (d !== (mode === 'dark')) toggle(); }} />} />
             </Block>
 
             {/* notifiche e privacy: solo per gli utenti registrati */}
             {user ? (
               <>
-                <Block icon={<Bell size={16} color={c.accent} />} title="Notifiche" open={notifOpen} onToggle={toggleNotif}>
-                  <Item title="Notifiche attive" sub={notifOpen ? 'Spegnile per non ricevere nulla.' : 'Tocca Notifiche per scegliere quali ricevere.'} first
+                <Block icon={<Bell size={16} color={c.accent} fill={c.accent} />} title="Notifiche" open={notifOpen} onToggle={toggleNotif}>
+                  <Item title="Notifiche attive" first
                     right={toggleSwitch(notifAttive, setEnabled)} />
                   {notifOpen ? (
                     <View style={{ opacity: notifAttive ? 1 : 0.4 }} pointerEvents={notifAttive ? 'auto' : 'none'}>
@@ -227,44 +228,42 @@ export default function Settings() {
                   ) : null}
                 </Block>
 
-                <Block icon={<ShieldCheck size={16} color={c.accent} />} title="Privacy">
+                <Block icon={<Shield size={16} color={c.accent} fill={c.accent} />} title="Privacy">
                   <Pressable onPress={() => router.push('/account')} accessibilityRole="button">
-                    <Item title="Account e privacy" sub="Consensi, informativa, elimina account" first
+                    <Item title="Account e privacy" first
                       right={<ChevronRight size={17} color={c.muted} />} />
                   </Pressable>
                 </Block>
               </>
             ) : (
               // senza accesso niente interruttore: le notifiche si attivano solo dopo il login
-              <Block icon={<Bell size={16} color={c.accent} />} title="Notifiche">
+              <Block icon={<Bell size={16} color={c.accent} fill={c.accent} />} title="Notifiche">
                 <Pressable onPress={() => router.replace('/login')} accessibilityRole="link" accessibilityLabel="Accedi per attivare le notifiche">
-                  <Item title="Accedi per attivare le notifiche" sub="Avvisi su risultati, dirette e news della squadra." first
+                  <Item title="Accedi per attivare le notifiche" first
                     right={<ChevronRight size={17} color={c.muted} />} />
                 </Pressable>
               </Block>
             )}
 
-            <Block icon={<BookOpen size={16} color={c.accent} />} title="Guida">
-              {/* si chiude il riquadro e la guida riparte dalla pagina di benvenuto */}
-              <Pressable onPress={() => { router.back(); rivedi(); }} accessibilityRole="button" accessibilityLabel="Rivedi la guida">
-                <Item title="Rivedi la guida" sub="Il tour delle sezioni dell'app, dall'inizio." first
-                  right={<ChevronRight size={17} color={c.muted} />} />
-              </Pressable>
+            <Block icon={<BookOpen size={16} color={c.accent} fill={c.accent} />} title="Guida">
+              {/* si chiude il riquadro e il tour riparte dall'inizio */}
+              <Item title="Tour dell'app" first
+                right={<Button size="sm" label="Riproponi" accessibilityLabel="Riproponi la guida" onPress={() => { router.back(); rivedi(); }} />} />
             </Block>
 
             {/* per ora solo per gli amministratori: l'opzione non è ancora pronta per il pubblico */}
             {user?.role === 'admin' ? (
-              <Block icon={<Megaphone size={16} color={c.accent} />} title="Pubblicità">
-                <Item title="Elimina pubblicità" sub="Non mostrare più gli annunci al centro dello schermo." first
+              <Block icon={<Megaphone size={16} color={c.accent} fill={c.accent} />} title="Pubblicità">
+                <Item title="Elimina pubblicità" first
                   right={toggleSwitch(noAds, setNoAds)} />
               </Block>
             ) : null}
 
             {/* stato e log dell'agente livescore: staff e admin */}
             {user?.role === 'admin' || user?.role === 'staff' ? (
-              <Block icon={<Radio size={16} color={c.accent} />} title="Agente livescore">
+              <Block icon={<Zap size={16} color={c.accent} fill={c.accent} />} title="Agente livescore">
                 <Pressable onPress={() => router.push('/agente')} accessibilityRole="button">
-                  <Item title="Stato e log" sub="Mac e Zima: finestra, punteggi scritti, avvisi ed errori" first
+                  <Item title="Stato e log" first
                     right={<ChevronRight size={17} color={c.muted} />} />
                 </Pressable>
               </Block>
@@ -272,8 +271,8 @@ export default function Settings() {
 
             {/* la partita demo la gestiscono solo gli amministratori collegati */}
             {user?.role === 'admin' ? (
-              <Block icon={<Volleyball size={16} color={c.accent} />} title="Partita demo">
-                <Item title="Partita in diretta (demo)" sub="Mostra in home una partita dimostrativa, se non ce n'è una vera in corso." first
+              <Block icon={<VolleyBall size={16} />} title="Partita demo">
+                <Item title="Partita in diretta (demo)" first
                   right={toggleSwitch(demoLive, setDemoLive)} />
               </Block>
             ) : null}
@@ -319,13 +318,12 @@ function Block({ icon, title, children, open, onToggle }: { icon: ReactNode; tit
   );
 }
 
-function Item({ title, sub, right, first }: { title: string; sub?: string; right: ReactNode; first?: boolean }) {
+function Item({ title, right, first }: { title: string; right: ReactNode; first?: boolean }) {
   const { c } = useTheme();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm, borderTopWidth: first ? 0 : 1, borderTopColor: c.line }}>
       <View style={{ flex: 1 }}>
         <Txt w={600} size={14}>{title}</Txt>
-        {sub ? <Txt size={12} color="muted">{sub}</Txt> : null}
       </View>
       {right}
     </View>

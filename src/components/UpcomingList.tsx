@@ -33,7 +33,8 @@ export function UpcomingList({ matches, onPress }: { matches: Match[]; onPress?:
               <View style={{ flex: 1, gap: space.sm }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
                   <TeamBadge name={m.opponent} logo={m.opponentLogo} size={28} />
-                  <Txt w={700} size={15 * f} numberOfLines={2} style={{ flex: 1 }}>{m.opponent}</Txt>
+                  {/* nome avversaria più piccolo: deve stare tutto su due righe, senza puntini; se non basta il font si riduce ancora */}
+                  <Txt w={700} size={13.5 * f} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.7} style={{ flex: 1 }}>{m.opponent}</Txt>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }} accessibilityLabel={`${home ? 'In casa' : 'Trasferta'}${m.venue ? `, ${m.venue}` : ''}`}>
                   <View style={{ width: 28, alignItems: 'center' }}>

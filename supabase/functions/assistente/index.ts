@@ -296,15 +296,25 @@ function pulisciStorico(raw: unknown): Msg[] | null {
 // deno-lint-ignore no-explicit-any
 type Risposta = { choices?: { message?: any }[] };
 
+/** Tempo massimo di una singola chiamata a Groq: oltre si passa al modello successivo */
+const TIMEOUT_GROQ_MS = 12000;
+/** Tempo massimo complessivo: la risposta deve arrivare prima del timeout del client (45 s) */
+const SCADENZA_TOTALE_MS = 38000;
+
 // deno-lint-ignore no-explicit-any
-async function chiamaGroq(key: string, modelli: string[], messages: any[], conTool: boolean): Promise<{ out: Risposta; modelli: string[] }> {
+async function chiamaGroq(key: string, modelli: string[], messages: any[], conTool: boolean, scadenza: number): Promise<{ out: Risposta; modelli: string[] }> {
   for (let i = 0; i < modelli.length; i++) {
     const model = modelli[i];
     for (let tentativo = 0; tentativo < 2; tentativo++) {
-      const res = await fetch(GROQ_URL, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const resta = scadenza - Date.now();
+      if (resta < 2000) throw new Error('Tempo scaduto');
+      let res: Response;
+      try {
+        res = await fetch(GROQ_URL, {
+          method: 'POST',
+          signal: AbortSignal.timeout(Math.min(TIMEOUT_GROQ_MS, resta)),
+          headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
           model,
           messages,
           tools: TOOLS,
@@ -313,16 +323,22 @@ async function chiamaGroq(key: string, modelli: string[], messages: any[], conTo
           temperature: 0.2,
           // i modelli gpt-oss ragionano prima di rispondere: servono più token e poco ragionamento
           ...(model.startsWith('openai/gpt-oss') ? { reasoning_effort: 'low', max_completion_tokens: 1500 } : { max_completion_tokens: 500 }),
-        }),
-      });
+          }),
+        });
+      } catch (e) {
+        // timeout o rete: si prova subito il modello successivo
+        console.error('Groq', model, 'rete/timeout', e instanceof Error ? e.name : e);
+        break;
+      }
       // il modello che ha funzionato resta il primo per i giri successivi
       if (res.ok) return { out: await res.json(), modelli: modelli.slice(i) };
       const body = await res.text();
       console.error('Groq', model, res.status, body.slice(0, 300));
       // tool call malformata (tool_use_failed): di solito basta riprovare una volta
       if (res.status === 400 && body.includes('tool_use_failed')) continue;
-      // modello non disponibile per questa chiave: si prova il successivo, ogni altro errore si ferma qui
-      if (res.status === 404 || body.includes('model_not_found') || body.includes('model_decommissioned')) break;
+      // limite di richieste/token al minuto (429), modello sovraccarico (5xx), modello non disponibile (404):
+      // ogni modello Groq ha limiti separati, quindi si prova il successivo invece di fermarsi
+      if (res.status === 429 || res.status >= 500 || res.status === 404 || body.includes('model_not_found') || body.includes('model_decommissioned')) break;
       throw new Error(`Groq ${res.status}`);
     }
   }
@@ -334,6 +350,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json({ error: 'Metodo non consentito' }, 405);
 
+  const inizio = Date.now();
   try {
     const auth = req.headers.get('Authorization');
     if (!auth) return json({ error: 'Non autenticato' }, 401);
@@ -391,8 +408,9 @@ Deno.serve(async (req) => {
     const scelto = Deno.env.get('GROQ_MODEL');
     let modelli = scelto ? [scelto, ...MODELLI.filter((m) => m !== scelto)] : MODELLI;
 
+    const scadenza = inizio + SCADENZA_TOTALE_MS;
     for (let giro = 0; giro < MAX_GIRI_TOOL; giro++) {
-      const r = await chiamaGroq(key, modelli, messages, giro < MAX_GIRI_TOOL - 1);
+      const r = await chiamaGroq(key, modelli, messages, giro < MAX_GIRI_TOOL - 1, scadenza);
       modelli = r.modelli;
       const msg = r.out.choices?.[0]?.message;
       if (!msg) break;

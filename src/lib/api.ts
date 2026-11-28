@@ -876,7 +876,7 @@ export class ConsensoAssistenteMancante extends Error {}
 
 export async function askAssistant(history: AssistantMessage[]): Promise<{ reply: string; limitReached: boolean }> {
   if (!supabase) throw new Error('Supabase non configurato');
-  const { data, error } = await supabase.functions.invoke('assistente', { body: { messages: history.slice(-10) }, timeout: 30000 });
+  const { data, error } = await supabase.functions.invoke('assistente', { body: { messages: history.slice(-10) }, timeout: 45000 });
   if (error) {
     const res = (error as { context?: unknown }).context;
     if (res instanceof Response && res.status === 403) {

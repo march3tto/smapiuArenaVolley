@@ -1,15 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Animated, Dimensions, View, useWindowDimensions } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Volleyball } from 'lucide-react-native';
-import { Button } from './Button';
 import { Pressy } from './Pressy';
 import { Txt } from './Txt';
-import { LEAGUE, US } from '@/constants';
 import { haBersaglio, misuraBersaglio, misuraNodo, useTutorial, type Rettangolo } from '@/lib/tutorial';
 import { palette, space } from '@/theme/colors';
-import { useTheme } from '@/theme/ThemeProvider';
 
 /** Passi del tour: id del bersaglio registrato con bersaglioGuida, titolo e testo del fumetto */
 const PASSI = [
@@ -19,6 +14,7 @@ const PASSI = [
   { id: 'assistente', titolo: 'Assistente', testo: 'Chiedi quello che vuoi su squadra, partite e società. Tieni premuto per cambiare avatar.' },
   { id: 'tab-news', titolo: 'News', testo: 'Articoli, video e podcast della squadra.' },
   { id: 'tab-altro', titolo: 'Altro', testo: 'Società, sponsor, contatti e galleria foto.' },
+  { id: 'social', titolo: 'Social', testo: 'Tocca qui per aprire Instagram, Facebook, YouTube e il sito della squadra.' },
   { id: 'impostazioni', titolo: 'Impostazioni', testo: 'Tema scuro, notifiche (dopo l\'accesso) e, quando vuoi, rivedere questa guida.' },
 ] as const;
 
@@ -36,43 +32,15 @@ const DISSOLVENZA = 220;
 
 type Passo = { indice: number; rect: Rettangolo };
 
-/** Guida di benvenuto alla prima apertura: pagina di benvenuto, poi tour a riflettore sopra l'app vera */
+/** Guida alla prima apertura: tour a riflettore sopra l'app vera, a partire dalla Home */
 export function WelcomeTutorial() {
   const { completa } = useTutorial();
-  const [fase, setFase] = useState<'benvenuto' | 'tour'>('benvenuto');
   const router = useRouter();
-
-  const faiIlTour = () => {
+  // il tour parte sempre dalla Home (anche quando lo si ripropone dalle impostazioni)
+  useEffect(() => {
     router.navigate('/');
-    setFase('tour');
-  };
-
-  if (fase === 'benvenuto') return <Benvenuto onTour={faiIlTour} onSalta={completa} />;
+  }, [router]);
   return <Tour onFine={completa} />;
-}
-
-/** Pagina a tutto schermo con icona, titolo e le due scelte */
-function Benvenuto({ onTour, onSalta }: { onTour: () => void; onSalta: () => void }) {
-  const { c } = useTheme();
-  const insets = useSafeAreaInsets();
-  return (
-    <View accessibilityViewIsModal style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: c.bg,
-      alignItems: 'center', justifyContent: 'center', paddingTop: insets.top + space.lg, paddingBottom: insets.bottom + space.lg, paddingHorizontal: space.lg }}>
-      <View style={{ width: '100%', maxWidth: 420, alignItems: 'center', gap: space.md }}>
-        <View style={{ width: 120, height: 120, borderRadius: 36, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.gold, marginBottom: space.sm }}>
-          <Volleyball size={64} color={palette.onGold} strokeWidth={1.8} />
-        </View>
-        <Txt w={900} size={30} center accessibilityRole="header">{`Benvenuto in ${US}`}</Txt>
-        <Txt size={16} color="muted" center style={{ lineHeight: 23 }}>
-          {`L'app della squadra di ${LEAGUE}: dirette, risultati, rosa e news in un posto solo. In pochi passi ti mostriamo dove trovare tutto.`}
-        </Txt>
-        <Button label="Fai il tour" variant="gold" size="lg" onPress={onTour} style={{ alignSelf: 'stretch', marginTop: space.md }} />
-        <Pressy onPress={onSalta} accessibilityRole="button" accessibilityLabel="Salta la guida, la vedo dopo" hitSlop={8} style={{ paddingVertical: space.sm }}>
-          <Txt w={600} size={14} color="muted" style={{ textDecorationLine: 'underline' }}>Salta, lo vedo dopo</Txt>
-        </Pressy>
-      </View>
-    </View>
-  );
 }
 
 /** Tour a riflettore: schermo scuro con un buco sull'elemento e un fumetto che lo indica */
